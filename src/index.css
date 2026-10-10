@@ -5,25 +5,51 @@
 :root {
   --cookie-notice-height: 0px;
   --service-worker-prompt-height: 0px;
+  /* 底部标签栏已随侧边导航改造移除。变量保留：返回顶部、目录、阅读进度徽标等
+     浮层都以 calc(var(--tab-bar-height, 0px) + …) 定位，留 0 即可自然归零，
+     无需逐处改写表达式。 */
   --tab-bar-height: 0px;
+  /* 侧边导航宽度：展开/折叠两档，折叠态由 html[data-nav-collapsed] 切换。 */
+  --sidebar-width: 16rem;
+  --sidebar-collapsed-width: 4.25rem;
+  --sidebar-active-width: var(--sidebar-width);
   /* 文章标题锚点顶部偏移：唯一数据源。Layout 运行时按实测导航栏高度覆盖
      （专注阅读为 1.5rem）；JS（TOC 跳转/active 判断/hash 深链）与下方
      .post-prose 的 scroll-margin-top 统一读取。6.5rem=104px 为桌面兜底。 */
   --article-heading-offset: 6.5rem;
 }
 
-/* 移动端底部标签栏（lg 以下）：高度 = 内容区 3.5rem + 底部安全区，
-   壳内浮层（返回顶部/目录/进度徽标等）与主内容底部内边距据此避让；
-   专注阅读模式无标签栏，壳内归零。壳外浮层（Cookie 提示等）使用 :root 值。 */
-@media (max-width: 1023.98px) {
-  :root {
-    --tab-bar-height: calc(3.5rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  .site-shell[data-reading-mode='true'] {
-    --tab-bar-height: 0px;
-  }
+/* 侧边导航折叠：偏好由 index.html 的引导脚本在首帧写入 html[data-nav-collapsed]，
+   宽度与标签显隐全部由 CSS 驱动 —— React 树不因折叠态重建，SSG 首帧无闪烁，
+   也避免「渲染期读 localStorage」造成的水合不一致（ai-rules/layout-nav.md）。 */
+html[data-nav-collapsed='true'] {
+  --sidebar-active-width: var(--sidebar-collapsed-width);
 }
+
+.site-sidebar {
+  width: var(--sidebar-active-width);
+  overflow-x: hidden;
+  transition: width 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 折叠态只留图标条：文字直接移出布局，行内容居中；导航项本身仍是
+   同一批 DOM 节点（无障碍名不丢失），只是宽度变窄后被裁剪。 */
+html[data-nav-collapsed='true'] .site-sidebar .nav-item-label,
+html[data-nav-collapsed='true'] .site-sidebar .nav-item-hint,
+html[data-nav-collapsed='true'] .site-sidebar .sidebar-nav-group-title,
+html[data-nav-collapsed='true'] .site-sidebar .sidebar-brand-text,
+html[data-nav-collapsed='true'] .site-sidebar .sidebar-footer {
+  display: none;
+}
+
+html[data-nav-collapsed='true'] .site-sidebar .nav-item,
+html[data-nav-collapsed='true'] .site-sidebar .sidebar-brand {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* 横屏矮视口的自动折叠见文件后半「landscape」区块，与浮动控件收窄同处维护。 */
 
 @layer base {
   html {
@@ -243,38 +269,6 @@
   }
 }
 
-.nav-more-menu-panel {
-  /* visibility: hidden —— 关闭态面板仅靠 opacity/pointer-events 隐藏时，
-     7 个 role="menuitem" 仍常驻可访问性树，读屏浏览模式下会读到不可见的
-     菜单项（tabIndex=-1 只阻止 Tab 聚焦）。hidden 移出可访问性树；
-     transition 把 visibility 切换延迟到 opacity 淡出结束后，动画不受影响。 */
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-0.35rem);
-  transition:
-    opacity 160ms ease,
-    transform 160ms ease,
-    visibility 0s linear 160ms;
-}
-
-.nav-more-menu-panel[data-open='true'] {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-  transition:
-    opacity 160ms ease,
-    transform 160ms ease,
-    visibility 0s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nav-more-menu-panel {
-    transition-duration: 1ms;
-  }
-}
-
 .mobile-nav-backdrop,
 .mobile-nav-panel {
   transition-property: opacity, transform;
@@ -298,10 +292,11 @@
   pointer-events: none;
 }
 
+/* 左侧抽屉：静置态移出资区左侧，打开时归位；拖拽关闭沿 X 轴（见 Layout 的
+   handleTouchMove/End）。面板高度由 inset-y-0 撑满，无需再设 max-height。 */
 .mobile-nav-panel {
-  max-height: 100dvh;
   opacity: 0;
-  transform: translate3d(0, 100%, 0);
+  transform: translate3d(-100%, 0, 0);
   pointer-events: none;
 }
 
@@ -317,10 +312,10 @@
 
 .mobile-nav-scroll {
   min-height: 0;
-  max-height: calc(100dvh - 2.5rem);
+  height: 100%;
   overflow-y: auto;
-  /* 滚动到顶部/底部时阻止滚动继续传播到背后页面，避免下拉关闭手势时
-     背景内容一起滚动造成“双拖”感（与 JS 原生 touchmove 拦截互补）。 */
+  /* 抽屉内容仍是纵向列表：滚动到顶/底时阻止滚动传播到背后页面，避免左滑
+     关闭手势与背景内容一起滚动造成“双拖”感（与 JS 原生 touchmove 拦截互补）。 */
   overscroll-behavior-y: contain;
 }
 
@@ -336,6 +331,10 @@
 
   .mobile-nav-backdrop,
   .mobile-nav-panel {
+    transition-duration: 1ms;
+  }
+
+  .site-sidebar {
     transition-duration: 1ms;
   }
 
@@ -360,8 +359,27 @@
 
 /* 横屏/矮视口：右下角浮动控件（返回顶部、阅读进度、目录触发）垂直堆叠会占据
    近一半屏高并遮挡正文。矮屏下收窄到只保留返回顶部，其余隐藏，点按顶部控件
-   也不会再被下方控件误触。 */
+   也不会再被下方控件误触。侧栏同样默认收成图标条，把宽度让给正文。 */
 @media (max-height: 480px) and (orientation: landscape) {
+  :root {
+    --sidebar-active-width: var(--sidebar-collapsed-width);
+  }
+
+  .site-sidebar .nav-item-label,
+  .site-sidebar .nav-item-hint,
+  .site-sidebar .sidebar-nav-group-title,
+  .site-sidebar .sidebar-brand-text,
+  .site-sidebar .sidebar-footer {
+    display: none;
+  }
+
+  .site-sidebar .nav-item,
+  .site-sidebar .sidebar-brand {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   .reading-progress-badge {
     display: none;
   }
@@ -1623,6 +1641,7 @@ html.dark .mermaid-diagram > svg {
 
   .print-hidden,
   .site-navbar,
+  .site-sidebar,
   .site-footer,
   nav[aria-label='目录'],
   .back-to-top-btn,

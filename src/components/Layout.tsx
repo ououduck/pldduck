@@ -1,40 +1,16 @@
 /**
- * 全站布局壳：顶栏导航（含主题切换/移动端抽屉）、页脚、背景纹理与路由内容容器；提供页面级快捷键与不蒜子统计上报。
+ * 全站布局壳：可折叠侧边导航（桌面常驻左栏 + 移动端左滑抽屉）、细顶栏、页脚、
+ * 背景纹理与路由内容容器；提供页面级快捷键与不蒜子统计上报。
  */
 
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import {
-  Sun,
-  Moon,
-  Github,
-  X,
-  Search,
-  Rss,
-  BookOpen,
-  Archive,
-  Tag,
-  BarChart3,
-  Users,
-  Info,
-  Bell,
-  ChevronDown,
-  Mail,
-  ExternalLink,
-  Image as ImageIcon,
-  MessageSquareText,
-  MessageCircle,
-  LayoutGrid,
-  TrainFront,
-} from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { preloadPage } from '@/utils/preload';
-import { assetUrl } from '@/utils/siteUrl';
 import { siteConfig } from '@config/site.config';
 import { pingBusuanzi } from '@/services/busuanzi';
 
-import { ProgressiveImage } from './ProgressiveImage';
-import { ISSUE_SUBSCRIPTION_URL } from './IssueSubscriptionCard';
+import { SiteSidebar, SiteSidebarBody } from './SiteSidebar';
+import { SiteTopBar } from './SiteTopBar';
 import { useReducedMotion as useSiteReducedMotion } from '@/hooks/useReducedMotion';
 import { hasOpenOverlay, lockBodyScroll, unlockBodyScroll } from '@/hooks/useModalOverlay';
 import { useReadingMode, ReadingModeProvider } from './ReadingModeContext';
@@ -43,117 +19,6 @@ import { routeTransition } from '@/utils/motion';
 const BackToTop = lazy(() => import('./BackToTop').then((m) => ({ default: m.BackToTop })));
 const FeedbackDock = lazy(() => import('./FeedbackDock').then((m) => ({ default: m.FeedbackDock })));
 const CommandPalette = lazy(() => import('./CommandPalette').then((m) => ({ default: m.CommandPalette })));
-
-const TEXT = {
-  theme: '外观',
-  themeLight: '浅色',
-  themeDark: '深色',
-  navPosts: '文章',
-  navArchive: '归档',
-  navTags: '标签',
-  navStats: '统计',
-  navFriends: '友链',
-  navGuestbook: '留言',
-  navShuoShuo: '说说',
-  navAbout: '关于',
-  navTravellings: '开往',
-  rssFeed: 'RSS 订阅',
-};
-
-type NavIcon = typeof BookOpen;
-type NavPathItem = { path: string; label: string; hint: string; icon: NavIcon; key?: string };
-type NavHrefItem = { href: string; label: string; hint: string; icon: NavIcon; key?: string };
-type NavItem = NavPathItem | NavHrefItem;
-
-const shuoshuoNavItem: NavPathItem = {
-  path: '/shuoshuo',
-  label: TEXT.navShuoShuo,
-  hint: '朋友圈式动态',
-  icon: MessageCircle,
-};
-
-const navItems: NavPathItem[] = [
-  { path: '/posts', label: TEXT.navPosts, hint: '全部文章', icon: BookOpen },
-  shuoshuoNavItem,
-  { path: '/archive', label: TEXT.navArchive, hint: '时间归档', icon: Archive },
-  { path: '/tags', label: TEXT.navTags, hint: '主题筛选', icon: Tag },
-  { path: '/stats', label: TEXT.navStats, hint: '站点数据', icon: BarChart3 },
-  { path: '/friends', label: TEXT.navFriends, hint: '友情链接', icon: Users },
-  { path: '/guestbook', label: TEXT.navGuestbook, hint: '留言互动', icon: MessageSquareText },
-  { path: '/about', label: TEXT.navAbout, hint: '站点介绍', icon: Info },
-];
-
-// 开往（travellings）：点击随机跳转到一名成员站点，桌面端置于「关于」与「更多」之间，
-// 移动端收纳进抽屉「更多」面板的「发现」分组。
-const TRAVELLINGS_URL = 'https://www.travellings.cn/go.html';
-const travellingsNavItem: NavHrefItem = {
-  key: 'travellings',
-  label: TEXT.navTravellings,
-  hint: '随机前往成员站点',
-  icon: TrainFront,
-  href: TRAVELLINGS_URL,
-};
-
-const moreNavItems: NavItem[] = [
-  {
-    key: 'cover',
-    path: '/cover',
-    label: '封面生成器',
-    hint: '制作文章封面',
-    icon: ImageIcon,
-  },
-  {
-    key: 'watermark',
-    path: '/watermark',
-    label: '水印工具',
-    hint: '给图片添加文字水印',
-    icon: ImageIcon,
-  },
-  { key: 'email', label: '邮件', hint: '联系作者', icon: Mail, href: siteConfig.social.email },
-  {
-    key: 'github',
-    label: 'GitHub',
-    hint: '项目仓库',
-    icon: Github,
-    href: siteConfig.friendsPage.repoUrl,
-  },
-  { key: 'rss', label: TEXT.rssFeed, hint: '订阅更新', icon: Rss, href: assetUrl('/feed.xml') },
-  {
-    key: 'issue-subscription',
-    label: '订阅',
-    hint: '接收文章提醒',
-    icon: Bell,
-    href: ISSUE_SUBSCRIPTION_URL,
-  },
-];
-
-// 移动端底部标签栏：高频入口一级直达（首页/说说/搜索/友链），其余栏目收纳进「更多」面板。
-const mobileTabItems: Array<{ key: string; path: string; label: string; icon: NavIcon }> = [
-  { key: 'home', path: '/', label: '首页', icon: BookOpen },
-  { key: 'shuoshuo', path: '/shuoshuo', label: TEXT.navShuoShuo, icon: MessageCircle },
-  { key: 'search', path: '/search', label: '搜索', icon: Search },
-  { key: 'friends', path: '/friends', label: TEXT.navFriends, icon: Users },
-];
-
-// 「更多」面板分组：栏目 / 工具 / 订阅与联系（路径项走 SPA 导航，外链项新窗口打开）。
-const mobileMorePanelGroups: Array<{ label: string; items: NavItem[] }> = [
-  {
-    label: '栏目',
-    items: navItems.filter((item) => !['/shuoshuo', '/friends'].includes(item.path)),
-  },
-  {
-    label: '工具',
-    items: moreNavItems.filter((item) => ['cover', 'watermark'].includes(item.key ?? '')),
-  },
-  {
-    label: '订阅与联系',
-    items: moreNavItems.filter((item) => ['email', 'github', 'rss', 'issue-subscription'].includes(item.key ?? '')),
-  },
-  {
-    label: '发现',
-    items: [travellingsNavItem],
-  },
-];
 
 const isEditableTarget = (target: EventTarget | null) => {
   if (!(target instanceof HTMLElement)) {
@@ -164,141 +29,28 @@ const isEditableTarget = (target: EventTarget | null) => {
   return target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select';
 };
 
-const ThemeToggle = () => {
-  type Theme = 'light' | 'dark';
-  const hasInitializedThemeRef = useRef(false);
-  const prefersReducedMotion = useSiteReducedMotion();
-  const [theme, setTheme] = useState<Theme>('light');
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const systemQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    // 水合后确定实际主题：优先恢复用户保存的显式亮/暗选择；无保存值（或旧版
-    // 'system'）时按系统偏好解析初始明暗，即“打开网页自动检测系统”。
-    // 该解析只在首次挂载（水合恢复）时生效，后续切换不会被旧值反向覆盖。
-    let effectiveTheme: Theme = theme;
-    let saved: string | null = null;
-    try {
-      saved = localStorage.getItem('theme');
-    } catch {
-      // 浏览器存储不可用时，主题持久化为可选能力。
-    }
-
-    if (!hasInitializedThemeRef.current) {
-      if (saved === 'light' || saved === 'dark') {
-        effectiveTheme = saved;
-      } else {
-        effectiveTheme = systemQuery.matches ? 'dark' : 'light';
-      }
-    }
-
-    const applyTheme = (nextTheme: Theme) => {
-      const shouldBeDark = nextTheme === 'dark';
-      const isDarkApplied = root.classList.contains('dark');
-
-      const applyChanges = () => {
-        if (shouldBeDark) {
-          root.classList.add('dark');
-        } else {
-          root.classList.remove('dark');
-        }
-      };
-
-      // 仅当主题 class 实际需要变化时才播动画：水合恢复保存的主题后，setTheme
-      // 触发的 effect 重跑是幂等应用（class 已正确），不应再产生可见过渡；
-      // 首次恢复（hasInitializedThemeRef 尚为 false）也直接生效、跳过动画。
-      // 统一只走原生 View Transitions（不支持时直接应用，无全局 CSS 过渡）。
-      const themeActuallyChanges = shouldBeDark !== isDarkApplied;
-      if (
-        themeActuallyChanges &&
-        hasInitializedThemeRef.current &&
-        !prefersReducedMotion &&
-        document.startViewTransition
-      ) {
-        try {
-          document.startViewTransition(() => {
-            applyChanges();
-          });
-        } catch {
-          // 已有活动中的 View Transition（快速连点主题按钮）时按规范同步抛
-          // InvalidStateError：直接应用主题，避免异常冒泡到 ErrorBoundary
-          // 导致整页崩溃且主题切换不生效。
-          applyChanges();
-        }
-      } else {
-        applyChanges();
-      }
-    };
-
-    if (effectiveTheme !== theme) {
-      // 首次应用检测/恢复得到的主题：跳过过渡动画，直接生效。
-      // hasInitializedThemeRef 保持 false 直到 applyTheme 完成，确保首次
-      // 恢复不会误走 startViewTransition / theme-switching 动画分支。
-      setTheme(effectiveTheme);
-    }
-
-    applyTheme(effectiveTheme);
-    hasInitializedThemeRef.current = true;
-  }, [prefersReducedMotion, theme]);
-
-  const toggleTheme = useCallback(() => {
-    const next = theme === 'light' ? 'dark' : 'light';
-    setTheme(next);
-    // 仅显式切换才持久化：系统检测出的默认值不落盘，保证每次打开页面都
-    // 重新按系统偏好检测；用户点击一次后，该选择稳定沿用。
-    try {
-      localStorage.setItem('theme', next);
-    } catch {
-      // 浏览器存储不可用时，主题持久化为可选能力。
-    }
-  }, [theme]);
-
-  // 命令面板等外部入口通过自定义事件请求切换主题（不直接依赖组件实例）。
-  useEffect(() => {
-    const handleExternalToggle = () => toggleTheme();
-    window.addEventListener('dblog:toggle-theme', handleExternalToggle);
-    return () => window.removeEventListener('dblog:toggle-theme', handleExternalToggle);
-  }, [toggleTheme]);
-
-  const currentThemeLabel = theme === 'light' ? TEXT.themeLight : TEXT.themeDark;
-  const nextThemeLabel = theme === 'light' ? TEXT.themeDark : TEXT.themeLight;
-
-  return (
-    <button
-      onClick={toggleTheme}
-      className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-zinc-300 bg-zinc-100 text-ink transition-colors hover:border-zinc-500 hover:bg-zinc-200 active:bg-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500 dark:active:bg-zinc-700"
-      aria-label={`切换外观主题，当前为${currentThemeLabel}，点击切换为${nextThemeLabel}`}
-    >
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={theme}
-          initial={prefersReducedMotion ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={prefersReducedMotion ? undefined : { opacity: 0 }}
-          transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
-        >
-          {theme === 'light' ? <Sun size={18} /> : <Moon size={18} />}
-        </motion.div>
-      </AnimatePresence>
-      <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-control border border-zinc-700 bg-black px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-        {currentThemeLabel}
-      </span>
-    </button>
-  );
-};
-
 type MobileNavPhase = 'closed' | 'opening' | 'open' | 'closing';
 
 const MOBILE_NAV_ANIMATION_DURATION_MS = 340;
 
-const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
+/** 侧栏折叠偏好键；index.html 的引导脚本读同一键，两处必须保持一致。 */
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sidebar-collapsed';
+
+const MOBILE_NAV_MENU_BUTTON_ID = 'mobile-nav-menu-button';
+
+interface NavbarProps {
+  onSearchNavigate: () => void;
+  sidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
+}
+
+/**
+ * 顶栏 + 移动端左滑抽屉。抽屉的状态机（四态相位、双 rAF 起步、动画期守卫、
+ * 焦点陷阱、滚动锁）沿用既有实现，仅把手势轴从上下翻转为左右。
+ */
+const Navbar = ({ onSearchNavigate, sidebarCollapsed, onToggleSidebar }: NavbarProps) => {
   const [mobileNavPhase, setMobileNavPhase] = useState<MobileNavPhase>('closed');
   const [isMobileNavMounted, setIsMobileNavMounted] = useState(false);
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-  const [desktopMoreMenuActiveIndex, setDesktopMoreMenuActiveIndex] = useState(0);
-  const desktopMoreMenuButtonRef = useRef<HTMLButtonElement | null>(null);
-  const desktopMoreMenuItemRefs = useRef<Array<HTMLElement | null>>([]);
   const location = useLocation();
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
@@ -306,7 +58,6 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
   const transitionTimerRef = useRef<number | null>(null);
   const afterCloseActionRef = useRef<(() => void) | null>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
-  const mobileNavMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const mobileNavPanelRef = useRef<HTMLElement | null>(null);
   const touchStartYRef = useRef<number>(0);
   const touchCurrentYRef = useRef<number>(0);
@@ -318,63 +69,7 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
   const isSwipingRef = useRef(false);
   const mobileNavDuration = shouldReduceMotion ? 1 : MOBILE_NAV_ANIMATION_DURATION_MS;
   const isMobileNavOpen = mobileNavPhase === 'open' || mobileNavPhase === 'opening';
-  const closeDesktopMoreMenu = useCallback((restoreFocus = false) => {
-    setIsMoreMenuOpen(false);
-    if (restoreFocus) {
-      window.setTimeout(() => desktopMoreMenuButtonRef.current?.focus(), 0);
-    }
-  }, []);
-  const focusDesktopMoreMenuItem = useCallback((index: number) => {
-    setDesktopMoreMenuActiveIndex(index);
-    window.setTimeout(() => desktopMoreMenuItemRefs.current[index]?.focus(), 0);
-  }, []);
-  const handleDesktopMoreMenuButtonKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLButtonElement>) => {
-      if (event.key === 'Escape' && isMoreMenuOpen) {
-        event.preventDefault();
-        closeDesktopMoreMenu(true);
-        return;
-      }
-
-      if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        setIsMoreMenuOpen(true);
-        focusDesktopMoreMenuItem(0);
-      } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        setIsMoreMenuOpen(true);
-        focusDesktopMoreMenuItem(moreNavItems.length - 1);
-      }
-    },
-    [closeDesktopMoreMenu, focusDesktopMoreMenuItem, isMoreMenuOpen],
-  );
-  const handleDesktopMoreMenuItemKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLElement>, index: number) => {
-      const lastIndex = moreNavItems.length - 1;
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
-        event.preventDefault();
-        const nextIndex =
-          event.key === 'Home'
-            ? 0
-            : event.key === 'End'
-              ? lastIndex
-              : (index + (event.key === 'ArrowDown' ? 1 : -1) + moreNavItems.length) % moreNavItems.length;
-        focusDesktopMoreMenuItem(nextIndex);
-        return;
-      }
-
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        closeDesktopMoreMenu(true);
-      } else if (event.key === 'Tab') {
-        setIsMoreMenuOpen(false);
-      }
-    },
-    [closeDesktopMoreMenu, focusDesktopMoreMenuItem],
-  );
   const isMobileNavAnimating = mobileNavPhase === 'opening' || mobileNavPhase === 'closing';
-  const isNavItemActive = (path: string) =>
-    location.pathname === path || (path === '/posts' && location.pathname.startsWith('/post/'));
 
   const clearAnimationFrame = useCallback(() => {
     if (animationFrameRef.current === null) {
@@ -399,7 +94,6 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
     clearTransitionTimer();
     setIsMobileNavMounted(false);
     setMobileNavPhase('closed');
-    setIsMoreMenuOpen(false);
 
     const afterCloseAction = afterCloseActionRef.current;
     afterCloseActionRef.current = null;
@@ -407,7 +101,8 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
     if (!afterCloseAction) {
       // 等触发按钮离开禁用动画状态后再恢复焦点。
       window.requestAnimationFrame(() => {
-        const focusTarget = previousActiveElementRef.current ?? mobileNavMenuButtonRef.current;
+        const focusTarget =
+          previousActiveElementRef.current ?? document.getElementById(MOBILE_NAV_MENU_BUTTON_ID) ?? undefined;
         focusTarget?.focus();
         previousActiveElementRef.current = null;
       });
@@ -570,7 +265,7 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
       touchCurrentXRef.current = touch.clientX;
       touchStartTimeRef.current = Date.now();
       mobileNavScrollRef.current = mobileNavPanelRef.current?.querySelector<HTMLElement>('.mobile-nav-scroll') ?? null;
-      canStartSwipeRef.current = Boolean(mobileNavScrollRef.current && mobileNavScrollRef.current.scrollTop <= 1);
+      canStartSwipeRef.current = Boolean(mobileNavScrollRef.current && mobileNavScrollRef.current.scrollLeft <= 1);
       isSwipingRef.current = false;
     },
     [mobileNavPhase],
@@ -590,9 +285,10 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
       touchCurrentYRef.current = currentY;
       touchCurrentXRef.current = currentX;
 
-      // 仅当从可滚动菜单顶部开始、以向下为主的手势才触发拖拽。
-      const isAtScrollTop = Boolean(mobileNavScrollRef.current && mobileNavScrollRef.current.scrollTop <= 1);
-      if (deltaY <= 0 || deltaY <= Math.abs(deltaX) || !canStartSwipeRef.current || !isAtScrollTop) {
+      // 仅当从菜单水平方向起点可左滑（面板内无横向滚动）、且以向左为主的
+      // 手势才触发拖拽。
+      const isAtScrollLeft = Boolean(mobileNavScrollRef.current && mobileNavScrollRef.current.scrollLeft <= 1);
+      if (deltaX >= 0 || Math.abs(deltaX) <= Math.abs(deltaY) || !canStartSwipeRef.current || !isAtScrollLeft) {
         return;
       }
 
@@ -602,12 +298,12 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
         // 阻止原生滚动继续，避免面板位移与内部滚动叠加抖动。
         engageNativeSwipeCapture(panel);
         panel.dataset.swiping = 'true';
-        panel.style.transform = `translate3d(0, ${deltaY}px, 0)`;
+        panel.style.transform = `translate3d(${deltaX}px, 0, 0)`;
         // 按位移比例调暗背景遮罩
         const backdrop = panel.parentElement?.querySelector('.mobile-nav-backdrop') as HTMLElement | null;
         if (backdrop) {
-          const panelHeight = panel.offsetHeight || 1;
-          const progress = Math.min(deltaY / panelHeight, 1);
+          const panelWidth = panel.offsetWidth || 1;
+          const progress = Math.min(Math.abs(deltaX) / panelWidth, 1);
           backdrop.style.opacity = String(1 - progress * 0.6);
         }
       }
@@ -623,18 +319,18 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
 
     const deltaY = touchCurrentYRef.current - touchStartYRef.current;
     const deltaX = touchCurrentXRef.current - touchStartXRef.current;
-    const isAtScrollTop = Boolean(mobileNavScrollRef.current && mobileNavScrollRef.current.scrollTop <= 1);
+    const isAtScrollLeft = Boolean(mobileNavScrollRef.current && mobileNavScrollRef.current.scrollLeft <= 1);
 
     resetMobileNavDragStyles();
 
-    // 手势关闭：距离足够（>80px）直接关闭；距离不足但快速甩动（>40px 且速度 >0.11px/ms）也视为有意关闭。
+    // 手势关闭：向左距离足够（>80px）直接关闭；距离不足但快速甩动（>40px 且速度 >0.11px/ms）也视为有意关闭。
     const elapsed = touchStartTimeRef.current > 0 ? Date.now() - touchStartTimeRef.current : 0;
-    const velocity = elapsed > 0 ? deltaY / elapsed : 0;
+    const velocity = elapsed > 0 ? deltaX / elapsed : 0;
     const shouldDismiss =
       isSwipingRef.current &&
-      isAtScrollTop &&
-      deltaY > Math.abs(deltaX) &&
-      (deltaY > 80 || (deltaY > 40 && velocity > 0.11));
+      isAtScrollLeft &&
+      Math.abs(deltaX) > Math.abs(deltaY) &&
+      (deltaX < -80 || (deltaX < -40 && velocity < -0.11));
 
     if (shouldDismiss) {
       requestCloseMobileNav();
@@ -763,7 +459,6 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
     previousActiveElementRef.current = null;
     setIsMobileNavMounted(false);
     setMobileNavPhase('closed');
-    setIsMoreMenuOpen(false);
   }, [clearAnimationFrame, clearTransitionTimer, isMobileNavMounted, locationKey, resetMobileNavDragStyles]);
 
   useEffect(
@@ -780,241 +475,23 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
   } as React.CSSProperties;
   const mobileNavPanelStyle = {
     ...mobileNavStyle,
-    // safe-area 内边距直接作用于面板本身；不再额外放置底部占位元素，
-    // 避免在 iPhone 上重复累加两次 inset 造成大面积空白。
-    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    // 左侧抽屉：safe-area 补左侧缺口（横屏刘海）与上下，面板本身占满整高。
     paddingLeft: 'env(safe-area-inset-left, 0px)',
-    paddingRight: 'env(safe-area-inset-right, 0px)',
+    paddingTop: 'env(safe-area-inset-top, 0px)',
+    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
   } as React.CSSProperties;
 
   return (
     <>
-      <nav
-        className={`site-navbar fixed left-0 right-0 top-0 ${isMobileNavMounted ? 'z-nav-panel' : 'z-nav'} border-b border-zinc-200/80 bg-paper/95 dark:border-zinc-800 dark:bg-void/95 lg:border-transparent lg:bg-paper lg:dark:border-transparent lg:dark:bg-void`}
-      >
-        {/* 顶部导航：内联 paddingTop 承接刘海/灵动岛的 safe-area-inset-top
-            （viewport-fit=cover 下固定顶部元素会贴进屏幕缺口），高度由 min-h 兜底，
-            内容在可用区域内保持垂直居中。 */}
-        <motion.div
-          initial={false}
-          className="mx-auto flex min-h-14 max-w-7xl items-center justify-between px-3 sm:min-h-16 sm:px-6 md:min-h-16"
-          style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-        >
-          <Link to="/" className="group z-50 flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
-            {/* 站标仅 96px，非 LCP 元素：显式 fetchPriority=auto，
-                避免与文章封面/首图竞争 high 优先级拖慢 LCP */}
-            <ProgressiveImage
-              src={assetUrl(siteConfig.logoSmall)}
-              alt={`${siteConfig.title} 站点标志`}
-              fetchPriority="auto"
-              width={96}
-              height={96}
-              wrapperClassName="h-8 w-8 bg-white sm:h-9 sm:w-9"
-              className="h-8 w-8 object-cover sm:h-9 sm:w-9"
-            />
-            <span className="max-w-[calc(100vw-9.5rem)] truncate font-serif text-lg font-bold tracking-tight text-ink dark:text-white sm:max-w-none sm:text-2xl">
-              {siteConfig.title}
-            </span>
-          </Link>
-
-          <div className="hidden min-w-0 shrink items-center gap-4 lg:flex">
-            <div className="flex min-w-0 shrink gap-2">
-              {navItems.map((item) => {
-                const isActive = isNavItemActive(item.path);
-
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onMouseEnter={() => preloadPage(item.path)}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`group relative inline-flex h-10 items-center px-2 py-1 text-sm font-semibold tracking-wide transition-colors ${
-                      isActive
-                        ? 'text-ink dark:text-white'
-                        : 'text-zinc-700 hover:text-ink dark:text-zinc-300 dark:hover:text-white'
-                    }`}
-                  >
-                    <span className="relative z-10">{item.label}</span>
-                    <span
-                      aria-hidden="true"
-                      className={`absolute bottom-[2px] left-2 right-2 h-[2px] origin-center rounded-none bg-zinc-900 dark:bg-zinc-100 transition-[transform,opacity] duration-[250ms] ${
-                        isActive
-                          ? 'scale-x-100 opacity-100'
-                          : 'scale-x-0 opacity-0 group-hover:scale-x-100 group-hover:opacity-70'
-                      }`}
-                    />
-                  </Link>
-                );
-              })}
-              <a
-                key={travellingsNavItem.key}
-                href={travellingsNavItem.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`${TEXT.navTravellings}（${travellingsNavItem.hint}）`}
-                className="group relative inline-flex h-10 items-center gap-1 px-2 py-1 text-sm font-semibold tracking-wide text-zinc-700 transition-colors hover:text-ink dark:text-zinc-300 dark:hover:text-white"
-              >
-                <TrainFront size={14} aria-hidden="true" className="relative z-10 shrink-0" />
-                <span className="relative z-10">{travellingsNavItem.label}</span>
-                <span
-                  aria-hidden="true"
-                  className="absolute bottom-[2px] left-2 right-2 h-[2px] origin-center scale-x-0 rounded-none bg-zinc-900 opacity-0 transition-[transform,opacity] duration-[250ms] group-hover:scale-x-100 group-hover:opacity-70 dark:bg-zinc-100"
-                />
-              </a>
-              <div
-                className="nav-more-menu relative"
-                onMouseEnter={() => setIsMoreMenuOpen(true)}
-                onMouseLeave={() => setIsMoreMenuOpen(false)}
-              >
-                <button
-                  ref={desktopMoreMenuButtonRef}
-                  type="button"
-                  className="group inline-flex h-10 items-center gap-1 px-2 py-1 text-sm font-semibold tracking-wide text-zinc-700 transition-colors hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:text-zinc-300 dark:hover:text-white"
-                  aria-label="展开更多菜单"
-                  aria-haspopup="menu"
-                  aria-expanded={isMoreMenuOpen}
-                  aria-controls="desktop-more-menu"
-                  // 切换而非只开：菜单已由 hover 打开时，再次点击按钮应关闭
-                  // （指针始终在容器内不会触发 mouseleave，只开不关会让
-                  // aria-expanded 按钮的第二次点击失效）。
-                  onClick={() => setIsMoreMenuOpen((open) => !open)}
-                  onKeyDown={handleDesktopMoreMenuButtonKeyDown}
-                >
-                  <span>更多</span>
-                  <ChevronDown
-                    size={14}
-                    className={`transition-transform duration-200 ${isMoreMenuOpen ? 'rotate-180' : ''}`}
-                    aria-hidden="true"
-                  />
-                </button>
-                <div
-                  id="desktop-more-menu"
-                  role="menu"
-                  data-open={isMoreMenuOpen}
-                  className="nav-more-menu-panel absolute right-0 top-full z-popover w-64 max-w-[calc(100vw-2rem)] rounded-surface border border-zinc-200 bg-paper p-1.5 shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
-                >
-                  {moreNavItems.map((item, index) => {
-                    const Icon = item.icon;
-                    const content = (
-                      <>
-                        <Icon size={15} aria-hidden="true" className="shrink-0" />
-                        <span className="shrink-0 whitespace-nowrap">{item.label}</span>
-                        <span className="min-w-0 flex-1 truncate text-right text-[10px] font-normal text-zinc-400">
-                          {item.hint}
-                        </span>
-                      </>
-                    );
-                    const itemProps = {
-                      ref: (element: HTMLElement | null) => {
-                        desktopMoreMenuItemRefs.current[index] = element;
-                      },
-                      role: 'menuitem' as const,
-                      tabIndex: isMoreMenuOpen && index === desktopMoreMenuActiveIndex ? 0 : -1,
-                      onKeyDown: (event: React.KeyboardEvent<HTMLElement>) =>
-                        handleDesktopMoreMenuItemKeyDown(event, index),
-                      onClick: () => closeDesktopMoreMenu(),
-                      className:
-                        'flex min-h-11 min-w-0 items-center gap-2 rounded-control px-2.5 py-2 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-ink dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white',
-                    };
-                    if ('path' in item) {
-                      return (
-                        <Link key={item.key} {...itemProps} to={item.path} onMouseEnter={() => preloadPage(item.path)}>
-                          {content}
-                        </Link>
-                      );
-                    }
-                    return (
-                      <a key={item.key} {...itemProps} href={item.href} target="_blank" rel="noopener noreferrer">
-                        {content}
-                        <ExternalLink size={11} className="shrink-0" aria-hidden="true" />
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2 border-l border-zinc-300 pl-4 dark:border-zinc-700">
-              <button
-                onClick={onSearchNavigate}
-                className="group relative inline-flex h-11 w-11 items-center justify-center rounded-icon border border-zinc-300 bg-zinc-100 text-ink transition-colors hover:border-zinc-500 hover:bg-zinc-200 active:bg-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
-                aria-label="打开搜索页"
-              >
-                <Search size={18} />
-              </button>
-              <ThemeToggle />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 lg:hidden">
-            {/* 移动端顶栏只保留主题切换：搜索/导航入口下沉到底部标签栏 */}
-            <ThemeToggle />
-          </div>
-        </motion.div>
-      </nav>
-
-      {/* 移动端底部标签栏：lg 以下固定底部，首页/说说/搜索/友链 一级直达，「更多」打开分组面板 */}
-      <nav
-        aria-label="移动端底部导航"
-        className="site-tab-bar fixed inset-x-0 bottom-0 z-nav border-t border-zinc-200/80 bg-paper/95 dark:border-zinc-800 dark:bg-void/95 lg:hidden"
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          paddingLeft: 'env(safe-area-inset-left, 0px)',
-          paddingRight: 'env(safe-area-inset-right, 0px)',
-        }}
-      >
-        <div className="mx-auto grid h-14 max-w-7xl grid-cols-5">
-          {mobileTabItems.map((item) => {
-            const isActive = isNavItemActive(item.path);
-            const Icon = item.icon;
-
-            return (
-              <Link
-                key={item.key}
-                to={item.path}
-                aria-current={isActive ? 'page' : undefined}
-                className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide transition-colors ${
-                  isActive
-                    ? 'text-ink dark:text-white'
-                    : 'text-zinc-500 hover:text-ink dark:text-zinc-400 dark:hover:text-white'
-                }`}
-              >
-                <Icon size={19} strokeWidth={isActive ? 2.2 : 1.8} aria-hidden="true" />
-                <span>{item.label}</span>
-                <span
-                  aria-hidden="true"
-                  className={`absolute top-0 h-0.5 w-8 rounded-none bg-zinc-900 transition-opacity dark:bg-zinc-100 ${
-                    isActive ? 'opacity-100' : 'opacity-0'
-                  }`}
-                />
-              </Link>
-            );
-          })}
-          <button
-            ref={mobileNavMenuButtonRef}
-            type="button"
-            onClick={handleToggleMobileNav}
-            disabled={isMobileNavAnimating}
-            aria-label={isMobileNavOpen ? '关闭更多菜单' : '打开更多菜单'}
-            aria-expanded={isMobileNavOpen}
-            aria-controls="mobile-navigation-panel"
-            className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-              isMobileNavOpen
-                ? 'text-ink dark:text-white'
-                : 'text-zinc-500 hover:text-ink dark:text-zinc-400 dark:hover:text-white'
-            }`}
-          >
-            <LayoutGrid size={19} strokeWidth={isMobileNavOpen ? 2.2 : 1.8} aria-hidden="true" />
-            <span>更多</span>
-            <span
-              aria-hidden="true"
-              className={`absolute top-0 h-0.5 w-8 rounded-none bg-zinc-900 transition-opacity dark:bg-zinc-100 ${
-                isMobileNavOpen ? 'opacity-100' : 'opacity-0'
-              }`}
-            />
-          </button>
-        </div>
-      </nav>
+      <SiteTopBar
+        pathname={location.pathname}
+        sidebarCollapsed={sidebarCollapsed}
+        onToggleSidebar={onToggleSidebar}
+        mobileNavOpen={isMobileNavOpen}
+        mobileNavAnimating={isMobileNavAnimating}
+        onToggleMobileNav={handleToggleMobileNav}
+        onSearchNavigate={onSearchNavigate}
+      />
 
       {isMobileNavMounted && (
         <div className="mobile-nav-root lg:hidden">
@@ -1040,84 +517,22 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
             data-interaction-locked={isMobileNavAnimating}
             data-locked={isMobileNavAnimating}
             data-swiping="false"
-            className="mobile-nav-panel !fixed inset-x-0 bottom-0 z-nav-panel overflow-hidden editorial-sheet border border-b-0 border-zinc-300 bg-paper text-ink shadow-none outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-white"
+            className="mobile-nav-panel !fixed inset-y-0 left-0 z-nav-panel w-[min(18rem,85vw)] overflow-hidden border-r border-zinc-300 bg-paper text-ink shadow-none outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-white"
             style={mobileNavPanelStyle}
             tabIndex={-1}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            <div className="flex justify-center pb-1.5 pt-3">
-              <div className="h-1 w-11 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-            </div>
-
-            <div className="mobile-nav-scroll flex flex-col overflow-y-auto px-3.5 pb-4 pt-1 no-scrollbar sm:px-4">
-              <div className="flex items-center justify-between border-b border-zinc-200 px-1 pb-4 dark:border-zinc-800">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
-                    More
-                  </p>
-                  <h3 className="mt-1 font-serif text-xl font-bold text-ink dark:text-white">更多</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => requestCloseMobileNav()}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-icon text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-ink active:scale-[0.98] dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
-                  aria-label="关闭更多菜单"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              {mobileMorePanelGroups.map((group) => (
-                <div key={group.label} className="mt-4">
-                  <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
-                    {group.label}
-                  </div>
-                  <nav className="divide-y divide-zinc-200 dark:divide-zinc-800" aria-label={`移动端${group.label}`}>
-                    {group.items.map((item) => {
-                      const Icon = item.icon;
-                      const className =
-                        'flex w-full min-w-0 items-center gap-3 rounded-control px-1 py-3 text-left text-sm font-semibold text-zinc-600 transition-colors hover:text-ink dark:text-zinc-300 dark:hover:text-white';
-                      const content = (
-                        <>
-                          <Icon size={16} aria-hidden="true" className="shrink-0" />
-                          <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                          <span className="min-w-0 max-w-[50%] truncate text-right text-xs font-normal text-zinc-400 dark:text-zinc-500">
-                            {item.hint}
-                          </span>
-                        </>
-                      );
-                      if ('path' in item) {
-                        return (
-                          <button
-                            key={item.key ?? item.path}
-                            type="button"
-                            onClick={() => handleMobileNavItemSelect(item.path)}
-                            disabled={isMobileNavAnimating}
-                            className={className}
-                          >
-                            {content}
-                          </button>
-                        );
-                      }
-                      return (
-                        <a
-                          key={item.key}
-                          href={item.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => requestCloseMobileNav()}
-                          className={className}
-                        >
-                          {content}
-                          <ExternalLink size={12} aria-hidden="true" className="shrink-0" />
-                        </a>
-                      );
-                    })}
-                  </nav>
-                </div>
-              ))}
+            <div className="mobile-nav-scroll px-3 pt-3 no-scrollbar">
+              <SiteSidebarBody
+                pathname={location.pathname}
+                onSelectPath={handleMobileNavItemSelect}
+                onExternalClick={() => requestCloseMobileNav()}
+                interactionDisabled={isMobileNavAnimating}
+                labelPrefix="移动端"
+                onClose={() => requestCloseMobileNav()}
+              />
             </div>
           </motion.aside>
         </div>
@@ -1180,8 +595,29 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const { isReadingMode } = useReadingMode();
   const prefersReducedMotion = useSiteReducedMotion();
 
+  // 侧栏折叠态：SSG 首帧一律渲染展开态；真实偏好由 index.html 的引导脚本写入
+  // html[data-nav-collapsed]（宽度由 CSS 立即生效、无闪烁），挂载后再同步进 React
+  // 状态，仅用于折叠按钮的图标与 aria-expanded（见 ai-rules/layout-nav.md 的
+  // SSG 确定性约束：渲染期不得读 localStorage）。
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    setSidebarCollapsed(document.documentElement.dataset.navCollapsed === 'true');
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    const nextCollapsed = !sidebarCollapsed;
+    setSidebarCollapsed(nextCollapsed);
+    document.documentElement.dataset.navCollapsed = nextCollapsed ? 'true' : 'false';
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, nextCollapsed ? 'true' : 'false');
+    } catch {
+      // 浏览器存储不可用时，折叠态仅本次浏览有效。
+    }
+  }, [sidebarCollapsed]);
+
   // 文章标题锚点偏移：单一数据源（--article-heading-offset）。普通模式实测
-  // 固定导航栏（含 safe-area）高度 + 16px 余量；专注阅读无固定导航，仅保留
+  // 吸顶导航栏（含 safe-area）高度 + 16px 余量；专注阅读无导航，仅保留
   // 1.5rem。JS（TOC 跳转/active 判断/hash 深链）与 CSS scroll-margin-top
   // 统一读取该变量，保证「点击跳转 = 激活判定 = 原生锚点」参考线一致。
   useEffect(() => {
@@ -1259,7 +695,7 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
 
   return (
     <div
-      className={`site-shell relative flex min-h-screen flex-col ${isReadingMode ? 'reading-mode-shell' : ''}`}
+      className={`site-shell relative flex min-h-screen flex-col lg:flex-row lg:flex-nowrap ${isReadingMode ? 'reading-mode-shell' : ''}`}
       data-reading-mode={isReadingMode ? 'true' : undefined}
     >
       <Background />
@@ -1272,50 +708,52 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           跳到主要内容
         </a>
       )}
-      {!isReadingMode && <Navbar onSearchNavigate={openPalette} />}
-      {/* 非阅读模式：main 顶部内边距 = 导航栏高度 + 呼吸间距，并补偿导航栏
-          因 safe-area-inset-top 增高的部分，避免内容被顶高的导航遮挡。 */}
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className={`relative min-w-0 w-full flex-grow px-3 outline-none sm:px-6 ${
-          isReadingMode
-            ? 'pt-6 sm:pt-8 md:pt-10'
-            : 'pt-[calc(5rem+env(safe-area-inset-top,0px))] sm:pt-[calc(6rem+env(safe-area-inset-top,0px))] md:pt-[calc(6rem+env(safe-area-inset-top,0px))] pb-[calc(var(--tab-bar-height,0px)+0.75rem)] lg:pb-0'
-        }`}
-      >
-        {/* 路由内容容器：统一使用 AnimatePresence + motion.div（无论是否启用
-            View Transitions）。曾按 hasViewTransition 分支渲染 div / motion.div 两种
-            容器，水合后 hasViewTransition 翻转会使父容器类型变化，导致整棵页面子树
-            卸载重挂（页面 state 丢失、图片重新加载、effect 重跑重复上报统计）。
-            现在容器类型恒定，仅按需切换：
-            - hasViewTransition：挂 viewTransitionName，视觉过渡交给原生
-              View Transition（AppRoutes 负责 startViewTransition 包裹）；
-            - 否则：仅进入淡入（无退出动画，避免旧页淡出造成的空白间隙）。 */}
-        <AnimatePresence
-          mode="wait"
-          initial={false}
-          onExitComplete={() => window.scrollTo({ top: 0, behavior: 'auto' as ScrollBehavior })}
+      {/* 桌面左栏：lg 以上常驻，折叠态由 html[data-nav-collapsed] 的 CSS 收窄为图标条 */}
+      {!isReadingMode && <SiteSidebar pathname={location.pathname} />}
+      {/* 内容列：细顶栏（sticky）→ 正文 → 页脚。顶栏不再是 fixed，因此正文不再
+          需要「导航高度 + safe-area」的顶部内边距补偿。 */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {!isReadingMode && (
+          <Navbar onSearchNavigate={openPalette} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={toggleSidebar} />
+        )}
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="relative min-w-0 w-full flex-grow px-3 pt-6 pb-8 outline-none sm:px-6 sm:pt-8 md:pt-10"
         >
-          <motion.div
-            key={routeContentKey}
-            variants={hasViewTransition ? viewTransitionRouteVariants : routeVariants}
-            initial="initial"
-            animate="animate"
-            style={hasViewTransition ? { viewTransitionName: 'route-content' } : undefined}
-            className="mx-auto min-w-0 w-full max-w-7xl"
+          {/* 路由内容容器：统一使用 AnimatePresence + motion.div（无论是否启用
+              View Transitions）。曾按 hasViewTransition 分支渲染 div / motion.div 两种
+              容器，水合后 hasViewTransition 翻转会使父容器类型变化，导致整棵页面子树
+              卸载重挂（页面 state 丢失、图片重新加载、effect 重跑重复上报统计）。
+              现在容器类型恒定，仅按需切换：
+              - hasViewTransition：挂 viewTransitionName，视觉过渡交给原生
+                View Transition（AppRoutes 负责 startViewTransition 包裹）；
+              - 否则：仅进入淡入（无退出动画，避免旧页淡出造成的空白间隙）。 */}
+          <AnimatePresence
+            mode="wait"
+            initial={false}
+            onExitComplete={() => window.scrollTo({ top: 0, behavior: 'auto' as ScrollBehavior })}
           >
-            {children}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-      {!isReadingMode && (
-        <Suspense fallback={null}>
-          <BackToTop />
-          <FeedbackDock />
-        </Suspense>
-      )}
-      {!isReadingMode && <Footer />}
+            <motion.div
+              key={routeContentKey}
+              variants={hasViewTransition ? viewTransitionRouteVariants : routeVariants}
+              initial="initial"
+              animate="animate"
+              style={hasViewTransition ? { viewTransitionName: 'route-content' } : undefined}
+              className="mx-auto min-w-0 w-full max-w-7xl"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+        {!isReadingMode && (
+          <Suspense fallback={null}>
+            <BackToTop />
+            <FeedbackDock />
+          </Suspense>
+        )}
+        {!isReadingMode && <Footer />}
+      </div>
       {/* 命令面板：条件挂载保证 chunk 懒加载（首次 Ctrl/Cmd+K 或点搜索按钮才拉取） */}
       {isPaletteOpen && (
         <Suspense fallback={null}>

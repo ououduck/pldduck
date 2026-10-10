@@ -184,7 +184,7 @@ export const ShuoShuo = () => {
           {
             '@context': 'https://schema.org',
             '@type': 'CollectionPage',
-            name: `说说 - ${siteConfig.title}`,
+            name: `说说 | ${siteConfig.title}`,
             description: SHUOSHUO_DESCRIPTION,
             url: absoluteSiteUrl('/shuoshuo', siteConfig.url),
             inLanguage: 'zh-CN',

@@ -201,7 +201,7 @@ export const Friends = () => {
     {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
-      name: `友链 - ${siteConfig.title}`,
+      name: `友链 | ${siteConfig.title}`,
       description: friendsPageDescription,
       url: absoluteSiteUrl('/friends', siteConfig.url),
       inLanguage: 'zh-CN',

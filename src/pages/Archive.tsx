@@ -297,7 +297,7 @@ export const ArchivePage = () => {
     {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
-      name: `归档 - ${siteConfig.title}`,
+      name: `归档 | ${siteConfig.title}`,
       description: archivePageDescription,
       url: absoluteSiteUrl('/archive', siteConfig.url),
       inLanguage: 'zh-CN',

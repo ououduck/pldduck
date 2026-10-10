@@ -177,7 +177,7 @@ describe('OfflineStatus', () => {
       // 标题后缀取自配置：写死站点名会让"剥离后缀"分支在改名后静默失效。
       [
         'https://blog.example.com/post/hello-world',
-        new Response(`<html><title>你好世界 - ${siteConfig.title}</title></html>`),
+        new Response(`<html><title>你好世界 | ${siteConfig.title}</title></html>`),
       ],
     ]);
     vi.stubGlobal('caches', {

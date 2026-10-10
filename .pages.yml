@@ -134,8 +134,8 @@ content:
     format: json
     fields:
       - { name: title, label: 站点标题, type: string, required: true }
-      - { name: subtitle, label: 站点副标题, type: string }
-      - { name: seoHomeTitle, label: 首页 SEO 标题, type: string }
+      - { name: subtitle, label: 站点副标题（英文别名）, type: string, hint: 仅用于 JSON-LD 的 alternateName（结构化数据里的品牌别名），不再出现在页面文案中 }
+      - { name: seoHomeTitle, label: 首页 SEO 标题, type: string, hint: 浏览器标签页与搜索结果里首页显示的完整标题，逐字使用，不参与「页面名 | 站点名」拼接 }
       - { name: seoHomeDescription, label: 首页 SEO 描述, type: text }
       - { name: description, label: 站点描述, type: text, required: true }
       - { name: logo, label: Logo 链接, type: string, hint: '站内展示位统一使用 QQ 头像直链，如 https://q1.qlogo.cn/g?b=qq&nk=<QQ号>&s=100；public/logo.png 仅作为构建期分享卡与封面工具的本地底图' }

@@ -26,9 +26,10 @@
    `publisher.logo`），可以是远程 URL；凡进 canvas 绘制或构建期生成图片的场合（OG 卡片、
    封面生成器默认图标）必须用 `public/` 下的本地底图（`logo.png` / `logo-96.png`）。
    远程图会把 canvas 变成 tainted，`toDataURL()` 直接抛 SecurityError。
-8. **标题拼接**：`siteConfig.title` 是全站标题后缀（「页面名 - 站点名」）；只有首页用
-   `siteConfig.seoHomeTitle` 逐字覆盖，不参与拼接。改站点名要同时预期 37 个直出 HTML 的
-   title 变化，`npm run audit:seo` 是门禁。
+8. **标题拼接**：`siteConfig.title` 是全站标题后缀（「页面名 | 站点名」，分隔符固定为竖线）；
+   只有首页用 `siteConfig.seoHomeTitle` 逐字覆盖，不参与拼接。JSON-LD 的 `name` 与 SSG
+   直出的 `<title>` 必须走同一格式（`scripts/ssg.mjs` / 各页 structuredData）。改站点名或分隔符
+   要同时预期 37 个直出 HTML 的 title 变化，`npm run audit:seo` 是门禁。
 
 ## 常见陷阱
 

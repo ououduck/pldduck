@@ -262,9 +262,6 @@ export const Home = () => {
       <section className="py-6 md:py-10">
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
           <div className="min-w-0">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-500 dark:text-zinc-400">
-              {siteConfig.subtitle} · 主页
-            </p>
             <h1 className="text-balance font-serif text-5xl font-bold leading-[1.05] tracking-tight text-ink [overflow-wrap:anywhere] dark:text-white max-[400px]:text-4xl md:text-6xl">
               {siteConfig.title}
             </h1>
@@ -311,12 +308,12 @@ export const Home = () => {
           </div>
 
           <div className="flex items-center gap-4 md:flex-col md:items-end md:gap-3">
-            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-zinc-300 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
+            <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full border border-zinc-300 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 sm:h-32 sm:w-32">
               <img
                 src={avatarUrl}
                 alt={siteConfig.author.name}
-                width={64}
-                height={64}
+                width={128}
+                height={128}
                 decoding="async"
                 onError={() => setAvatarFailed(true)}
                 className="h-full w-full object-cover"

@@ -188,7 +188,7 @@ export const Tags = () => {
     {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
-      name: `标签 - ${siteConfig.title}`,
+      name: `标签 | ${siteConfig.title}`,
       description: tagsPageDescription,
       url: absoluteSiteUrl('/tags', siteConfig.url),
       inLanguage: 'zh-CN',

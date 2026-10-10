@@ -27,7 +27,7 @@ export const Guestbook = () => {
           {
             '@context': 'https://schema.org',
             '@type': 'WebPage',
-            name: `${siteConfig.title} - 留言板`,
+            name: `留言板 | ${siteConfig.title}`,
             description: '访客留言板：闲聊、建议与问题反馈。',
             url: absoluteSiteUrl('/guestbook', siteConfig.url),
             inLanguage: 'zh-CN',

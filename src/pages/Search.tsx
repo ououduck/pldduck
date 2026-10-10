@@ -152,7 +152,7 @@ export const Search = () => {
     {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
-      name: hasSearchQuery ? `搜索：${searchQuery} - ${siteConfig.title}` : `搜索 - ${siteConfig.title}`,
+      name: hasSearchQuery ? `搜索：${searchQuery} | ${siteConfig.title}` : `搜索 | ${siteConfig.title}`,
       description: searchPageDescription,
       url: absoluteSiteUrl('/search', siteConfig.url),
       inLanguage: 'zh-CN',

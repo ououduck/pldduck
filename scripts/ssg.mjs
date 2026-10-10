@@ -437,7 +437,7 @@ export const runSsg = async ({
   // 站点名后缀在此拼接，避免「页面标题」在 routes 与 Seo 组件之间双源漂移。
   const staticPages = SSG_STATIC_PAGES.map((page) => ({
     ...page,
-    title: page.title ? `${page.title} - ${siteConfig.title}` : undefined,
+    title: page.title ? `${page.title} | ${siteConfig.title}` : undefined,
   }));
 
   /**

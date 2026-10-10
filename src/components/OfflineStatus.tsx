@@ -17,7 +17,7 @@ interface CachedPostEntry {
 
 const PAGE_CACHE_KEY_PATTERN = /^dblog-.*-pages$/;
 const POST_PATH_PATTERN = /\/post\/[^/]+\/?$/;
-/** Seo.tsx 输出「文章标题 - 站点名」，站点名取自配置，避免改名后后缀剥离失效。 */
+/** Seo.tsx 输出「文章标题 | 站点名」，站点名取自配置，避免改名后后缀剥离失效。 */
 const SITE_TITLE_SUFFIX = new RegExp(`\\s*[|·-]\\s*${siteConfig.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*$`, 'i');
 /** 单次列表最多展示的缓存文章数（防止极端缓存体积撑爆提示条）。 */
 const MAX_CACHED_POSTS = 30;

@@ -4,7 +4,6 @@
  */
 
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronRight, X } from 'lucide-react';
 import { SearchField } from '@/components/SearchField';
@@ -192,32 +191,6 @@ const FilterBar: React.FC<FilterBarProps> = ({ categories, selected, onSelect, s
           );
         })}
       </div>
-    </div>
-  );
-};
-
-const Hero = () => {
-  const shouldReduceMotion = useReducedMotion();
-  // 滚动视差（仅淡出）：首屏内容随页面滚动轻微淡出（react-bits「ScrollFloat」
-  // 启发）。不设入场动画——LCP 元素首帧即渲染最终可见状态：SSR HTML 中
-  // 不可见（opacity:0）会拖慢 LCP 且 JS 失败时内容完全不可见。减弱动效
-  // 偏好下跳过视差。
-  const { scrollY } = useScroll();
-  const heroOpacity = useTransform(scrollY, [0, 340], [1, 0.3]);
-
-  return (
-    <div className="relative overflow-hidden px-4 pb-8 pt-5 text-center md:pb-10 md:pt-8">
-      <motion.div className="relative" style={shouldReduceMotion ? undefined : { opacity: heroOpacity }}>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-400">
-          {siteConfig.subtitle}
-        </p>
-        <h1 className="mb-3 text-balance font-serif text-5xl font-bold tracking-tight text-ink [overflow-wrap:anywhere] dark:text-white max-[400px]:text-4xl sm:text-6xl md:text-7xl">
-          {siteConfig.title}
-        </h1>
-        <p className="mx-auto max-w-xl text-sm leading-6 text-zinc-600 dark:text-zinc-300 md:text-base">
-          {siteConfig.description}
-        </p>
-      </motion.div>
     </div>
   );
 };
@@ -544,7 +517,9 @@ export const Posts = () => {
           （Google 官方对站内搜索结果页的建议即是不索引）。该 noindex 由 Seo 组件
           根据 URL 中的 q 参数自动输出，无需在此显式传入。 */}
       <Seo title={seoTitle} description={seoDescription} />
-      <Hero />
+      {/* 站点身份与页面名由全站外壳（侧边栏 + 顶栏面包屑）承载，本页不再重复
+          输出英雄区；h1 保留给屏幕阅读器与搜索引擎定位页面主题。 */}
+      <h1 className="sr-only">{PAGE_TITLE}</h1>
 
       {continueReading && (
         <section

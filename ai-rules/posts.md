@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-文章列表页，承载全部与文章相关的浏览能力：英雄区、分类筛选栏、文章卡片网格（精选大卡 + 普通卡）、客户端搜索框（`?q=`）、继续阅读入口、排序/分页、分享。首页 `/` 是纯导流门户，**不得**把这些能力搬回去。
+文章列表页，承载全部与文章相关的浏览能力：分类筛选栏、文章卡片网格（精选大卡 + 普通卡）、客户端搜索框（`?q=`）、继续阅读入口、排序/分页、分享。页面**没有英雄区**：站点身份与页名由全站外壳（侧边栏 + 顶栏面包屑）承担，本页只有一个 `<h1 className="sr-only">文章</h1>` 供屏幕阅读器与搜索引擎定位主题。首页 `/` 是纯导流门户，**不得**把这些能力搬回去。
 
 URL 约定：列表 `/posts`，正文详情 `/post/<id>`（18 个既有文章 ID 逐字节不变）。`/posts/<id>` 是常见的复数误写，由 `public/_redirects` 做真 301、`src/App.tsx` 的 `PostRedirect` 做客户端兜底，两者必须同时存在。
 
@@ -22,10 +22,10 @@ URL 约定：列表 `/posts`，正文详情 `/post/<id>`（18 个既有文章 ID
 3. **搜索竞态**：空查询分支、防抖清理、requestId 比对不得移除；`emptyResults` 必须传稳定引用（否则渲染循环）。
 4. **分类/排序/分页**：状态必须与 URL 参数（category/sort/page）双向一致；页码越界要自愈（钳制后 replace URL）。
 5. **精选置顶**：`isPinnedFeaturedPost` / `getHeroPost` 等选择逻辑在 utils 中，不得在组件内复制实现。
-6. **动画**：framer-motion 只做滚动淡出（Hero 视差），不做入场动画；尊重 `prefers-reduced-motion`（`shouldReduceMotion` 传透）；SSR 输出不得为 opacity:0 的内容。
+6. **动画**：framer-motion 只做分类栏的滚动渐隐，不做入场动画；尊重 `prefers-reduced-motion`（`shouldReduceMotion` 传透）；SSR 输出不得为 opacity:0 的内容。
 7. **性能**：PostCard 保持 memo；不要引入整页重渲染的依赖。
 8. **分享**：分享 URL 的 `/post/<id>` 路径用裸 `post.id`（构建期 `validateId` 已校验 URL 安全，与 SSG/sitemap/canonical 口径一致；encodeURIComponent 反而会与产物路径不一致）。
-9. **SEO 标题**：`<Seo title=…>` 只写**前缀**（`文章` / `分类：X` / `搜索：X`），站点名后缀由 `Seo.tsx` 拼接；自己再拼一次会得到「X - 站点名 - 站点名」。默认标题**不得**用 `siteConfig.title`：那会命中 `Seo.tsx` 的首页覆盖分支，让 `/posts` 与 `/` 输出同一个 title，形成软重复。
+9. **SEO 标题**：`<Seo title=…>` 只写**前缀**（`文章` / `分类：X` / `搜索：X`），站点名后缀由 `Seo.tsx` 按「页面名 | 站点名」拼接；自己再拼一次会得到「X | 站点名 | 站点名」。默认标题**不得**用 `siteConfig.title`：那会命中 `Seo.tsx` 的首页覆盖分支，让 `/posts` 与 `/` 输出同一个 title，形成软重复。
 10. **路由新增**：`/posts` 是 SSG 静态页（`ssg: 'static'`，产物 `dist/posts/index.html`）；`/posts/:id` 只做跳转，不得给它加 `ssg`/`sitemap`，否则会把误写 URL 预渲染成可索引页面。
 
 ## 常见陷阱

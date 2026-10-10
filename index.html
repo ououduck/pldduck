@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>D-blog</title>
+  <title>跑路的duck</title>
   <link rel="icon" href="%BASE_URL%favicon.ico" />
   <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
   <link rel="apple-touch-icon" href="%BASE_URL%pwa-192.png" />
@@ -42,6 +42,10 @@
          请求保持一致，确保连接可被复用而非重新握手。 -->
   <link rel="preconnect" href="https://img.pldduck.com" crossorigin />
   <link rel="dns-prefetch" href="https://img.pldduck.com" />
+  <!-- 站标与作者头像直连 QQ 头像服务（siteConfig.logo/logoSmall）：全站页头都会请求该域，
+         提前完成 DNS→TCP→TLS，避免页头站标在弱网下晚于首屏文字出现。 -->
+  <link rel="preconnect" href="https://q1.qlogo.cn" />
+  <link rel="dns-prefetch" href="https://q1.qlogo.cn" />
   <!-- 不蒜子访问统计 API：提前完成 DNS/TLS，路由级统计请求由应用代码发起。 -->
   <link rel="preconnect" href="https://cdn.busuanzi.cc" crossorigin />
   <link rel="dns-prefetch" href="https://cdn.busuanzi.cc" />

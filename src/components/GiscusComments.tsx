@@ -23,7 +23,7 @@ const GISCUS_OFFICIAL = 'https://giscus.app';
 /**
  * 解析评论来源（有序回退链）。
  *
- * 默认直连官方 https://giscus.app（`config/site.config.json` 的 comments.origin，
+ * 默认直连官方 https://giscus.app（`config/comments.config.json` 的 comments.origin，
  * 站点同源代理边缘函数已移除）。大陆网络下 giscus.app 被 DNS 污染/阻断，评论区
  * 可能无法加载；如需大陆可用的评论，可将 origin 配置为自托管 giscus 实例或
  * 可达镜像的完整 URL。配置项 comments.origin 支持：

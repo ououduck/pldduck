@@ -125,7 +125,8 @@ content:
       - { name: keywords, label: 关键词（子串匹配）, type: string, list: true }
       - { name: patterns, label: 正则表达式（忽略大小写）, type: string, list: true }
 
-  # ── 站点配置（单文件：config/site.config.json，CMS 中直接编辑，保存即推送生效）──
+  # ── 站点配置：按用途拆成三份文件（站点配置 / 首页内容 / 评论与留言板），
+  #    构建期与运行期各加载器再合并回同一份 siteConfig，消费方无需感知拆分 ──
   - name: siteConfig
     label: 站点配置
     type: file
@@ -166,28 +167,6 @@ content:
         type: object
         fields:
           - { name: collapseInactiveRootBranches, label: 折叠非激活分支, type: boolean }
-      - { name: giscusEnabled, label: 启用 Giscus 评论, type: boolean }
-      - name: comments
-        label: Giscus 评论配置（改动需与 GitHub 实际值一致，否则评论区失效）
-        type: object
-        fields:
-          - { name: repo, label: 仓库, type: string }
-          - { name: repoId, label: 仓库 ID, type: string }
-          - { name: category, label: 分类名, type: string }
-          - { name: categoryId, label: 分类 ID, type: string }
-          - name: origin
-            label: giscus 来源地址
-            hint: 默认 https://giscus.app（官方直连）；自托管/镜像时填完整 URL。大陆网络下官方地址被 DNS 污染可能无法加载
-            type: string
-          - name: strict
-            label: 严格匹配
-            hint: 关闭（推荐）：按标题匹配并允许自动建讨论；开启：按正文 SHA-1 哈希匹配（历史讨论需含哈希标记）
-            type: boolean
-      - name: guestbook
-        label: 留言板
-        type: object
-        fields:
-          - { name: discussionId, label: Discussion ID, type: number }
       - name: friendsPage
         label: 友链页
         type: object
@@ -213,59 +192,93 @@ content:
         type: object
         fields:
           - { name: url, label: 反馈表单地址, type: string }
-      - name: portal
-        label: 首页引导区（改动即时反映到首页磁贴/链接/项目清单）
+
+  # ── 首页内容（config/portal.config.json）：构建期与运行期都合并回 siteConfig.portal ──
+  - name: portalConfig
+    label: 首页内容
+    type: file
+    path: config/portal.config.json
+    format: json
+    fields:
+      - { name: tagline, label: 一句话定位, type: string }
+      - { name: status, label: 状态徽标文案, type: string }
+      - name: tags
+        label: 徽标标签
+        type: list
+        field: { type: string, label: 标签 }
+      - name: memory
+        label: 助记词
         type: object
         fields:
-          - { name: tagline, label: 一句话定位, type: string }
-          - { name: status, label: 状态徽标文案, type: string }
-          - name: tags
-            label: 徽标标签
-            type: list
-            field: { type: string, label: 标签 }
-          - name: memory
-            label: 助记词
-            type: object
-            fields:
-              - { name: label, label: 小标题, type: string }
-              - { name: prompt, label: 提示语, type: string }
-              - { name: detail, label: 解释内容, type: string }
-          - name: entries
-            label: 站点入口磁贴
-            type: list
-            field:
-              type: object
-              fields:
-                - { name: title, label: 标题, type: string, required: true }
-                - { name: description, label: 描述, type: text }
-                - { name: url, label: 地址（站内以 / 开头，外链写完整 URL）, type: string, required: true }
-                - name: icon
-                  label: 图标名
-                  hint: archive / shuoshuo / tool / friends / about / search / stats / guestbook / cover / watermark，未识别时回退到 Sparkles
-                  type: string
-                - { name: note, label: 右下角备注, type: string }
-          - name: links
-            label: 次级链接
-            type: list
-            field:
-              type: object
-              fields:
-                - { name: title, label: 标题, type: string, required: true }
-                - { name: url, label: 地址, type: string, required: true }
-                - name: icon
-                  label: 图标名
-                  hint: 与入口磁贴共用同一套图标名（见 src/pages/Home.tsx 的 PORTAL_ICONS）
-                  type: string
-          - name: projects
-            label: 开源项目
-            type: list
-            field:
-              type: object
-              fields:
-                - { name: title, label: 项目名, type: string, required: true }
-                - { name: description, label: 描述, type: text }
-                - { name: url, label: 仓库地址, type: string, required: true }
-                - { name: tag, label: 技术栈标签, type: string }
+          - { name: label, label: 小标题, type: string }
+          - { name: prompt, label: 提示语, type: string }
+          - { name: detail, label: 解释内容, type: string }
+      - name: entries
+        label: 站点入口磁贴
+        type: list
+        field:
+          type: object
+          fields:
+            - { name: title, label: 标题, type: string, required: true }
+            - { name: description, label: 描述, type: text }
+            - { name: url, label: 地址（站内以 / 开头，外链写完整 URL）, type: string, required: true }
+            - name: icon
+              label: 图标名
+              hint: posts / archive / shuoshuo / tool / friends / about / search / stats / guestbook / cover / watermark，未识别时回退到 Sparkles
+              type: string
+            - { name: note, label: 右下角备注, type: string }
+      - name: links
+        label: 次级链接
+        type: list
+        field:
+          type: object
+          fields:
+            - { name: title, label: 标题, type: string, required: true }
+            - { name: url, label: 地址, type: string, required: true }
+            - name: icon
+              label: 图标名
+              hint: 与入口磁贴共用同一套图标名（见 src/pages/Home.tsx 的 PORTAL_ICONS）
+              type: string
+      - name: projects
+        label: 开源项目
+        type: list
+        field:
+          type: object
+          fields:
+            - { name: title, label: 项目名, type: string, required: true }
+            - { name: description, label: 描述, type: text }
+            - { name: url, label: 仓库地址, type: string, required: true }
+            - { name: tag, label: 技术栈标签, type: string }
+
+  # ── 评论与留言板（config/comments.config.json）：合并回 siteConfig 的 giscusEnabled / comments / guestbook ──
+  - name: commentsConfig
+    label: 评论与留言板
+    type: file
+    path: config/comments.config.json
+    format: json
+    fields:
+      - { name: giscusEnabled, label: 启用 Giscus 评论, type: boolean }
+      - name: comments
+        label: Giscus 评论配置（改动需与 GitHub 实际值一致，否则评论区失效）
+        type: object
+        fields:
+          - { name: repo, label: 仓库, type: string }
+          - { name: repoId, label: 仓库 ID, type: string }
+          - { name: category, label: 分类名, type: string }
+          - { name: categoryId, label: 分类 ID, type: string }
+          - name: origin
+            label: giscus 来源地址
+            hint: 默认 https://giscus.app（官方直连）；自托管/镜像时填完整 URL。大陆网络下官方地址被 DNS 污染可能无法加载
+            type: string
+          - name: strict
+            label: 严格匹配
+            hint: 关闭（推荐）：按标题匹配并允许自动建讨论；开启：按正文 SHA-1 哈希匹配（历史讨论需含哈希标记）
+            type: boolean
+      - name: guestbook
+        label: 留言板
+        type: object
+        fields:
+          - { name: discussionId, label: Discussion ID, type: number }
 
 # ── 部署动作：CMS 侧边栏按钮，触发 .github/workflows/deploy.yml ──
 # 文档: https://pagescms.org/docs/configuration/actions/

@@ -2,11 +2,12 @@
 
 ## 功能概述
 
-站点/构建/内容配置分层：`config/site.config.json`（站点信息，CMS 可编辑）、`config/content.config.json`（分类白名单等）、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。
+站点/构建/内容配置分层：站点配置按用途拆成三份 JSON（`config/site.config.json` 站点信息、`config/portal.config.json` 首页门户、`config/comments.config.json` 评论与留言板，三者 CMS 均可编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方，因此 `siteConfig.portal` / `siteConfig.comments` / `siteConfig.guestbook` 的读取形状与拆分前一致；另有 `config/content.config.json`（分类白名单等）、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。
 
 ## 关键文件
 
-- `config/site.config.json` + `scripts/site-config-loader.mjs`（fail-closed 加载）
+- `config/site.config.json` / `config/portal.config.json` / `config/comments.config.json` + `scripts/site-config-loader.mjs`（fail-closed 加载 + 三份合并）
+- `config/site.config.ts`（同一份三文件合并的 TS 出口，字段类型接口的唯一归属地）
 - `config/routes.mjs`（路由清单唯一数据源，见 [routes-single-source.md](routes-single-source.md)）
 - `config/content.config.json`
 - `config/tsconfig.json` / `tailwind.config.js` / `postcss.config.js`
@@ -15,8 +16,8 @@
 
 ## 修改规则（必须遵守）
 
-1. **fail-closed**：site.config.json 缺失/损坏/URL 非法时构建必须抛错中止（禁止静默回退默认值）。
-2. **CMS 字段白名单同步**：.pages.yml 的 siteConfig fields 必须与 site.config.json 实际键一一对应（缺字段 CMS 保存会静默丢字段）。
+1. **fail-closed**：三份配置文件任一缺失/损坏/URL 非法时构建必须抛错中止（禁止静默回退默认值）；合并顺序固定为 `{...site, ...comments, portal}`，三份的顶层键**不得重名**（`scripts/pagescms-config.test.mjs` 有守护）。
+2. **CMS 字段白名单同步**：.pages.yml 的 `siteConfig` / `portalConfig` / `commentsConfig` 三个集合的 fields 必须与对应 JSON 实际键一一对应（缺字段 CMS 保存会静默丢字段）；新增配置文件必须同时补集合 + 补漂移测试的 `configCollections`。
 3. **环境变量文档化**：脚本实际读取的每个环境变量必须在 .env.example 中注释说明（含默认值/语义/CI vs 本地）；数值型变量支持显式 0（parseEnvNumber 语义）。
 4. **构建配置**：修改 tsconfig/vite/tailwind 需全量回归（typecheck + 构建 + 测试）；启用的严格项不得擅自关闭。
 5. **路径别名**：`@/*`（src）、`@config/*`（config）语义保持，新增目录不得引入新别名。
@@ -32,7 +33,8 @@
 ## 常见陷阱
 
 - config/ 根目录（构建配置）与 src/config（已删除）勿混淆；
-- site.config.json 的 author/social/comments 等嵌套结构被多处消费，增删字段需全局检索消费方。
+- 站点配置的读者是**两份加载器**（构建侧 mjs + 运行侧 TS），两侧合并逻辑必须同步修改，否则 CI 产物与页面运行时配置不一致；
+- site.config.json 的 author/social、comments.config.json 的 comments/guestbook 等嵌套结构被多处消费，增删字段需全局检索消费方。
 
 ## 破例条款
 

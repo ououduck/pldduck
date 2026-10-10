@@ -9,7 +9,7 @@
 ## 关键文件
 
 - `src/pages/Home.tsx`
-- `config/site.config.json` 的 `portal` 字段（入口磁贴、次级链接、开源项目、tagline/status/tags/memory 全部由此驱动）与 `config/site.config.ts` 的 `SitePortal` 类型
+- `config/portal.config.json`（入口磁贴、次级链接、开源项目、tagline/status/tags/memory 全部由此驱动；构建期/运行期都合并成 `siteConfig.portal`）与 `config/site.config.ts` 的 `SitePortal` 类型
 - `src/utils/preload.ts`（磁贴悬停预加载的 chunk 键）
 
 ## 修改规则（必须遵守）

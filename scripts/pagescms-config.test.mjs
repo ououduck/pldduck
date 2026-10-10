@@ -86,16 +86,19 @@ describe('PagesCMS 集合：filename 模板与 slug 字段约束（回归：Inva
 });
 
 /**
- * siteConfig 字段漂移守护（ai-rules/config.md §2）。
+ * 站点配置字段漂移守护（ai-rules/config.md §2）。
  *
  * PagesCMS 保存配置时按 .pages.yml 声明的字段树重写 JSON：**未声明的键会被静默丢弃**，
- * 表现是「CMS 里没看到这个配置项，保存一次后它就从 site.config.json 消失了」。
- * 因此 site.config.json 的每一层对象键（数组元素下钻一层）都必须能在字段树里对上名字。
+ * 表现是「CMS 里没看到这个配置项，保存一次后它就从配置文件消失了」。
+ * 因此每份配置文件的每一层对象键（数组元素下钻一层）都必须能在对应集合的字段树里对上名字。
  */
-describe('PagesCMS 站点配置字段与 site.config.json 一一对应', () => {
-  const siteConfigJson = JSON.parse(readFileSync(path.join(repoRoot, 'config/site.config.json'), 'utf8'));
-  const siteConfigFields = pagesConfig.content.find((item) => item.name === 'siteConfig')?.fields;
+const configCollections = [
+  { collection: 'siteConfig', file: 'config/site.config.json' },
+  { collection: 'portalConfig', file: 'config/portal.config.json' },
+  { collection: 'commentsConfig', file: 'config/comments.config.json' },
+];
 
+describe('PagesCMS 站点配置字段与三份配置文件一一对应', () => {
   const findField = (fields, name) => (fields ?? []).find((field) => field.name === name);
 
   const collectMissing = (value, fields, trail, acc) => {
@@ -120,29 +123,44 @@ describe('PagesCMS 站点配置字段与 site.config.json 一一对应', () => {
     return acc;
   };
 
-  it('siteConfig 字段树存在', () => {
-    expect(Array.isArray(siteConfigFields)).toBe(true);
-  });
+  for (const { collection, file } of configCollections) {
+    const json = JSON.parse(readFileSync(path.join(repoRoot, file), 'utf8'));
+    const fields = pagesConfig.content.find((item) => item.name === collection)?.fields;
 
-  it('site.config.json 的每个键都在 CMS 字段树中声明（否则保存即丢字段）', () => {
-    expect(collectMissing(siteConfigJson, siteConfigFields, [], [])).toEqual([]);
-  });
+    describe(`${collection}（${file}）`, () => {
+      it('字段树存在', () => {
+        expect(Array.isArray(fields)).toBe(true);
+      });
 
-  it('首页 portal 清单可编辑（新增首页配置项时不能漏声明）', () => {
-    const portal = findField(siteConfigFields, 'portal');
-    expect(portal?.type).toBe('object');
-    const names = new Set((portal.fields ?? []).map((field) => field.name));
-    for (const key of Object.keys(siteConfigJson.portal ?? {})) {
-      expect(names.has(key)).toBe(true);
-    }
-    const entryFields = new Set((findField(portal.fields, 'entries')?.field?.fields ?? []).map((f) => f.name));
-    for (const key of Object.keys(siteConfigJson.portal?.entries?.[0] ?? {})) {
-      expect(entryFields.has(key)).toBe(true);
+      it('JSON 的每个键都在 CMS 字段树中声明（否则保存即丢字段）', () => {
+        expect(collectMissing(json, fields, [], [])).toEqual([]);
+      });
+    });
+  }
+
+  it('首页入口磁贴的每个字段都可编辑（新增磁贴属性时不能漏声明）', () => {
+    const fields = pagesConfig.content.find((item) => item.name === 'portalConfig')?.fields;
+    const portalJson = JSON.parse(readFileSync(path.join(repoRoot, 'config/portal.config.json'), 'utf8'));
+    const entryFields = new Set((findField(fields, 'entries')?.field?.fields ?? []).map((f) => f.name));
+    for (const entry of portalJson.entries ?? []) {
+      expect([...Object.keys(entry)].filter((key) => !entryFields.has(key))).toEqual([]);
     }
   });
 
   it('social.qq 已声明（首页 QQ 一键复制的数据源）', () => {
-    const socialFields = findField(siteConfigFields, 'social')?.fields ?? [];
+    const fields = pagesConfig.content.find((item) => item.name === 'siteConfig')?.fields;
+    const socialFields = findField(fields, 'social')?.fields ?? [];
     expect(socialFields.some((field) => field.name === 'qq')).toBe(true);
+  });
+
+  it('三份配置文件键不重叠（合并时不会出现后者静默覆盖前者）', () => {
+    const keySets = configCollections.map(
+      ({ file }) => new Set(Object.keys(JSON.parse(readFileSync(path.join(repoRoot, file), 'utf8')))),
+    );
+    for (let i = 0; i < keySets.length; i += 1) {
+      for (let j = i + 1; j < keySets.length; j += 1) {
+        expect([...keySets[i]].filter((key) => keySets[j].has(key))).toEqual([]);
+      }
+    }
   });
 });

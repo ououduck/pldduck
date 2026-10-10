@@ -8,7 +8,7 @@
 
 - `src/pages/Guestbook.tsx`
 - `src/components/GiscusComments.tsx`（见 [giscus-comments.md](giscus-comments.md)）
-- `config/site.config.json`（guestbook.discussionId）
+- `config/comments.config.json`（guestbook.discussionId）
 
 ## 修改规则（必须遵守）
 
@@ -18,7 +18,7 @@
 
 ## 常见陷阱
 
-- 修改 site.config.json 的 discussionId 必须与 GitHub 实际 Discussion 编号一致；
+- 修改 comments.config.json 的 discussionId 必须与 GitHub 实际 Discussion 编号一致；
 - giscus mapping 语义：specific 按 term 搜索（可能自动建讨论），number 才是精确锁定 —— 留言板只能用 number。
 
 ## 破例条款

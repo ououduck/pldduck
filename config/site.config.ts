@@ -1,14 +1,18 @@
 /**
  * 站点配置。
  *
- * 数据源为同目录下的 site.config.json —— 可在 PagesCMS「站点配置」中直接编辑，
+ * 数据源是同目录下的三份 JSON —— 拆分只为 PagesCMS 编辑体验（改首页文案不必在几十个
+ * 字段里翻），对外仍是**单一合并对象**：`siteConfig.portal` / `siteConfig.comments` /
+ * `siteConfig.guestbook` 的访问方式与拆分前完全一致，消费方无需感知文件边界。
  * 保存即推送仓库生效，无需改动代码。本文件仅负责加载 JSON 并提供类型约束：
  * JSON 缺字段/类型不符会在 `npm run typecheck` 时直接报错（fail-fast）。
  *
  * 构建脚本侧（sitemap / RSS / SSG / SEO 审计）通过 scripts/site-config-loader.mjs
- * 读取同一份 JSON，保证客户端与构建期配置一致。
+ * 读取同一批 JSON 并做同样的合并，保证客户端与构建期配置一致。
  */
 import siteConfigJson from './site.config.json';
+import portalConfigJson from './portal.config.json';
+import commentsConfigJson from './comments.config.json';
 
 export interface SiteAuthor {
   name: string;
@@ -151,8 +155,13 @@ export interface SiteConfig {
   /** 文章内容仓库（"在 GitHub 上编辑此文"/查看源文件入口使用）。 */
   content?: SiteContent;
   beian: SiteBeian;
-  /** 首页引导区（站点入口/开源项目/自我介绍）内容。 */
+  /** 首页引导区（站点入口/开源项目/自我介绍）内容，来自 config/portal.config.json。 */
   portal?: SitePortal;
 }
 
-export const siteConfig: SiteConfig = siteConfigJson;
+/** 三份 JSON 合并后的站点配置：与拆分前逐键同形。 */
+export const siteConfig: SiteConfig = {
+  ...siteConfigJson,
+  ...commentsConfigJson,
+  portal: portalConfigJson,
+};

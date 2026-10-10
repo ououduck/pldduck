@@ -17,7 +17,7 @@ GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动双平�
 4. **构建同源**：deploy 与 ci 必须共用 `npm run build` 同一流程，禁止双套构建。
 5. **白名单同步**：新增 workflow 必须同步 feishu-webhook.yml 的 workflow_run 白名单。
 6. **版本固定**：第三方 action 用 major tag（checkout@v5 等）；CLI 工具（wrangler/edgeone）用精确版本（部署可复现）。
-7. **PagesCMS 字段白名单**：.pages.yml 的 siteConfig fields 必须覆盖 site.config.json 实际使用的全部键（缺字段 CMS 保存会丢数据）。
+7. **PagesCMS 字段白名单**：.pages.yml 的 siteConfig / portalConfig / commentsConfig fields 必须覆盖各自配置文件实际使用的全部键（缺字段 CMS 保存会丢数据）。
 8. **CI 门禁**：check/test/build 三 job 的职责边界保持（类型+内容校验 / 单测 / 构建+审计）。
 9. **部署目标名固定为 `pldduck`**（Cloudflare Pages 与 EdgeOne 两侧同名）：`d-blog` 已被旧站
    的迁移跳转页占用，复用会让新站与跳转页互相覆盖，等于把线上博客换成公告页。

@@ -112,9 +112,9 @@ describe('ShuoShuoItem', () => {
   });
 
   it('裸 URL 自动成链且外链安全', () => {
-    renderItem({ item: makeItem({ content: '项目地址 https://github.com/ououduck/D-blog 欢迎围观' }) });
-    const link = screen.getByRole('link', { name: 'github.com/ououduck/D-blog' });
-    expect(link).toHaveAttribute('href', 'https://github.com/ououduck/D-blog');
+    renderItem({ item: makeItem({ content: '项目地址 https://github.com/ououduck/pldduck 欢迎围观' }) });
+    const link = screen.getByRole('link', { name: 'github.com/ououduck/pldduck' });
+    expect(link).toHaveAttribute('href', 'https://github.com/ououduck/pldduck');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 

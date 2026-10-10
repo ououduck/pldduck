@@ -11,7 +11,7 @@ vi.mock('@/utils/clipboard', () => ({
 const baseProps = {
   title: '测试文章',
   excerpt: '这是摘要',
-  url: 'https://blog.pldduck.com/post/test',
+  url: 'https://www.pldduck.com/post/test',
 };
 
 describe('ShareModal', () => {
@@ -39,7 +39,7 @@ describe('ShareModal', () => {
   it('打开时渲染标题与链接', () => {
     render(<ShareModal isOpen {...baseProps} onClose={vi.fn()} />);
     expect(screen.getByText('测试文章')).toBeInTheDocument();
-    expect(screen.getByText('https://blog.pldduck.com/post/test')).toBeInTheDocument();
+    expect(screen.getByText('https://www.pldduck.com/post/test')).toBeInTheDocument();
   });
 
   it('关闭时不渲染内容', () => {
@@ -52,7 +52,7 @@ describe('ShareModal', () => {
     const { copyTextToClipboard } = await import('@/utils/clipboard');
     render(<ShareModal isOpen {...baseProps} onClose={vi.fn()} />);
     await user.click(screen.getByRole('button', { name: '仅复制链接' }));
-    expect(copyTextToClipboard).toHaveBeenCalledWith('https://blog.pldduck.com/post/test');
+    expect(copyTextToClipboard).toHaveBeenCalledWith('https://www.pldduck.com/post/test');
     expect(await screen.findByText('复制成功')).toBeInTheDocument();
   });
 
@@ -62,7 +62,7 @@ describe('ShareModal', () => {
     render(<ShareModal isOpen {...baseProps} onClose={vi.fn()} />);
     await user.click(screen.getByRole('button', { name: '复制标题、简介和链接' }));
     expect(copyTextToClipboard).toHaveBeenCalledWith(
-      '标题：测试文章\n简介：这是摘要\n链接：https://blog.pldduck.com/post/test',
+      '标题：测试文章\n简介：这是摘要\n链接：https://www.pldduck.com/post/test',
     );
   });
 
@@ -104,7 +104,7 @@ describe('ShareModal', () => {
     expect(share).toHaveBeenCalledWith({
       title: '测试文章',
       text: '这是摘要',
-      url: 'https://blog.pldduck.com/post/test',
+      url: 'https://www.pldduck.com/post/test',
     });
     Reflect.deleteProperty(navigator, 'share');
   });

@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import { siteConfig } from '@config/site.config';
 import { absoluteSiteUrl, assetUrl, getRouterBasename, getSiteBasePath, routeUrl } from './siteUrl';
 
-const SITE_URL = 'https://blog.pldduck.com';
+// 站点地址取自配置而非写死字面量：换域名后这些用例不该集体变红，
+// 而 absoluteSiteUrl 的"同源重写"分支恰恰依赖 fixture 与站点同源。
+const SITE_URL = siteConfig.url;
 
 describe('getSiteBasePath / getRouterBasename', () => {
   it('默认 base path 为根路径', () => {
@@ -61,26 +64,24 @@ describe('assetUrl', () => {
 
 describe('absoluteSiteUrl', () => {
   it('空值返回站点根地址', () => {
-    expect(absoluteSiteUrl(undefined, SITE_URL, '/')).toBe('https://blog.pldduck.com/');
+    expect(absoluteSiteUrl(undefined, SITE_URL, '/')).toBe(`${SITE_URL}/`);
   });
 
   it('子路径 base 下根地址带前缀', () => {
-    expect(absoluteSiteUrl(undefined, SITE_URL, '/blog/')).toBe('https://blog.pldduck.com/blog/');
+    expect(absoluteSiteUrl(undefined, SITE_URL, '/blog/')).toBe(`${SITE_URL}/blog/`);
   });
 
   it('站内路径拼成完整 URL', () => {
-    expect(absoluteSiteUrl('/about', SITE_URL, '/')).toBe('https://blog.pldduck.com/about');
-    expect(absoluteSiteUrl('/about', SITE_URL, '/blog/')).toBe('https://blog.pldduck.com/blog/about');
+    expect(absoluteSiteUrl('/about', SITE_URL, '/')).toBe(`${SITE_URL}/about`);
+    expect(absoluteSiteUrl('/about', SITE_URL, '/blog/')).toBe(`${SITE_URL}/blog/about`);
   });
 
   it('相对路径补全为绝对路径', () => {
-    expect(absoluteSiteUrl('about', SITE_URL, '/')).toBe('https://blog.pldduck.com/about');
+    expect(absoluteSiteUrl('about', SITE_URL, '/')).toBe(`${SITE_URL}/about`);
   });
 
   it('同源外部 URL 被重新挂到 base path 下', () => {
-    expect(absoluteSiteUrl('https://blog.pldduck.com/post/x', SITE_URL, '/blog/')).toBe(
-      'https://blog.pldduck.com/blog/post/x',
-    );
+    expect(absoluteSiteUrl(`${SITE_URL}/post/x`, SITE_URL, '/blog/')).toBe(`${SITE_URL}/blog/post/x`);
   });
 
   it('异源 URL 原样返回', () => {
@@ -88,6 +89,6 @@ describe('absoluteSiteUrl', () => {
   });
 
   it('保留查询参数与 hash', () => {
-    expect(absoluteSiteUrl('/post/x?page=2#top', SITE_URL, '/')).toBe('https://blog.pldduck.com/post/x?page=2#top');
+    expect(absoluteSiteUrl('/post/x?page=2#top', SITE_URL, '/')).toBe(`${SITE_URL}/post/x?page=2#top`);
   });
 });

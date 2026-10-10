@@ -25,5 +25,5 @@ draft: false
 
 # D-blog 的不蒜子统计
 你可以通过一下两个方式查看 D-blog 的不蒜子统计
-- [D-blog 统计页](https://blog.pldduck.com/stats "D-blog 统计页")
-- [不蒜子统计页](https://www.busuanzi.cc/count.php?search=blog.pldduck.com "不蒜子统计页")
+- [D-blog 统计页](/stats "D-blog 统计页")
+- [不蒜子统计页](https://www.busuanzi.cc/count.php?search=www.pldduck.com "不蒜子统计页")

@@ -10,7 +10,7 @@
 
 基于 React 19 + Vite 6 + TypeScript 的静态博客：构建期生成站点数据与全站静态 HTML（SSG），客户端以 SPA 水合运行。
 
-**在线演示**：<https://blog.pldduck.com>
+**在线演示**：<https://www.pldduck.com>
 
 </div>
 

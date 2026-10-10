@@ -9,9 +9,9 @@ const render = (markdown: string) =>
 
 describe('remarkAutolinkHttp', () => {
   it('裸 http(s) URL 自动成链，展示文本去掉协议前缀', () => {
-    const html = render('看看这个 https://blog.pldduck.com/post/hello 好东西');
-    expect(html).toContain('<a href="https://blog.pldduck.com/post/hello"');
-    expect(html).toContain('>blog.pldduck.com/post/hello</a>');
+    const html = render('看看这个 https://www.pldduck.com/post/hello 好东西');
+    expect(html).toContain('<a href="https://www.pldduck.com/post/hello"');
+    expect(html).toContain('>www.pldduck.com/post/hello</a>');
   });
 
   it('仅 http/https 成链，裸域名不误伤', () => {
@@ -21,7 +21,7 @@ describe('remarkAutolinkHttp', () => {
   });
 
   it('已有 Markdown 链接内的 URL 不重复处理', () => {
-    const html = render('[官网](https://blog.pldduck.com)');
+    const html = render('[官网](https://www.pldduck.com)');
     expect((html.match(/<a /g) ?? []).length).toBe(1);
   });
 
@@ -31,8 +31,8 @@ describe('remarkAutolinkHttp', () => {
   });
 
   it('中文标点结尾不吞入 URL', () => {
-    const html = render('地址是 https://blog.pldduck.com，欢迎来看');
-    expect(html).toContain('href="https://blog.pldduck.com"');
-    expect(html).not.toContain('blog.pldduck.com，');
+    const html = render('地址是 https://www.pldduck.com，欢迎来看');
+    expect(html).toContain('href="https://www.pldduck.com"');
+    expect(html).not.toContain('www.pldduck.com，');
   });
 });

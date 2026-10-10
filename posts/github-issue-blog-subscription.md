@@ -232,7 +232,7 @@ const posts = files.flatMap((file) => {
     title: frontmatter.title || frontmatter.id,
     excerpt: frontmatter.excerpt,
     date: frontmatter.date,
-    url: `https://blog.pldduck.com/post/${encodeURIComponent(frontmatter.id)}`,
+    url: `https://www.pldduck.com/post/${encodeURIComponent(frontmatter.id)}`,
   }];
 });
 

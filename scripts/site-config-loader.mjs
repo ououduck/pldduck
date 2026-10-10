@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 const SITE_CONFIG_FILE = path.join(__dirname, '../config/site.config.json');
 
 const DEFAULT_SITE_CONFIG = {
-  title: 'D-blog',
+  title: '跑路的duck',
   subtitle: '',
   description: '',
   url: 'http://localhost:3000',

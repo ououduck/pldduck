@@ -2,17 +2,17 @@
   "$schema": "https://web-mcp.com/schema/webmcp.schema.json",
   "version": "1.0",
   "site": {
-    "name": "D-blog",
+    "name": "跑路的duck",
     "description": "跑路的duck的技术分享和生活随笔",
-    "url": "https://blog.pldduck.com",
+    "url": "https://www.pldduck.com",
     "language": "zh-CN",
     "author": "跑路的duck"
   },
   "discovery": {
-    "llmsTxt": "https://blog.pldduck.com/llms.txt",
-    "sitemap": "https://blog.pldduck.com/sitemap-index.xml",
-    "robots": "https://blog.pldduck.com/robots.txt",
-    "feed": "https://blog.pldduck.com/feed.xml"
+    "llmsTxt": "https://www.pldduck.com/llms.txt",
+    "sitemap": "https://www.pldduck.com/sitemap-index.xml",
+    "robots": "https://www.pldduck.com/robots.txt",
+    "feed": "https://www.pldduck.com/feed.xml"
   },
   "capabilities": {
     "staticMarkup": true,

@@ -8,6 +8,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { assetUrl } from '@/utils/siteUrl';
+import { siteConfig } from '@config/site.config';
 
 interface CachedPostEntry {
   url: string;
@@ -16,6 +17,8 @@ interface CachedPostEntry {
 
 const PAGE_CACHE_KEY_PATTERN = /^dblog-.*-pages$/;
 const POST_PATH_PATTERN = /\/post\/[^/]+\/?$/;
+/** Seo.tsx 输出「文章标题 - 站点名」，站点名取自配置，避免改名后后缀剥离失效。 */
+const SITE_TITLE_SUFFIX = new RegExp(`\\s*[|·-]\\s*${siteConfig.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*$`, 'i');
 /** 单次列表最多展示的缓存文章数（防止极端缓存体积撑爆提示条）。 */
 const MAX_CACHED_POSTS = 30;
 /** 「网络已恢复」提示的停留时长。 */
@@ -39,7 +42,7 @@ const extractTitleFromHtml = (html: string): string => {
   const match = html.match(/<title>([^<]*)<\/title>/i);
   if (!match) return '';
   const raw = decodeEntities(match[1]).trim();
-  return raw.split(/\s*[|·-]\s*D-blog.*$/i)[0].trim();
+  return raw.split(SITE_TITLE_SUFFIX)[0].trim();
 };
 
 const findPageCache = async (): Promise<Cache | null> => {

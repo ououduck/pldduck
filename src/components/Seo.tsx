@@ -170,7 +170,7 @@ export const Seo: React.FC<SeoProps> = ({
   const location = useLocation();
   const resolvedUrl = url ?? location.pathname + location.search;
   // 首页使用带关键词的站点级标题（大厂站标配：品牌 + 一句话定位），
-  // 其余页面统一为「页面名 - D-blog」格式。
+  // 其余页面统一为「页面名 - 站点名」格式。
   const fullTitle =
     title === siteConfig.title ? siteConfig.seoHomeTitle || siteConfig.title : `${title} - ${siteConfig.title}`;
   const fullDescription =

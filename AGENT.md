@@ -13,7 +13,7 @@
 - 项目：pldduck（React 19 + Vite 6 + TypeScript 的 SSG 静态站点，客户端 SPA 水合；Node 构建脚本为 ESM .mjs）。
   线上域名 `www.pldduck.com`，由原个人主页 Dworld 与博客 D-blog 合并而来：首页是导流门户页，
   文章/说说/友链/留言板等功能页在同一域下的子路径，`/post/<id>` 与旧博客逐字节一致。
-  旧仓库 `ououduck/D-blog` 已封存为迁移跳转页，不再开发。
+  旧仓库已改名 `ououduck/D-blog-old` 并封存为迁移跳转页，不再开发。
 - 沟通语言：与用户使用**中文**交流；git 提交信息使用**中文**。
 - 每完成一个小任务提交一次 git，**只 commit 不 push**（除非用户明确要求推送）。
 - 提交前必须通过：`npm run typecheck`、`eslint`、相关单测；涉及构建逻辑的改动需 `npm run build` 验证。

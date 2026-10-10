@@ -13,7 +13,7 @@
 
 1. **year 参数格式**：URL 写**纯数字**（`?year=2026`），展示层保留本地化文案（`2026年`）；所有比较必须经 `normalizeYearKey` 归一化（getInitialExpansion / ensureYearExpanded / URL 校验 / toggleYear 写入四处置为一致）。禁止把「2026年」写入 URL。
 2. **展开状态**：默认展开最新年份首月；`?year=` 直访展开对应年份；非法 year 参数必须从 URL 移除并回退最新年份；搜索后自动展开全部（仅一次，用户手动折叠不被反弹）。
-3. **URL ↔ 状态同步**：同首页规则（lastEditedQueryRef 追平后清空、清除搜索移除 q 与 year）。
+3. **URL ↔ 状态同步**：击键期间 URL 尚未提交时不得按 URL 回写输入框（`lastEditedQueryRef` 守卫，URL 追平编辑值后清空该 ref）；清除搜索同时移除 q 与 year。
 4. **SSG 确定性**：首帧由 `getInitialPosts()` 分组渲染，不得依赖客户端时间。
 5. **无效日期**：`buildArchiveGroups` 对非法日期承诺不抛错（月份回退 1、未知年份排最后），不得移除该容错。
 6. **动画**：年份/月份展开折叠动画尊重 reducedMotion。

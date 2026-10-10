@@ -2,31 +2,38 @@
 
 ## 功能概述
 
-站点首页：英雄区、分类筛选栏、文章卡片网格（精选大卡 + 普通卡）、搜索框（?q= 客户端搜索）、继续阅读入口、排序/分页、分享。
+站点导流门户页：站名与自我介绍（含助记词、状态徽标）、站内搜索入口（仅负责跳转）、站点入口磁贴与次级链接、开源项目、继续阅读、最新文章卡片、最近说说摘要、友情链接速览、联系方式（GitHub / 邮箱 / QQ 一键复制）。
+
+**本页不承载文章列表的筛选、排序、分页与搜索结果展示**——那些能力属于 `/archive`、`/tags`、`/search`。
 
 ## 关键文件
 
-- `src/pages/Home.tsx`（约 780 行）
-- `src/components/PostCard.tsx`（首页与搜索共用卡片，已 React.memo）
-- `src/hooks/usePostSearch.ts`（搜索 hook：防抖 + requestId 竞态 + 空查询兜底）
-- `src/utils/postSelection.ts` / `postSorting.ts` / `homeQuery.ts`（精选/排序/URL 查询状态）
+- `src/pages/Home.tsx`
+- `config/site.config.json` 的 `portal` 字段（入口磁贴、次级链接、开源项目、tagline/status/tags/memory 全部由此驱动）与 `config/site.config.ts` 的 `SitePortal` 类型
+- `src/services/posts.ts` / `shuoshuo.ts` / `friends.ts`（构建期内联数据的同步 getter）
+- `src/components/PostCard.tsx`（与搜索/归档共用卡片，已 React.memo）
+- `src/utils/postSorting.ts`（`sortPosts`：置顶精选 → 普通精选 → 时间序）
 
 ## 修改规则（必须遵守）
 
-1. **水合一致性**：首帧用 `getInitialPosts()` 同步渲染（无 q 默认界面）；`?q=` 直访时首帧保持空查询渲染，水合后在 effect 中同步（Home.tsx 既有模式，不得改为 useState 初值）。
-2. **URL ↔ 状态单向同步**：`lastEditedQueryRef` 守卫只挡「击键后 URL 未提交」窗口期；URL 追平编辑值后必须清空 ref（否则后退/前进失同步）。任何对同步 effect 的修改都要保持此语义。
-3. **搜索竞态**：空查询分支、防抖清理、requestId 比对不得移除；`emptyResults` 必须传稳定引用（否则渲染循环）。
-4. **分类/排序/分页**：状态必须与 URL 参数（category/sort/page）双向一致；页码越界要自愈（钳制后 replace URL）。
-5. **精选置顶**：`isPinnedFeaturedPost` 等选择逻辑在 utils 中，不得在组件内复制实现。
-6. **动画**：framer-motion 变体（fadeInUp/staggerContainer）仅做入场；尊重 `prefers-reduced-motion`（`shouldReduceMotion` 传透）；SSR 输出不得为 opacity:0 的内容。
-7. **性能**：PostCard 保持 memo；不要引入整页重渲染的依赖。
-8. **分享**：分享 URL 的 `/post/<id>` 路径用裸 `post.id`（构建期 `validateId` 已校验 URL 安全，与 SSG/sitemap/canonical 口径一致；encodeURIComponent 反而会与产物路径不一致）。
+1. **导流页定位**：不得在首页重新实现分类筛选、排序、分页或客户端搜索。搜索表单只做 `navigate('/search?q=…')`；空查询不跳转。
+2. **URL 状态最小化**：首页唯一合法 URL 是无参 `/`。挂载时把残留参数清掉（`replace`），`?q=` 则整串转交 `/search`（兼容旧版首页的搜索分享链接）。新增交互不得再引入查询参数。
+3. **SSG/水合确定性**：数据一律来自 `getInitialPosts()` / `getInitialShuoShuo()` / `getInitialFriends()` 的同步返回值；列表派生（排序、截取、过滤已失联友链）写在**模块作用域**只算一次。渲染期禁止 fetch、`Date.now()`、`Math.random()`、`window`/`document` 访问（`ShareModal` 的 `window.location.origin` 只在弹层打开时求值）。
+4. **内容不硬编码**：站点入口/次级链接/开源项目来自 `siteConfig.portal`，新增图标在 `PORTAL_ICONS` 注册并保留 `Sparkles` 兜底；不得把清单抄进组件。
+5. **链接语义**：站内路径用 `<Link>` + `onMouseEnter={() => preloadPage(path)}`；外链用 `<a target="_blank" rel="noopener noreferrer">` 并在可访问名称里标注「外部站点」。站内/外链判定统一走 `isInternalPath`（`//` 开头的协议相对地址不算站内）。
+6. **SEO**：`<Seo title={siteConfig.title} description={siteConfig.description} />` —— `title` 必须逐字等于 `siteConfig.title`，否则 `seoHomeTitle`/`seoHomeDescription` 的首页覆盖不生效（见 `Seo.tsx`）。
+7. **无障碍**：每个 `Section` 用 `aria-labelledby` 指向自身 `h2`；搜索表单 `role="search"` + `<label className="sr-only">`；复制成功通过 `role="status"` 播报；头像保留 `alt`。
+8. **动画克制**：不使用 framer-motion 入场/视差动画（首帧必须是最终可见状态，保证 LCP 与无 JS 可读）；只允许 CSS `motion-safe:` 级别的小动效。
+9. **性能**：`PostCard` 保持 memo；组件内 state 仅限局部交互（搜索输入框、复制反馈、头像回退），不得引发整页重渲染。
+10. **继续阅读**：与 `useReadingHistory` 保持一致，文章已从列表消失时必须清掉该条历史；阅读完成（`isReadingComplete`）不展示。
+11. **分享**：分享 URL 的 `/post/<id>` 路径用裸 `post.id`（构建期 `validateId` 已校验 URL 安全，与 SSG/sitemap/canonical 口径一致；encodeURIComponent 反而会与产物路径不一致）。
 
 ## 常见陷阱
 
-- 修改 `usePostSearch` 的返回结构会同时影响 Search/Archive/Tags；
-- 骨架屏/加载态切换不应在每次击键时卸载整个文章网格（旧结果应保留）；
-- SEO title：有查询时输出「搜索：X」，无结果也应保持搜索语义而非回退站点默认标题。
+- 头像（`q1.qlogo.cn`）不可达时在 `onError` 里切到 ui-avatars 兜底：只能在事件回调中改状态，不得在渲染期探测。
+- 说说的 `content` 是 Markdown，摘要必须经 `stripMarkdown` 后再截断（`truncate`），否则会漏出 `**`、`` ` `` 等标记。
+- 首页只渲染前 N 条数据，测试夹具要覆盖「被截断的那条不出现」，否则截断逻辑失效不会被发现。
+- 页脚与备案由 `Layout` 统一渲染，首页不得重复输出。
 
 ## 破例条款
 

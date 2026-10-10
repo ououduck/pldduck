@@ -21,6 +21,51 @@ export interface SiteSocial {
   github: string;
   email: string;
   rawEmail: string;
+  /** QQ 号（纯数字文本，首页社交区提供一键复制；不配置则不展示该行）。 */
+  qq?: string;
+}
+
+/** 首页「站点入口」磁贴：站内路径以 / 开头，外链写完整 URL。 */
+export interface PortalEntry {
+  title: string;
+  description: string;
+  url: string;
+  /** 图标名，见 src/pages/Home.tsx 的 PORTAL_ICONS；未识别时回退到 Sparkles。 */
+  icon: string;
+  /** 磁贴右下角的一句话备注，可省略。 */
+  note?: string;
+}
+
+/** 首页「站点入口」的次级链接（一行小胶囊，不占磁贴位）。 */
+export interface PortalLink {
+  title: string;
+  url: string;
+  icon: string;
+}
+
+export interface PortalProject {
+  title: string;
+  description: string;
+  url: string;
+  tag?: string;
+}
+
+/** 首页引导区内容（原 Dworld 主页的清单，合并后由本站首页承载）。 */
+export interface SitePortal {
+  /** 自我介绍的一句话（Hero 副文案）。 */
+  tagline?: string;
+  /** 状态徽标文案，如「在线更新中」。 */
+  status?: string;
+  tags?: string[];
+  /** 助记词：解释域名怎么记（pldduck = 跑路的 duck）。 */
+  memory?: {
+    label: string;
+    prompt: string;
+    detail: string;
+  };
+  entries?: PortalEntry[];
+  links?: PortalLink[];
+  projects?: PortalProject[];
 }
 
 export interface SiteToc {
@@ -106,6 +151,8 @@ export interface SiteConfig {
   /** 文章内容仓库（"在 GitHub 上编辑此文"/查看源文件入口使用）。 */
   content?: SiteContent;
   beian: SiteBeian;
+  /** 首页引导区（站点入口/开源项目/自我介绍）内容。 */
+  portal?: SitePortal;
 }
 
 export const siteConfig: SiteConfig = siteConfigJson;

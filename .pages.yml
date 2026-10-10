@@ -149,6 +149,10 @@ content:
           - { name: github, label: GitHub, type: string }
           - { name: email, label: 邮箱（mailto:）, type: string }
           - { name: rawEmail, label: 邮箱地址, type: string }
+          - name: qq
+            label: QQ 号
+            hint: 纯数字文本；首页「找到我」区展示一键复制按钮，留空则不展示
+            type: string
       - name: author
         label: 作者信息
         type: object
@@ -209,6 +213,59 @@ content:
         type: object
         fields:
           - { name: url, label: 反馈表单地址, type: string }
+      - name: portal
+        label: 首页引导区（改动即时反映到首页磁贴/链接/项目清单）
+        type: object
+        fields:
+          - { name: tagline, label: 一句话定位, type: string }
+          - { name: status, label: 状态徽标文案, type: string }
+          - name: tags
+            label: 徽标标签
+            type: list
+            field: { type: string, label: 标签 }
+          - name: memory
+            label: 助记词
+            type: object
+            fields:
+              - { name: label, label: 小标题, type: string }
+              - { name: prompt, label: 提示语, type: string }
+              - { name: detail, label: 解释内容, type: string }
+          - name: entries
+            label: 站点入口磁贴
+            type: list
+            field:
+              type: object
+              fields:
+                - { name: title, label: 标题, type: string, required: true }
+                - { name: description, label: 描述, type: text }
+                - { name: url, label: 地址（站内以 / 开头，外链写完整 URL）, type: string, required: true }
+                - name: icon
+                  label: 图标名
+                  hint: archive / shuoshuo / tool / friends / about / search / stats / guestbook / cover / watermark，未识别时回退到 Sparkles
+                  type: string
+                - { name: note, label: 右下角备注, type: string }
+          - name: links
+            label: 次级链接
+            type: list
+            field:
+              type: object
+              fields:
+                - { name: title, label: 标题, type: string, required: true }
+                - { name: url, label: 地址, type: string, required: true }
+                - name: icon
+                  label: 图标名
+                  hint: 与入口磁贴共用同一套图标名（见 src/pages/Home.tsx 的 PORTAL_ICONS）
+                  type: string
+          - name: projects
+            label: 开源项目
+            type: list
+            field:
+              type: object
+              fields:
+                - { name: title, label: 项目名, type: string, required: true }
+                - { name: description, label: 描述, type: text }
+                - { name: url, label: 仓库地址, type: string, required: true }
+                - { name: tag, label: 技术栈标签, type: string }
 
 # ── 部署动作：CMS 侧边栏按钮，触发 .github/workflows/deploy.yml ──
 # 文档: https://pagescms.org/docs/configuration/actions/

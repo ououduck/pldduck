@@ -84,3 +84,65 @@ describe('PagesCMS 集合：filename 模板与 slug 字段约束（回归：Inva
     });
   }
 });
+
+/**
+ * siteConfig 字段漂移守护（ai-rules/config.md §2）。
+ *
+ * PagesCMS 保存配置时按 .pages.yml 声明的字段树重写 JSON：**未声明的键会被静默丢弃**，
+ * 表现是「CMS 里没看到这个配置项，保存一次后它就从 site.config.json 消失了」。
+ * 因此 site.config.json 的每一层对象键（数组元素下钻一层）都必须能在字段树里对上名字。
+ */
+describe('PagesCMS 站点配置字段与 site.config.json 一一对应', () => {
+  const siteConfigJson = JSON.parse(readFileSync(path.join(repoRoot, 'config/site.config.json'), 'utf8'));
+  const siteConfigFields = pagesConfig.content.find((item) => item.name === 'siteConfig')?.fields;
+
+  const findField = (fields, name) => (fields ?? []).find((field) => field.name === name);
+
+  const collectMissing = (value, fields, trail, acc) => {
+    for (const [key, child] of Object.entries(value ?? {})) {
+      const where = [...trail, key].join('.');
+      const field = findField(fields, key);
+      if (!field) {
+        acc.push(where);
+        continue;
+      }
+      if (child && typeof child === 'object' && !Array.isArray(child)) {
+        collectMissing(child, field.fields, [...trail, key], acc);
+      } else if (Array.isArray(child) && field.type === 'list' && field.field?.fields) {
+        // 列表项是同构对象：只按每一项的键下钻（PagesCMS 的 list 模板即如此）。
+        for (const item of child) {
+          if (item && typeof item === 'object') {
+            collectMissing(item, field.field.fields, [...trail, key], acc);
+          }
+        }
+      }
+    }
+    return acc;
+  };
+
+  it('siteConfig 字段树存在', () => {
+    expect(Array.isArray(siteConfigFields)).toBe(true);
+  });
+
+  it('site.config.json 的每个键都在 CMS 字段树中声明（否则保存即丢字段）', () => {
+    expect(collectMissing(siteConfigJson, siteConfigFields, [], [])).toEqual([]);
+  });
+
+  it('首页 portal 清单可编辑（新增首页配置项时不能漏声明）', () => {
+    const portal = findField(siteConfigFields, 'portal');
+    expect(portal?.type).toBe('object');
+    const names = new Set((portal.fields ?? []).map((field) => field.name));
+    for (const key of Object.keys(siteConfigJson.portal ?? {})) {
+      expect(names.has(key)).toBe(true);
+    }
+    const entryFields = new Set((findField(portal.fields, 'entries')?.field?.fields ?? []).map((f) => f.name));
+    for (const key of Object.keys(siteConfigJson.portal?.entries?.[0] ?? {})) {
+      expect(entryFields.has(key)).toBe(true);
+    }
+  });
+
+  it('social.qq 已声明（首页 QQ 一键复制的数据源）', () => {
+    const socialFields = findField(siteConfigFields, 'social')?.fields ?? [];
+    expect(socialFields.some((field) => field.name === 'qq')).toBe(true);
+  });
+});

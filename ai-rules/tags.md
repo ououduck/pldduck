@@ -11,7 +11,7 @@
 
 ## 修改规则（必须遵守）
 
-1. **URL ↔ 状态同步**：同首页规则（lastEditedQueryRef 追平后清空；`?tag=` 直访要筛选对应标签；非法 tag 回退）。
+1. **URL ↔ 状态同步**：击键期间 URL 尚未提交时不得按 URL 回写输入框（`lastEditedQueryRef` 守卫，URL 追平编辑值后清空该 ref）；`?tag=` 直访要筛选对应标签，非法 tag 回退。
 2. **派生状态记忆化**：`tags`/`allTags`/`selectedTagInfo`/`maxCount` 必须走 useMemo 链（每次渲染对全量 posts 重算 buildTagList 是明确禁止的性能回退）。
 3. **标签大小分级**：`getTagSize` 按 count/maxCount 比例分档，保持阈值语义。
 4. **SSG 确定性**：标签云首帧由构建期内联数据渲染，不得依赖客户端时间/随机。

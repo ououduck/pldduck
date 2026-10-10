@@ -12,7 +12,8 @@
   "social": {
     "github": "https://github.com/ououduck/",
     "email": "mailto:i@pldduck.com",
-    "rawEmail": "i@pldduck.com"
+    "rawEmail": "i@pldduck.com",
+    "qq": "2472652060"
   },
   "author": {
     "name": "跑路的duck",
@@ -51,5 +52,79 @@
   "beian": {
     "text": "湘ICP备2025101669号",
     "url": "https://beian.miit.gov.cn"
+  },
+  "portal": {
+    "tagline": "一只游手好闲的鸭子",
+    "status": "在线更新中",
+    "tags": ["跑路啦"],
+    "memory": {
+      "label": "助记词",
+      "prompt": "教你一句话记住本网站",
+      "detail": "跑路的(pld)duck(duck)"
+    },
+    "entries": [
+      {
+        "title": "D-blog 文章",
+        "description": "技术分享、工具测评与折腾记录，全部静态直出。",
+        "url": "/archive",
+        "icon": "archive",
+        "note": "归档"
+      },
+      {
+        "title": "说说",
+        "description": "一句话、一张图，记录当下的想法与生活片段。",
+        "url": "/shuoshuo",
+        "icon": "shuoshuo",
+        "note": "随性更新"
+      },
+      {
+        "title": "D-Tool 工具箱",
+        "description": "纯前端在线工具箱，格式化、转换、生成一类小工具。",
+        "url": "https://tool.pldduck.com",
+        "icon": "tool",
+        "note": "外部站点"
+      },
+      {
+        "title": "友情链接",
+        "description": "一些优秀的技术博客和有趣的网站，排名不分先后。",
+        "url": "/friends",
+        "icon": "friends",
+        "note": "友链"
+      }
+    ],
+    "links": [
+      { "title": "关于我", "url": "/about", "icon": "about" },
+      { "title": "站内搜索", "url": "/search", "icon": "search" },
+      { "title": "站点统计", "url": "/stats", "icon": "stats" },
+      { "title": "留言板", "url": "/guestbook", "icon": "guestbook" },
+      { "title": "封面生成", "url": "/cover", "icon": "cover" },
+      { "title": "图片水印", "url": "/watermark", "icon": "watermark" }
+    ],
+    "projects": [
+      {
+        "title": "D-blog",
+        "description": "纯静态自研博客，构建期直出每篇文章的 HTML。",
+        "url": "https://github.com/ououduck/pldduck",
+        "tag": "React + Vite"
+      },
+      {
+        "title": "D-Tool",
+        "description": "纯前端在线工具箱，无后端依赖。",
+        "url": "https://github.com/ououduck/D-Tool",
+        "tag": "Node"
+      },
+      {
+        "title": "Dynamic Island",
+        "description": "灵动岛样式的音乐播放组件。",
+        "url": "https://github.com/ououduck/dynamic-island-player",
+        "tag": "CSS + React"
+      },
+      {
+        "title": "D-fuckshuiyin",
+        "description": "智能图片去水印工具。",
+        "url": "https://github.com/ououduck/D-fuckshuiyin",
+        "tag": "JS + Canvas"
+      }
+    ]
   }
 }

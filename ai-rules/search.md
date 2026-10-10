@@ -12,7 +12,7 @@
 
 ## 修改规则（必须遵守）
 
-1. **URL ↔ 状态同步**：同首页规则（lastEditedQueryRef 追平后清空；`?q=` 直访水合后同步）。
+1. **URL ↔ 状态同步**：击键期间 URL 尚未提交时不得按 URL 回写输入框（`lastEditedQueryRef` 守卫，URL 追平编辑值后清空该 ref）；`?q=` 直访在水合后同步进搜索。
 2. **搜索范围**：`scope` 状态与 URL 参数联动（切换范围不丢查询）；范围选项文案/语义在组件常量中，保持既有五档（全部/分类/正文内容/仅标题等）。
 3. **相关度排序**：`getFieldMatchScore`（精确/前缀/包含加权）与日期降序在 `services/posts.ts` 中，不得在组件内重写。
 4. **竞态与防抖**：usePostSearch 的防抖清理、requestId 比对不得移除。

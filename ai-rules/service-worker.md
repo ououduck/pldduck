@@ -21,7 +21,9 @@ PWA Service Worker：页面/静态资源/图片分级缓存、断网离线渲染
 ## 常见陷阱
 
 - SW 更新死循环（每次刷新都提示更新）是常见回归，改动更新逻辑必须验证；
-- 断网离线路径（页面缓存 → 应用壳）覆盖 SPA 路由，改动路由表必须同步 `SPA_ROUTE_PATTERNS`。
+- 断网离线路径（页面缓存 → 应用壳）覆盖 SPA 路由，改动路由表**不要手改 `public/sw.js` 的
+  `/* ROUTES:BEGIN */ … /* ROUTES:END */` 标记区**：它由构建期从 `config/routes.mjs` 注入，
+  只改那份清单即可，详见 [路由单一数据源](routes-single-source.md)。
 
 ## 破例条款
 

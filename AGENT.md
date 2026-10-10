@@ -1,6 +1,6 @@
-# AGENT.md — D-blog 的 AI 开发者行为准则
+# AGENT.md — pldduck 的 AI 开发者行为准则
 
-本文件约束所有参与 D-blog 仓库工作的 AI 开发者（含代码审查、功能实现、bug 修复、文档维护、脚本编写等全部工作形态）。**修改本文件需用户明确授权。**
+本文件约束所有参与 pldduck 仓库工作的 AI 开发者（含代码审查、功能实现、bug 修复、文档维护、脚本编写等全部工作形态）。**修改本文件需用户明确授权。**
 
 ## 一、最高约束：功能规则集
 
@@ -10,7 +10,10 @@
 
 ## 二、项目身份与工作方式
 
-- 项目：D-blog（React 19 + Vite 6 + TypeScript 的 SSG 静态博客，客户端 SPA 水合；Node 构建脚本为 ESM .mjs）。
+- 项目：pldduck（React 19 + Vite 6 + TypeScript 的 SSG 静态站点，客户端 SPA 水合；Node 构建脚本为 ESM .mjs）。
+  线上域名 `www.pldduck.com`，由原个人主页 Dworld 与博客 D-blog 合并而来：首页是导流门户页，
+  文章/说说/友链/留言板等功能页在同一域下的子路径，`/post/<id>` 与旧博客逐字节一致。
+  旧仓库 `ououduck/D-blog` 已封存为迁移跳转页，不再开发。
 - 沟通语言：与用户使用**中文**交流；git 提交信息使用**中文**。
 - 每完成一个小任务提交一次 git，**只 commit 不 push**（除非用户明确要求推送）。
 - 提交前必须通过：`npm run typecheck`、`eslint`、相关单测；涉及构建逻辑的改动需 `npm run build` 验证。
@@ -36,7 +39,9 @@
 - `src/` 前端源码（components/pages/hooks/services/utils/ssr）；
 - `scripts/` 构建与自动化脚本（Node ESM），共享库在 `scripts/lib/`；
 - `ai-rules/` 功能规则集（见第一节）；
-- `config/` 构建配置与站点配置（`site.config.json` 等）；
+- `config/` 构建配置与站点配置（`site.config.json` 等）；`config/routes.mjs` 是路由清单的
+  **唯一数据源**（页面路径、预加载、sitemap、service worker 拦截模式都由它派生），
+  加页面/改路径先看 `ai-rules/routes-single-source.md`，不要在别处再写一份路径表。
 - 跨 src/scripts 共享的剥离/提取核心：`src/utils/*-core.mjs`，改动需同时考虑两端调用方。
 
 ## 五、验证清单（提交前自查）
@@ -50,4 +55,4 @@
 
 ## 六、免责与授权
 
-本文件与 `ai-rules/` 的效力来源于用户对 D-blog 仓库的治理意愿。用户保留随时修改、增删任何规则的权力；AI 对规则的理解冲突时，以用户当面的明确指示为准。
+本文件与 `ai-rules/` 的效力来源于用户对 pldduck 仓库的治理意愿。用户保留随时修改、增删任何规则的权力；AI 对规则的理解冲突时，以用户当面的明确指示为准。

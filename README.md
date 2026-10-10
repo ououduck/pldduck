@@ -1,4 +1,4 @@
-# D-blog
+# pldduck · 跑路的duck
 
 <div align="center">
 
@@ -8,14 +8,30 @@
 ![Vite](https://img.shields.io/badge/vite-6-646cff.svg)
 ![CI](https://github.com/ououduck/pldduck/actions/workflows/ci.yml/badge.svg)
 
-基于 React 19 + Vite 6 + TypeScript 的静态博客：构建期生成站点数据与全站静态 HTML（SSG），客户端以 SPA 水合运行。
+个人站点：**首页是导流门户页**，下面挂着静态博客、说说、友链、留言板与两个在线小工具。
+基于 React 19 + Vite 6 + TypeScript，构建期生成站点数据与全站静态 HTML（SSG），客户端以 SPA 水合运行。
 
-**在线演示**：<https://www.pldduck.com>
+**在线地址**：<https://www.pldduck.com>
 
 </div>
 
+## 这个仓库是怎么来的
+
+`pldduck` 由原先分开的两个站点合并而来：个人主页 **Dworld**（`www.pldduck.com`）与静态博客
+**D-blog**（`blog.pldduck.com`）。合并后由本仓库单域提供服务，功能页拆成同域下的子路径
+（`/post/:id`、`/shuoshuo`、`/friends`、`/archive`、`/tags`、`/stats`、`/guestbook`、`/about`、
+`/cover`、`/watermark`、`/search`）。
+
+两条对外契约值得单独说明：
+
+- **文章地址不变**：`/post/<id>` 与旧博客逐字节一致，旧链接、书签与搜索收录都能直接沿用。
+- **旧域名只跳转不服务**：旧博客仓库 `ououduck/D-blog`（封存后改名 `D-blog-old`）已瘦身成纯静态迁移页，
+  在 Cloudflare Pages 上用 `_redirects` 把 `blog.pldduck.com` 的每个路径 301 到本站同一位置；
+  只有根路径返回 200 的迁移公告（3 秒后自动跳转）。那里不再构建、不再写内容。
+
 ## 目录
 
+- [这个仓库是怎么来的](#这个仓库是怎么来的)
 - [核心特性](#核心特性)
 - [技术栈](#技术栈)
 - [快速开始](#快速开始)
@@ -30,6 +46,7 @@
 
 ## 核心特性
 
+- **门户首页**：站名与自我介绍、站点与开源项目入口、最新文章 / 最近说说 / 友链 / 社交方式集中在一张导流页；纯静态直出，动效尊重 `prefers-reduced-motion`
 - **Markdown 驱动**：Front Matter 元数据校验、多作者、分类白名单、草稿过滤均在构建时完成
 - **增强渲染**：代码高亮（diff 行高亮、文件名、折叠、行号复制、换行开关）、KaTeX 公式、Mermaid 图表、GFM 表格、图片预览，按需懒加载
 - **全文搜索**：构建期生成索引，多维权重评分，支持范围筛选与搜索历史；首页/弹窗/独立页 `/search` 共用同一套评分
@@ -56,8 +73,8 @@
 ## 快速开始
 
 ```bash
-git clone https://github.com/ououduck/D-blog.git
-cd D-blog
+git clone https://github.com/ououduck/pldduck.git
+cd pldduck
 npm install
 cp .env.example .env          # 可选：覆盖站点 URL 与子路径（Windows 用 copy）
 npm run check                 # 数据生成校验 + 类型检查
@@ -77,8 +94,8 @@ npm test                      # Vitest 单元测试（先执行 gen:data）
 ## 项目结构
 
 ```text
-D-blog/
-├── config/                  # 站点/内容配置、tsconfig、tailwind、postcss
+pldduck/
+├── config/                  # 站点/内容配置、tsconfig、tailwind、postcss；routes.mjs 是路由清单唯一数据源
 ├── posts/ friends/ shuoshuo/  # Markdown 文章、友链 JSON、说说（短动态）
 ├── ai-rules/                # 各功能模块的 AI 修改规则集（硬性约束，见下文）
 ├── AGENT.md                 # AI 开发者总行为准则
@@ -152,7 +169,7 @@ images:
 
 ### 留言板
 
-`/guestbook` 通过 Giscus `mapping=number` 固定指向仓库的「D-blog 留言板」Discussion（`config/site.config.json` 的 `guestbook.discussionId`）。与文章评论共用 Akismet 反垃圾，并叠加自建关键词过滤（`config/comment-keywords.json`，可在 PagesCMS「评论关键词」中编辑）。
+`/guestbook` 通过 Giscus `mapping=number` 固定指向本仓库的留言板 Discussion（`config/site.config.json` 的 `guestbook.discussionId`；该模式下只认讨论编号，标题随意）。与文章评论共用 Akismet 反垃圾，并叠加自建关键词过滤（`config/comment-keywords.json`，可在 PagesCMS「评论关键词」中编辑）。
 
 ### 文章更新订阅
 
@@ -161,6 +178,18 @@ images:
 ### Giscus 评论
 
 评论区直连官方 [https://giscus.app](https://giscus.app)（`config/site.config.json` 的 `comments.origin`）。大陆网络下 giscus.app 被 DNS 污染/阻断，评论区可能加载失败；可将 `comments.origin` 指向自托管 giscus 实例或可达镜像的完整 URL（前端按「配置来源 → 官方 giscus.app」顺序回退加载）。注意：GitHub OAuth 登录回调固定指向 `giscus.app`，大陆网络下无法完成登录（读评论、看讨论不受影响）。
+
+**换仓库/换站点时的一次性配置**（`comments.repo`、`comments.repoId`、`comments.categoryId`、`guestbook.discussionId` 四个值都要跟着换）：
+
+1. 在目标仓库 Settings 勾选 **Discussions**，并安装授权 **Giscus GitHub App**（只放行该仓库）；
+2. 在 Discussions 页面新建分类（如「文章评论」与「留言板」）——**分类只能在网页端创建**，
+   REST 与 GraphQL 都没有开放的建分类接口，脚本建不出来；
+3. 回 https://giscus.app 选中新仓库与分类，把生成的 `repoId` / `categoryId` 填进
+   `config/site.config.json`；留言板另需在该分类下发一条讨论，取其编号填 `guestbook.discussionId`。
+
+文章评论默认 `mapping=pathname` 且 `strict=false`：线程按 `/post/<id>` 匹配，首次访问时自动建讨论。
+所以**文章 ID 一旦改动就等于换一条评论线程**（这也是 `/post/<id>` 被列为对外契约的原因之一）；
+留言板用 `mapping=number` 精确锁定单条讨论，绝不自动创建。
 
 ## AI 开发者约束
 
@@ -173,7 +202,8 @@ images:
 
 ## 构建与质量
 
-`npm run build` 依次执行：数据生成 → OG 卡生成 → 客户端构建 → SSR 构建 → 模板快照 → SSG 预渲染 → 产物审计 → SEO 审计，最终输出 `dist/`。各阶段独立超时并汇总耗时，任一阶段失败立即终止流水线并在日志中标明失败阶段（[N/M] 前缀）。`generated/`、RSS 与 Sitemap 均为构建产物，不应手工编辑。
+`npm run build` 依次执行 9 个阶段：数据生成 → OG 卡生成 → 客户端构建 → service worker 版本注入
+→ SSR 构建 → 模板快照 → SSG 预渲染 → 产物审计 → SEO 审计，最终输出 `dist/`。各阶段独立超时并汇总耗时，任一阶段失败立即终止流水线并在日志中标明失败阶段（[N/M] 前缀）。`generated/`、RSS 与 Sitemap 均为构建产物，不应手工编辑。
 
 | 命令 | 功能 |
 | --- | --- |
@@ -206,9 +236,10 @@ images:
 | --- | --- |
 | Cloudflare Pages | 项目类型 **Direct Upload**（直传），自定义域名与缓存策略（`public/_headers`）已就位 |
 | EdgeOne Pages | 项目类型 **直传**，域名 CNAME 已切换，缓存规则需在控制台手动配置 |
-| 仓库 Secrets | `CLOUDFLARE_API_TOKEN`（Pages:Edit 权限）、`CLOUDFLARE_ACCOUNT_ID`、`EDGEONE_API_TOKEN` |
+| 仓库 Secrets | `CLOUDFLARE_API_TOKEN`（Pages:Edit 权限）、`CLOUDFLARE_ACCOUNT_ID`、`EDGEONE_API_TOKEN`、`FEISHU_WEBHOOK_URL`、`AKISMET_API_KEY` |
 
-两个平台的项目名均为 `d-blog`（已在 `deploy.yml` 配置，不一致时修改 `--project-name` / `-n`）。
+两个平台的项目名均为 `pldduck`（已在 `deploy.yml` 配置，不一致时修改 `--project-name` / `-n`）。
+**不要改回 `d-blog`**：那个名字属于旧博客的迁移跳转页，复用会让新站与跳转页互相覆盖。
 
 **其他平台**：需配置 SPA fallback（未知路径回退到 `index.html`），如 Vercel（`vercel.json`）`{"rewrites":[{"source":"/(.*)","destination":"/index.html"}]}`、Netlify（`netlify.toml`）`[[redirects]] from="/*" to="/index.html" status=200`、Nginx `try_files $uri $uri/ /index.html;`。
 

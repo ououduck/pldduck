@@ -7,6 +7,7 @@
 ## 关键文件
 
 - `config/site.config.json` + `scripts/site-config-loader.mjs`（fail-closed 加载）
+- `config/routes.mjs`（路由清单唯一数据源，见 [routes-single-source.md](routes-single-source.md)）
 - `config/content.config.json`
 - `config/tsconfig.json` / `tailwind.config.js` / `postcss.config.js`
 - `vite.config.ts` / `vite.ssr.config.ts` / `vitest.config.ts`
@@ -20,6 +21,13 @@
 4. **构建配置**：修改 tsconfig/vite/tailwind 需全量回归（typecheck + 构建 + 测试）；启用的严格项不得擅自关闭。
 5. **路径别名**：`@/*`（src）、`@config/*`（config）语义保持，新增目录不得引入新别名。
 6. **依赖升级**：安全相关升级（如 react-router 修复 CVE）优先；major 升级需全量验证并评估迁移成本。
+7. **站标双轨**：`siteConfig.logo` / `logoSmall` 只服务**站内展示位**（导航、卡片、JSON-LD
+   `publisher.logo`），可以是远程 URL；凡进 canvas 绘制或构建期生成图片的场合（OG 卡片、
+   封面生成器默认图标）必须用 `public/` 下的本地底图（`logo.png` / `logo-96.png`）。
+   远程图会把 canvas 变成 tainted，`toDataURL()` 直接抛 SecurityError。
+8. **标题拼接**：`siteConfig.title` 是全站标题后缀（「页面名 - 站点名」）；只有首页用
+   `siteConfig.seoHomeTitle` 逐字覆盖，不参与拼接。改站点名要同时预期 37 个直出 HTML 的
+   title 变化，`npm run audit:seo` 是门禁。
 
 ## 常见陷阱
 

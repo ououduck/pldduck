@@ -1,6 +1,6 @@
 # ai-rules — AI 修改规则总则
 
-本目录为 D-blog 项目的 **AI 硬性约束集**：为每一个功能制定详细的修改规则，约束 AI 在修改代码、实现功能、调整文档时必须遵守的行为边界。
+本目录为 pldduck 项目的 **AI 硬性约束集**：为每一个功能制定详细的修改规则，约束 AI 在修改代码、实现功能、调整文档时必须遵守的行为边界。
 
 ## 规则效力
 
@@ -38,4 +38,4 @@
 - [构建与 SSG](build-ssg.md) · [站点数据生成](data-generation.md) · [内容校验](content-validation.md) · [文章外链死链检查](broken-links.md) · [飞书机器人 Webhook 通知](feishu-webhook.md) · [评论过滤与反垃圾](comment-moderation.md) · [CI/CD workflows](ci-cd.md) · [OG 分享卡片](og-card.md) · [RSS/Feed](feed.md)
 
 ### 工程
-- [测试约定](testing.md) · [配置体系](config.md)
+- [测试约定](testing.md) · [配置体系](config.md) · [路由单一数据源](routes-single-source.md)

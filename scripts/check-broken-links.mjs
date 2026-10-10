@@ -381,7 +381,7 @@ const main = async () => {
     byFile.set(record.file, list);
   }
 
-  const lines = [`<b>🔗 D-blog 发现 ${brokenLinks} 个失效外链</b>`, ''];
+  const lines = [`<b>🔗 pldduck 发现 ${brokenLinks} 个失效外链</b>`, ''];
   for (const [file, records] of byFile) {
     lines.push(`<b>${escapeHtml(file)}</b>`);
     for (const record of records) {
@@ -402,7 +402,7 @@ const main = async () => {
     try {
       const result = await sendFeishuWebhookMessage(report, {
         event: 'link-check',
-        title: '🔗 D-blog 文章外链检查',
+        title: '🔗 pldduck 文章外链检查',
       });
       if (result !== null) {
         logger.info('Broken link report sent to 飞书机器人 Webhook', { messageId: result.message_id ?? 'unknown' });

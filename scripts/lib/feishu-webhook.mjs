@@ -72,7 +72,7 @@ const getCardTemplate = (event) => {
   return 'blue';
 };
 
-export const buildFeishuPayload = (text, { event = 'notification', title = 'D-blog 通知' } = {}) => {
+export const buildFeishuPayload = (text, { event = 'notification', title = 'pldduck 通知' } = {}) => {
   const safeTitle = sanitizeText(title);
   const safeEvent = sanitizeText(event);
   const businessContent = ensureSafeLength(sanitizeText(text));
@@ -98,7 +98,7 @@ export const buildFeishuPayload = (text, { event = 'notification', title = 'D-bl
   };
 };
 
-export const sendFeishuWebhookMessage = async (text, { event = 'notification', title = 'D-blog 通知' } = {}) => {
+export const sendFeishuWebhookMessage = async (text, { event = 'notification', title = 'pldduck 通知' } = {}) => {
   const url = process.env.FEISHU_WEBHOOK_URL;
   if (!url) {
     logger.warn('FEISHU_WEBHOOK_URL not configured; skipping notification');

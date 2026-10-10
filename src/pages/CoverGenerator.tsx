@@ -121,7 +121,7 @@ export const CoverGenerator: React.FC = () => {
   const shouldReduceMotion = useReducedMotion();
 
   // 基础文本状态
-  const [leftText, setLeftText] = useState('D-blog');
+  const [leftText, setLeftText] = useState('PLDDUCK');
   const [rightText, setRightText] = useState('跑路的duck');
   const [subText, setSubText] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<CoverTemplate>(defaultTemplate);
@@ -333,7 +333,7 @@ export const CoverGenerator: React.FC = () => {
   }, []);
 
   const resetAllSettings = useCallback(() => {
-    setLeftText('D-blog');
+    setLeftText('PLDDUCK');
     setRightText('跑路的duck');
     setSubText('');
     setSelectedTemplate(defaultTemplate);

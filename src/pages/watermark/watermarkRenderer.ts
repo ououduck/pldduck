@@ -23,7 +23,7 @@ type WatermarkRenderOptions = {
 };
 
 export const DEFAULT_WATERMARK_OPTIONS: WatermarkRenderOptions = {
-  text: 'D-blog',
+  text: '跑路的duck',
   fontSize: 48,
   opacity: 30,
   position: 'bottom-right',

@@ -73,7 +73,8 @@ export const ROUTES = [
     ssg: 'static',
     seo: {
       title: '统计',
-      description: 'D-blog 站点数据统计面板，展示文章总数、累计字数、分类与标签分布、图片与代码规模等核心内容数据。',
+      description:
+        '跑路的duck 站点数据统计面板，展示文章总数、累计字数、分类与标签分布、图片与代码规模等核心内容数据。',
       schemaType: 'WebPage',
     },
     sitemap: { changefreq: 'weekly', priority: '0.6' },

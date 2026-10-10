@@ -26,7 +26,7 @@ export const IssueSubscriptionCard = () => {
             订阅新文章提醒
           </h2>
           <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-            在 GitHub Issue 中点击 Subscribe，即可接收 D-blog 的更新通知。
+            在 GitHub Issue 中点击 Subscribe，即可接收新文章的更新通知。
           </p>
         </div>
       </div>

@@ -64,7 +64,7 @@
     },
     "entries": [
       {
-        "title": "D-blog 文章",
+        "title": "博客文章",
         "description": "技术分享、工具测评与折腾记录，全部静态直出。",
         "url": "/archive",
         "icon": "archive",
@@ -102,7 +102,7 @@
     ],
     "projects": [
       {
-        "title": "D-blog",
+        "title": "pldduck 博客",
         "description": "纯静态自研博客，构建期直出每篇文章的 HTML。",
         "url": "https://github.com/ououduck/pldduck",
         "tag": "React + Vite"

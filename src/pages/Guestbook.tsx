@@ -10,7 +10,8 @@ import { Surface } from '@/components/ui/Surface';
 import { GiscusComments } from '@/components/GiscusComments';
 
 // 留言板页描述：Seo meta 与站点级 schema 共用同一文案，保证一致。
-const guestbookPageDescription = '在 D-blog 留言板留下你的足迹：闲聊、建议、问题反馈都可以，登录 GitHub 账号即可留言。';
+const guestbookPageDescription =
+  '在 跑路的duck 留言板留下你的足迹：闲聊、建议、问题反馈都可以，登录 GitHub 账号即可开始留言。';
 
 export const Guestbook = () => {
   return (
@@ -27,7 +28,7 @@ export const Guestbook = () => {
             '@context': 'https://schema.org',
             '@type': 'WebPage',
             name: `${siteConfig.title} - 留言板`,
-            description: 'D-blog 访客留言板：闲聊、建议与问题反馈。',
+            description: '访客留言板：闲聊、建议与问题反馈。',
             url: absoluteSiteUrl('/guestbook', siteConfig.url),
             inLanguage: 'zh-CN',
             isPartOf: {
@@ -49,7 +50,7 @@ export const Guestbook = () => {
 
       <Surface className="mb-8 p-5 sm:p-6">
         <p className="text-base leading-7 text-zinc-600 dark:text-zinc-400 md:text-lg md:leading-8">
-          欢迎在 D-blog 留下你的足迹：闲聊、建议、问题反馈都可以。文章相关的讨论请直接在对应文章页面的评论区进行。
+          欢迎在这里留下你的足迹：闲聊、建议、问题反馈都可以。文章相关的讨论请直接在对应文章页面的评论区进行。
         </p>
         <ul className="mt-5 space-y-2.5 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
           <li className="flex items-start gap-2.5">

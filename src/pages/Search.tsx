@@ -145,8 +145,8 @@ export const Search = () => {
   // 与 SSG 的 schemaFromSeo 标记配套：/search 的页面级 schema 由 Seo 组件输出
   // （SSG 不再注入），与归档/标签/说说等页面模式一致。
   const searchPageDescription = hasSearchQuery
-    ? `在 D-blog 中搜索「${searchQuery}」的结果页，按相关度排序展示匹配文章。`
-    : '在 D-blog 全站搜索文章：支持按标题、分类、标签、摘要与正文内容检索，快速定位感兴趣的技术分享。';
+    ? `在 跑路的duck 中搜索「${searchQuery}」的结果页，按相关度排序展示匹配文章。`
+    : '在 跑路的duck 全站搜索文章：支持按标题、分类、标签、摘要与正文内容检索，快速定位感兴趣的技术分享。';
   const searchStructuredData = [
     ...buildSiteSchemas(searchPageDescription),
     {

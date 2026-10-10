@@ -194,7 +194,8 @@ export const Friends = () => {
 
   // 友链页结构化数据：站点级 schema + CollectionPage + ItemList（枚举全部有效友链，
   // 帮助爬虫理解友链集合）+ BreadcrumbList。SSG 静态页已标记 schemaFromSeo，不重复注入。
-  const friendsPageDescription = 'D-blog 友情链接汇集优秀技术博客与趣味网站，欢迎提交友链申请，一起分享交流与成长。';
+  const friendsPageDescription =
+    '跑路的duck 友情链接汇集优秀技术博客与趣味网站，欢迎提交友链申请，一起分享交流与成长。';
   const friendsStructuredData = [
     ...buildSiteSchemas(friendsPageDescription),
     {

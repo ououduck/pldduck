@@ -20,7 +20,7 @@ import { stripMarkdown } from '@/utils/markdownText';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 const SHUOSHUO_DESCRIPTION =
-  'D-blog 说说：类似朋友圈的短动态分享，用一句话、一张图记录当下的想法与生活片段，Markdown 书写，随性更新。';
+  '跑路的duck 说说：类似朋友圈的短动态分享，用一句话、一张图记录当下的想法与生活片段，Markdown 书写，随性更新。';
 
 /** URL 定位参数名：/shuoshuo?id=<说说 id> 打开页面后自动滚动定位到该条说说（旧版分享链接兼容）。 */
 const LOCATE_PARAM = 'id';

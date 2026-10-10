@@ -1,5 +1,5 @@
 /**
- * feishu-webhook.mjs — GitHub 事件 → 飞书机器人 Webhook 推送（D-blog 项目消息提醒）。
+ * feishu-webhook.mjs — GitHub 事件 → 飞书机器人 Webhook 推送（pldduck 项目消息提醒）。
  *
  * 由 .github/workflows/feishu-webhook.yml 调用，把仓库事件实时推送到 飞书机器人 Webhook：
  *   1. push (main)          → 推送更新（提交列表 + 对比链接）；
@@ -136,7 +136,7 @@ const buildPushMessage = (event) => {
   const pusher = event.pusher?.name || event.sender?.login || 'unknown';
   const compareUrl = event.compare || event.head_commit?.url;
 
-  const lines = [`🚀 D-blog 推送更新`, ''];
+  const lines = [`🚀 pldduck 推送更新`, ''];
   lines.push(`分支: ${escapeHtml(branch)}`);
   lines.push(`提交: ${commits.length} 个 · 推送人: ${escapeHtml(pusher)}`);
 
@@ -177,7 +177,7 @@ const buildCommentMessage = (event) => {
   const body = oneLine(truncate(comment.body, MAX_BODY_PREVIEW_CHARS));
   const url = comment.html_url || discussion.html_url;
 
-  const lines = ['💬 D-blog 新评论', ''];
+  const lines = ['💬 pldduck 新评论', ''];
   lines.push(`位置: ${escapeHtml(truncate(title, MAX_TITLE_CHARS))}`);
   lines.push(`作者: ${escapeHtml(author)}`);
   if (body) lines.push(`评论: ${escapeHtml(body)}`);
@@ -197,7 +197,7 @@ const buildDiscussionMessage = (event) => {
   const body = oneLine(truncate(discussion.body, MAX_BODY_PREVIEW_CHARS));
   const url = discussion.html_url;
 
-  const lines = ['💬 D-blog 新讨论', ''];
+  const lines = ['💬 pldduck 新讨论', ''];
   lines.push(`标题: ${escapeHtml(truncate(title, MAX_TITLE_CHARS))}`);
   lines.push(`作者: ${escapeHtml(author)}`);
   if (body) lines.push(`内容: ${escapeHtml(body)}`);
@@ -217,7 +217,7 @@ const buildIssueMessage = (event) => {
   const body = oneLine(truncate(issue.body, MAX_BODY_PREVIEW_CHARS));
   const url = issue.html_url;
 
-  const lines = ['📮 D-blog 新 Issue', ''];
+  const lines = ['📮 pldduck 新 Issue', ''];
   lines.push(`标题: ${escapeHtml(truncate(title, MAX_TITLE_CHARS))}`);
   lines.push(`作者: ${escapeHtml(author)}`);
   if (body) lines.push(`内容: ${escapeHtml(body)}`);
@@ -258,7 +258,7 @@ const buildWorkflowRunMessage = (event) => {
     }
   }
 
-  const lines = [`⚙️ D-blog Action 完成`, ''];
+  const lines = [`⚙️ pldduck Action 完成`, ''];
   lines.push(`工作流: ${escapeHtml(name)}${runNumber ? ` #${escapeHtml(String(runNumber))}` : ''}`);
   lines.push(`结果: ${escapeHtml(label)}`);
   lines.push(`分支: ${escapeHtml(branch)}`);
@@ -278,7 +278,7 @@ const buildTestMessage = (event) => {
   const repo = repoName(event);
   const actor = event.sender?.login || 'manual';
   return [
-    '🔔 D-blog 飞书机器人 Webhook 通知测试',
+    '🔔 pldduck 飞书机器人 Webhook 通知测试',
     '',
     `仓库: ${escapeHtml(repo)}`,
     `触发人: ${escapeHtml(actor)}`,
@@ -339,10 +339,10 @@ const main = async () => {
     event: eventName === 'workflow_run' ? event.workflow_run?.conclusion || eventName : eventName,
     title:
       eventName === 'workflow_run'
-        ? `D-blog Action ${event.workflow_run?.conclusion || '完成'}`
+        ? `pldduck Action ${event.workflow_run?.conclusion || '完成'}`
         : eventName === 'workflow_dispatch'
-          ? 'D-blog 通知测试'
-          : 'D-blog 事件通知',
+          ? 'pldduck 通知测试'
+          : 'pldduck 事件通知',
   });
   if (result === null) {
     // 配置缺失：lib 内已 warning，优雅跳过（正常退出），与 akismet 的降级策略一致。

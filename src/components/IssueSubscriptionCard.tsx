@@ -4,7 +4,9 @@
 
 import { Bell, ExternalLink, Github } from 'lucide-react';
 
-export const ISSUE_SUBSCRIPTION_URL = 'https://github.com/ououduck/D-blog/issues/6';
+// 订阅追踪 issue：notify-post-update.yml 会往这里发新文章评论。
+// issue 号与仓库变量 BLOG_NOTIFY_ISSUE_NUMBER 是同一份事实的两处副本，换 issue 要同时改。
+export const ISSUE_SUBSCRIPTION_URL = 'https://github.com/ououduck/pldduck/issues/1';
 
 export const IssueSubscriptionCard = () => {
   return (

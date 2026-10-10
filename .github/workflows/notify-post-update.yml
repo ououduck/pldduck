@@ -38,7 +38,7 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.sha }}
           MANUAL_POST_FILES: ${{ inputs.post_files }}
-          ISSUE_NUMBER: ${{ vars.BLOG_NOTIFY_ISSUE_NUMBER || '6' }}
+          ISSUE_NUMBER: ${{ vars.BLOG_NOTIFY_ISSUE_NUMBER || '1' }}
         uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -7,6 +7,9 @@
 #   1. Pages CMS 侧边栏「🚀 部署到 Cloudflare & EdgeOne」按钮（见 .pages.yml 的 actions 段），
 #   2. GitHub Actions 页面手动 Run workflow（payload 最小可用 {"repository":{"ref":"main"}}）。
 #
+# 两个平台的项目名固定为 pldduck：旧博客的跳转提示页占用 Cloudflare/EdgeOne 上的 d-blog
+# 项目，若这里复用 d-blog，新站与跳转页会互相覆盖。
+#
 # Pages CMS 会以 JSON 字符串填充 inputs.payload（含 repository.ref / sha、触发人等），
 # 协议见 https://pagescms.org/docs/configuration/actions/
 name: Deploy to Cloudflare & EdgeOne
@@ -36,10 +39,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      # 站点只部署 main：workflow_dispatch 的 inputs.payload 是调用方传入的任意 JSON，
+      # 若直接采用其中的 repository.ref，恶意分支的代码会在持有 CLOUDFLARE/EDGEONE
+      # 部署令牌的环境中构建。此步在 checkout 之前拦截，非 main 直接失败
+      # （空 payload 表示从 Actions 页面手动触发，回退到触发分支，放行）。
+      # ref 经 env 间接引用：GitHub 表达式在 shell 拼接前展开，payload 内嵌的
+      # $(...)/反引号会以代码执行（注入面），故不能内插进 run:。
+      - name: Validate dispatch ref
+        env:
+          PAYLOAD_REF: ${{ inputs.payload != '' && fromJSON(inputs.payload).repository.ref || '' }}
+        run: |
+          if [ -n "$PAYLOAD_REF" ] && [ "$PAYLOAD_REF" != "main" ]; then
+            echo "::error::部署仅允许 main 分支，收到 ref: $PAYLOAD_REF"
+            exit 1
+          fi
+          echo "Dispatch ref accepted: ${PAYLOAD_REF:-<empty，按触发分支部署>}"
+
       - name: Check out repository
         uses: actions/checkout@v5
         with:
-          # Pages CMS 触发时按 CMS 当前打开的分支（main）检出；手动触发时回退到触发分支。
+          # Pages CMS 触发时按 CMS 当前打开的分支（main，已由上一步校验）检出；
+          # 手动触发时回退到触发分支。
           ref: ${{ inputs.payload != '' && fromJSON(inputs.payload).repository.ref || '' }}
 
       - name: Show dispatch context
@@ -83,7 +103,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         # 直传（direct upload）部署：平台不构建，不消耗构建额度。
         # wrangler 固定精确版本：浮动 major tag 每次从 npm 拉取，部署行为不可复现且不可审计。
-        run: npx --yes wrangler@4.123.0 pages deploy dist --project-name=d-blog --branch=main --commit-dirty=true
+        run: npx --yes wrangler@4.123.0 pages deploy dist --project-name=pldduck --branch=main --commit-dirty=true
 
       - name: Deploy to EdgeOne Pages
         env:
@@ -94,4 +114,4 @@ jobs:
         # 命令为 makers deploy（pages deploy 为改名前的旧命令，官方文档页尚未更新）。
         # edgeone 固定精确版本，理由同上；npx 由上方步骤升级到 npm 11 后运行
         # （npm 10.9.x 的 arborist 装此包会崩，见 Install npm 11 步骤注释）。
-        run: npx --yes edgeone@1.6.28 makers deploy ./dist -n d-blog -e production
+        run: npx --yes edgeone@1.6.28 makers deploy ./dist -n pldduck -e production

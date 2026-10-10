@@ -6,7 +6,7 @@
 ![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)
 ![React](https://img.shields.io/badge/react-19-61dafb.svg)
 ![Vite](https://img.shields.io/badge/vite-6-646cff.svg)
-![CI](https://github.com/ououduck/D-blog/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/ououduck/pldduck/actions/workflows/ci.yml/badge.svg)
 
 基于 React 19 + Vite 6 + TypeScript 的静态博客：构建期生成站点数据与全站静态 HTML（SSG），客户端以 SPA 水合运行。
 

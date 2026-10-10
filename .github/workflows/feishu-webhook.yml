@@ -1,4 +1,4 @@
-# feishu-webhook.yml — GitHub 事件 → 飞书机器人 Webhook 推送（D-blog 项目消息提醒）。
+# feishu-webhook.yml — GitHub 事件 → 飞书机器人 Webhook 推送（pldduck 项目消息提醒）。
 #
 # 覆盖三类提醒：
 #   1. 💬 新评论 / 新讨论 / 新 Issue（giscus 文章评论、留言板留言等）；

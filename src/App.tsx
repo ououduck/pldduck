@@ -3,7 +3,7 @@
  * 导出 AppShell 供 SSR 复用。
  */
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { flushSync } from 'react-dom';
 import { Layout } from './components/Layout';
@@ -15,6 +15,7 @@ import { ServiceWorkerUpdatePrompt } from './components/ServiceWorkerUpdatePromp
 import { SsgRouteContext, readSsgRouteData } from './ssr/routeData';
 
 const Post = lazy(() => import('./pages/Post').then((m) => ({ default: m.Post })));
+const PostsPage = lazy(pageLoaders['/posts']);
 const About = lazy(pageLoaders['/about']);
 const ArchivePage = lazy(pageLoaders['/archive']);
 const Stats = lazy(pageLoaders['/stats']);
@@ -34,6 +35,16 @@ const RouteFallback: React.FC = () => (
     <p className="text-sm text-zinc-400 dark:text-zinc-500">加载中…</p>
   </div>
 );
+
+/**
+ * /posts/<id> 是把「列表段 + 详情段」混写的产物，统一转回 /post/<id>。
+ * 线上直访由 public/_redirects 返回真 301（爬虫与外链都能收到），
+ * 这里兜住站内 Link 跳过去以及不支持 _redirects 的托管环境（EdgeOne）。
+ */
+const PostRedirect: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/post/${encodeURIComponent(id ?? '')}`} replace />;
+};
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
@@ -124,6 +135,8 @@ const AppRoutes: React.FC = () => {
         <Routes location={displayLocation} key={displayLocation.pathname}>
           <Route path="/" element={<Home />} />
           <Route path="/post/:id" element={<Post />} />
+          <Route path="/posts" element={<PostsPage />} />
+          <Route path="/posts/:id" element={<PostRedirect />} />
           <Route path="/archive" element={<ArchivePage />} />
           <Route path="/tags" element={<Tags />} />
           <Route path="/stats" element={<Stats />} />

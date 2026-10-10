@@ -510,6 +510,18 @@ export const runSsg = async ({
   );
 
   // 2. 静态页面：SSR 渲染 + 附加结构化数据。
+  // 文章页（/posts）首屏的精选卡片是列表里最大的封面图，给它单独 preload；
+  // 首页已改成纯导流门户，不再渲染文章卡片，所以这条 preload 属于 /posts 而非 /。
+  const featuredHeroPost = (() => {
+    const pinnedPosts = posts
+      .filter((post) => post.featured === true && typeof post['featured-top'] === 'number')
+      .sort((a, b) => a['featured-top'] - b['featured-top']);
+    return pinnedPosts[0] || posts.find((post) => post.featured === true) || null;
+  })();
+  const postsExtraHead = featuredHeroPost?.coverImage
+    ? createImagePreload(toAbsoluteUrl(featuredHeroPost.coverImage, SITE_URL, BASE_PATH))
+    : '';
+
   for (const page of staticPages) {
     if (budgetExceeded()) {
       skippedPages.push(`/${page.path}`);
@@ -518,8 +530,9 @@ export const runSsg = async ({
     // 页面级 schema 已由页面组件 Seo 的 structuredData 输出（about/shuoshuo/guestbook，
     // 以及 tags/archive/friends 等页），SSG 不再重复注入，避免同一 @type 出现两份 JSON-LD。
     const schema = page.schemaFromSeo ? '' : createStaticPageSchema(page);
+    const extraHead = page.path === 'posts' ? postsExtraHead : '';
     try {
-      await writePage(`/${page.path}`, page.path, schema);
+      await writePage(`/${page.path}`, page.path, `${extraHead}${schema}`);
     } catch (error) {
       failedPages.push({ url: `/${page.path}`, error: formatError(error) });
     }
@@ -531,15 +544,6 @@ export const runSsg = async ({
   );
 
   // 3. 首页。
-  const homeHeroPost = (() => {
-    const pinnedPosts = posts
-      .filter((post) => post.featured === true && typeof post['featured-top'] === 'number')
-      .sort((a, b) => a['featured-top'] - b['featured-top']);
-    return pinnedPosts[0] || posts.find((post) => post.featured === true) || null;
-  })();
-  const homeExtraHead = homeHeroPost?.coverImage
-    ? createImagePreload(toAbsoluteUrl(homeHeroPost.coverImage, SITE_URL, BASE_PATH))
-    : '';
   if (budgetExceeded()) {
     skippedPages.push('/');
   } else {
@@ -554,7 +558,7 @@ export const runSsg = async ({
           (match) => `${homeRouteDataScript}\n    ${match}`,
         );
       }
-      writeStandaloneHtml('index.html', mergeHead(homePage, homeHead, `${homeExtraHead}${NOSCRIPT_FALLBACK}`));
+      writeStandaloneHtml('index.html', mergeHead(homePage, homeHead, NOSCRIPT_FALLBACK));
       logger.step('Generated home page');
     } catch (error) {
       failedPages.push({ url: '/', error: formatError(error) });

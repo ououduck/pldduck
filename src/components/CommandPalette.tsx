@@ -95,6 +95,7 @@ export const CommandPalette: React.FC<{ onClose: () => void }> = ({ onClose }) =
   const sections = useMemo<CommandSection[]>(() => {
     const quickCommands: PaletteCommand[] = [
       { id: 'nav-home', label: '首页', icon: <Home size={15} />, run: () => closeAndNavigate('/') },
+      { id: 'nav-posts', label: '文章', icon: <BookOpen size={15} />, run: () => closeAndNavigate('/posts') },
       { id: 'nav-archive', label: '归档', icon: <Clock size={15} />, run: () => closeAndNavigate('/archive') },
       { id: 'nav-tags', label: '标签', icon: <Tags size={15} />, run: () => closeAndNavigate('/tags') },
       { id: 'nav-shuoshuo', label: '说说', icon: <BookOpen size={15} />, run: () => closeAndNavigate('/shuoshuo') },

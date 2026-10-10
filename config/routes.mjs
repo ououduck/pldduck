@@ -48,6 +48,20 @@ export const ROUTES = [
     ssg: 'posts',
   },
   {
+    path: '/posts',
+    segment: 'posts',
+    preload: true,
+    sw: true,
+    ssg: 'static',
+    seo: { schemaType: 'CollectionPage', schemaFromSeo: true },
+    sitemap: { changefreq: 'daily', priority: '0.9' },
+  },
+  {
+    path: '/posts/:id',
+    segment: 'posts',
+    sw: true,
+  },
+  {
     path: '/archive',
     segment: 'archive',
     preload: true,

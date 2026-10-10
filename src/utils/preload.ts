@@ -25,6 +25,7 @@ const canPreload = () => {
 };
 
 const pageLoaders: Record<string, ModuleLoader> = {
+  '/posts': () => import('../pages/Posts').then((m) => ({ default: m.Posts })),
   '/archive': () => import('../pages/Archive').then((m) => ({ default: m.ArchivePage })),
   '/tags': () => import('../pages/Tags').then((m) => ({ default: m.Tags })),
   '/stats': () => import('../pages/Stats').then((m) => ({ default: m.Stats })),

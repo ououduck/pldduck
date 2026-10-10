@@ -1,0 +1,6 @@
+# Cloudflare Pages 重定向规则（本文件随 public/ 原样拷贝进 dist，EdgeOne 会忽略它，
+# 因此 src/App.tsx 里还有一条同义的 /posts/:id → /post/:id 客户端兜底路由）。
+#
+# 文章详情段的正确写法是 /post/<id>；把列表段的复数习惯带进详情（/posts/<id>）
+# 是最常见的误写，这里用真 301 交给爬虫与外链，避免同一篇文章出现两个 URL。
+/posts/:splat  /post/:splat  301

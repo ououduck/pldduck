@@ -1,17 +1,18 @@
 /**
  * 首页：站点导流页（门户）。
  *
- * 本页不承载文章列表的筛选/分页/搜索：全部数据来自构建期内联的 posts/shuoshuo/
- * friends JSON（同步读取，SSG 与水合首帧严格一致），搜索表单只负责把关键词交给
- * /search 页处理，其余入口一律以链接呈现。
+ * 文章列表、说说、友链的正文内容一律不在这里出现，只留指向各栏目的入口；
+ * 搜索表单只负责把关键词交给 /search 页处理。入口清单来自构建期内联的站点配置，
+ * 渲染期不访问任何客户端 API，SSG 与水合首帧严格一致。
  */
 
-import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Archive,
   ArrowUpRight,
   BarChart3,
+  BookOpen,
   Check,
   ChevronRight,
   Copy,
@@ -26,37 +27,19 @@ import {
   Stamp,
   User,
   Wrench,
-  X,
   type LucideIcon,
 } from 'lucide-react';
 import { siteConfig, type PortalEntry, type PortalLink, type PortalProject } from '@config/site.config';
 import { Seo } from '@/components/Seo';
-import { PostCard } from '@/components/PostCard';
-import { getInitialPosts } from '@/services/posts';
-import { getInitialShuoShuo } from '@/services/shuoshuo';
-import { getInitialFriends } from '@/services/friends';
-import { removeReadingHistory } from '@/services/readingHistory';
-import { useReadingHistory } from '@/hooks/useReadingHistory';
 import { useResetTimer } from '@/hooks/useResetTimer';
-import { isReadingComplete } from '@/utils/readingProgress';
-import { sortPosts } from '@/utils/postSorting';
-import { stripMarkdown } from '@/utils/markdownText';
-import { formatDate } from '@/utils/date';
 import { preloadPage } from '@/utils/preload';
 import { copyTextToClipboard } from '@/utils/clipboard';
-import { absoluteSiteUrl } from '@/utils/siteUrl';
 import { mergeClassName } from '@/utils/classNames';
-import type { Friend, PostMetadata, ShuoShuo } from '@/types';
 
-const ShareModal = lazy(() => import('../components/ShareModal').then((m) => ({ default: m.ShareModal })));
-
-const LATEST_POST_COUNT = 3;
-const LATEST_SHUOSHUO_COUNT = 3;
-const FRIEND_PREVIEW_COUNT = 12;
-const SHUOSHUO_SNIPPET_LENGTH = 64;
 const COPIED_FEEDBACK_MS = 2000;
 
 const PORTAL_ICONS: Record<string, LucideIcon> = {
+  posts: BookOpen,
   archive: Archive,
   shuoshuo: MessageSquare,
   tool: Wrench,
@@ -70,14 +53,6 @@ const PORTAL_ICONS: Record<string, LucideIcon> = {
 };
 
 const portal = siteConfig.portal ?? {};
-const initialPosts = getInitialPosts();
-// 构建期内联数据是静态的：列表派生（排序/截取/过滤）在模块作用域算一次即可，
-// 无需每次渲染重算，也不会引入时钟/随机值等破坏 SSG 与水合一致性的因素。
-const latestPosts = sortPosts(initialPosts, 'newest').slice(0, LATEST_POST_COUNT);
-const latestShuoShuo = getInitialShuoShuo().slice(0, LATEST_SHUOSHUO_COUNT);
-const activeFriends = getInitialFriends()
-  .filter((friend) => !friend.unavailable)
-  .slice(0, FRIEND_PREVIEW_COUNT);
 
 /** 站内路径以 / 开头（排除 //protocol-relative 与完整 URL），决定磁贴用 Link 还是 <a>。 */
 const isInternalPath = (value: string) => value.startsWith('/') && !value.startsWith('//');
@@ -86,12 +61,6 @@ const PortalIcon: React.FC<{ name: string }> = ({ name }) => {
   const Icon = PORTAL_ICONS[name] ?? Sparkles;
   return <Icon size={18} aria-hidden="true" />;
 };
-
-const formatShuoShuoDate = (dateText: string) =>
-  formatDate(dateText, 'zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
-
-const truncate = (value: string, length: number) =>
-  value.length > length ? `${value.slice(0, length).trimEnd()}…` : value;
 
 interface SectionProps {
   id: string;
@@ -125,12 +94,6 @@ const Section: React.FC<SectionProps> = ({ id, eyebrow, title, action, children 
     </div>
     {children}
   </section>
-);
-
-const EmptyHint: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p className="border-y border-zinc-200 py-8 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-    {children}
-  </p>
 );
 
 const DestinationTile: React.FC<{ entry: PortalEntry; primary?: boolean }> = ({ entry, primary }) => {
@@ -241,54 +204,15 @@ const ProjectRow: React.FC<{ project: PortalProject }> = ({ project }) => (
   </a>
 );
 
-const ShuoShuoRow: React.FC<{ item: ShuoShuo }> = ({ item }) => (
-  <li>
-    <Link
-      to={`/shuoshuo/${item.id}`}
-      className="group flex items-baseline gap-3 border-b border-zinc-200 py-3 transition-colors last:border-b-0 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
-    >
-      <time dateTime={item.date} className="shrink-0 text-xs font-medium tabular-nums text-zinc-400 dark:text-zinc-500">
-        {formatShuoShuoDate(item.date)}
-      </time>
-      <span className="min-w-0 flex-1 truncate text-sm text-zinc-700 transition-colors group-hover:text-ink dark:text-zinc-300 dark:group-hover:text-white">
-        {truncate(stripMarkdown(item.content), SHUOSHUO_SNIPPET_LENGTH)}
-      </span>
-      <ChevronRight size={14} aria-hidden="true" className="shrink-0 text-zinc-300 dark:text-zinc-600" />
-    </Link>
-  </li>
-);
-
-const FriendTile: React.FC<{ friend: Friend }> = ({ friend }) => (
-  <a
-    href={friend.url}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="flex min-w-0 items-center gap-2.5 rounded-control border border-zinc-300 bg-paper px-3 py-2.5 transition-colors hover:border-ink dark:border-zinc-700 dark:bg-void dark:hover:border-white"
-  >
-    <span
-      aria-hidden="true"
-      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-icon border border-zinc-300 font-serif text-xs font-bold text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
-    >
-      {friend.name.trim().slice(0, 1) || '?'}
-    </span>
-    <span className="min-w-0">
-      <span className="block truncate text-sm font-semibold text-ink dark:text-white">{friend.name}</span>
-      <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">{friend.description}</span>
-    </span>
-  </a>
-);
-
 export const Home = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [term, setTerm] = useState('');
-  const [sharePost, setSharePost] = useState<PostMetadata | null>(null);
   // 头像源站（q1.qlogo.cn）不可达时回退到 ui-avatars 生成的首字母头像；
   // 仅在 onError 事件中切换，渲染期不访问客户端 API。
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [qqCopied, setQqCopied] = useState(false);
   const { schedule: scheduleCopiedReset } = useResetTimer();
-  const { latest: latestReading, refresh: refreshReadingHistory } = useReadingHistory();
 
   const qqNumber = siteConfig.social.qq;
 
@@ -306,20 +230,6 @@ export const Home = () => {
     }
   }, [navigate, searchParams, setSearchParams]);
 
-  const continueReading = useMemo(() => {
-    if (!latestReading || isReadingComplete(latestReading.progress)) return null;
-    const matchingPost = initialPosts.find((post) => post.id === latestReading.postId);
-    return matchingPost ? { post: matchingPost, entry: latestReading } : null;
-  }, [latestReading]);
-
-  // 阅读历史指向已删除的文章：清掉记录，避免「继续阅读」永远显示空条目。
-  useEffect(() => {
-    if (latestReading && initialPosts.length > 0 && !initialPosts.some((post) => post.id === latestReading.postId)) {
-      removeReadingHistory(latestReading.postId);
-      refreshReadingHistory();
-    }
-  }, [latestReading, refreshReadingHistory]);
-
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const query = term.trim();
@@ -327,12 +237,6 @@ export const Home = () => {
       return;
     }
     navigate(`/search?q=${encodeURIComponent(query)}`);
-  };
-
-  const handleAbandonReading = () => {
-    if (!continueReading) return;
-    removeReadingHistory(continueReading.post.id);
-    refreshReadingHistory();
   };
 
   const handleCopyQQ = async () => {
@@ -474,86 +378,6 @@ export const Home = () => {
         </Section>
       )}
 
-      {continueReading && (
-        <section
-          className="continue-reading border-t border-zinc-200 py-8 dark:border-zinc-800"
-          aria-labelledby="continue-reading-heading"
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                继续阅读
-              </p>
-              <h2 id="continue-reading-heading" className="truncate text-xl font-bold text-ink dark:text-white">
-                {continueReading.post.title}
-              </h2>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                {continueReading.post.category} · 已阅读 {Math.round(continueReading.entry.progress * 100)}%
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <Link
-                to={`/post/${continueReading.post.id}`}
-                onMouseEnter={() => preloadPage(`/post/${continueReading.post.id}`)}
-                className="editorial-button-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 px-4 text-sm font-semibold"
-                aria-label={`继续阅读：${continueReading.post.title}`}
-              >
-                继续阅读 <ChevronRight size={15} />
-              </Link>
-              <button
-                type="button"
-                onClick={handleAbandonReading}
-                className="editorial-button inline-flex min-h-11 shrink-0 items-center justify-center gap-2 px-4 text-sm"
-                aria-label={`放弃阅读：${continueReading.post.title}`}
-                title="放弃阅读"
-              >
-                放弃阅读 <X size={15} aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-          <div className="mt-4 h-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" aria-hidden="true">
-            <div
-              className="h-full rounded-full bg-zinc-900 dark:bg-zinc-100"
-              style={{ width: `${Math.round(continueReading.entry.progress * 100)}%` }}
-            />
-          </div>
-        </section>
-      )}
-
-      <Section id="posts" eyebrow="WRITING" title="最新文章" action={{ label: '全部文章', to: '/archive' }}>
-        {latestPosts.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {latestPosts.map((post) => (
-              <PostCard key={post.id} post={post} onShare={setSharePost} />
-            ))}
-          </div>
-        ) : (
-          <EmptyHint>还没有文章。</EmptyHint>
-        )}
-      </Section>
-
-      <Section id="shuoshuo" eyebrow="MINUTES" title="最近说说" action={{ label: '全部说说', to: '/shuoshuo' }}>
-        {latestShuoShuo.length > 0 ? (
-          <ul className="max-w-3xl">
-            {latestShuoShuo.map((item) => (
-              <ShuoShuoRow key={item.id} item={item} />
-            ))}
-          </ul>
-        ) : (
-          <EmptyHint>还没有说说。</EmptyHint>
-        )}
-      </Section>
-
-      {activeFriends.length > 0 && (
-        <Section id="friends" eyebrow="FRIENDS" title="友情链接" action={{ label: '全部友链', to: '/friends' }}>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {activeFriends.map((friend) => (
-              <FriendTile key={friend.url} friend={friend} />
-            ))}
-          </div>
-        </Section>
-      )}
-
       <Section id="contact" eyebrow="CONTACT" title="找到我">
         <div className="flex flex-wrap items-center gap-2">
           <a
@@ -590,18 +414,6 @@ export const Home = () => {
           {qqCopied ? 'QQ 号已复制到剪贴板' : ''}
         </p>
       </Section>
-
-      {sharePost && (
-        <Suspense fallback={null}>
-          <ShareModal
-            isOpen={!!sharePost}
-            onClose={() => setSharePost(null)}
-            title={sharePost.title}
-            excerpt={sharePost.excerpt}
-            url={absoluteSiteUrl(`/post/${sharePost.id}`, window.location.origin)}
-          />
-        </Suspense>
-      )}
     </div>
   );
 };

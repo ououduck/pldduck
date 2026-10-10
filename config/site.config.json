@@ -65,7 +65,14 @@
     "entries": [
       {
         "title": "博客文章",
-        "description": "技术分享、工具测评与折腾记录，全部静态直出。",
+        "description": "技术分享、工具测评与折腾记录，支持分类筛选、搜索与分页浏览。",
+        "url": "/posts",
+        "icon": "posts",
+        "note": "列表"
+      },
+      {
+        "title": "博客归档",
+        "description": "全部文章按月份归拢，每篇都是构建期直出的静态 HTML。",
         "url": "/archive",
         "icon": "archive",
         "note": "归档"

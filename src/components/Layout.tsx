@@ -73,7 +73,7 @@ const shuoshuoNavItem: NavPathItem = {
 };
 
 const navItems: NavPathItem[] = [
-  { path: '/', label: TEXT.navPosts, hint: '最新内容', icon: BookOpen },
+  { path: '/posts', label: TEXT.navPosts, hint: '全部文章', icon: BookOpen },
   shuoshuoNavItem,
   { path: '/archive', label: TEXT.navArchive, hint: '时间归档', icon: Archive },
   { path: '/tags', label: TEXT.navTags, hint: '主题筛选', icon: Tag },
@@ -139,7 +139,7 @@ const mobileTabItems: Array<{ key: string; path: string; label: string; icon: Na
 const mobileMorePanelGroups: Array<{ label: string; items: NavItem[] }> = [
   {
     label: '栏目',
-    items: navItems.filter((item) => !['/', '/shuoshuo', '/friends'].includes(item.path)),
+    items: navItems.filter((item) => !['/shuoshuo', '/friends'].includes(item.path)),
   },
   {
     label: '工具',
@@ -374,7 +374,7 @@ const Navbar = ({ onSearchNavigate }: { onSearchNavigate: () => void }) => {
   );
   const isMobileNavAnimating = mobileNavPhase === 'opening' || mobileNavPhase === 'closing';
   const isNavItemActive = (path: string) =>
-    location.pathname === path || (path === '/' && location.pathname.startsWith('/post/'));
+    location.pathname === path || (path === '/posts' && location.pathname.startsWith('/post/'));
 
   const clearAnimationFrame = useCallback(() => {
     if (animationFrameRef.current === null) {

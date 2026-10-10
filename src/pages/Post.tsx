@@ -1878,7 +1878,7 @@ export const Post = () => {
         '@type': 'ListItem',
         position: 2,
         name: post.category,
-        item: absoluteSiteUrl(`/?category=${encodeURIComponent(post.category)}`, siteConfig.url),
+        item: absoluteSiteUrl(`/posts?category=${encodeURIComponent(post.category)}`, siteConfig.url),
       },
       { '@type': 'ListItem', position: 3, name: post.title, item: absoluteSiteUrl(`/post/${post.id}`, siteConfig.url) },
     ],
@@ -1942,7 +1942,7 @@ export const Post = () => {
           {!isReadingMode && (
             <div className="print-hidden mb-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400 md:mb-7">
               <Link
-                to="/"
+                to="/posts"
                 className="inline-flex items-center gap-1 transition-colors hover:text-zinc-700 dark:hover:text-zinc-300"
               >
                 <ArrowLeft size={13} />
@@ -1955,7 +1955,7 @@ export const Post = () => {
                 </Link>
                 <ChevronRight size={11} aria-hidden="true" />
                 <Link
-                  to={`/?category=${encodeURIComponent(post.category)}`}
+                  to={`/posts?category=${encodeURIComponent(post.category)}`}
                   className="truncate transition-colors hover:text-zinc-700 dark:hover:text-zinc-300"
                 >
                   {post.category}

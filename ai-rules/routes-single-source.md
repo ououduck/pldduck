@@ -26,6 +26,7 @@ SEO（`title` 只写前缀，站点名后缀由 `ssg.mjs` 用 `siteConfig.title`
 - `scripts/routes-consistency.test.mjs`（防漂移守卫）
 - `scripts/lib/sw-version.mjs`（构建期注入 sw 标记区）
 - `public/sw.js`（含标记区，不要手改标记区内容）
+- `public/_redirects`（别名路由的真 301，仅 Cloudflare Pages 生效）
 
 ## 修改规则（必须遵守）
 
@@ -45,6 +46,10 @@ SEO（`title` 只写前缀，站点名后缀由 `ssg.mjs` 用 `siteConfig.title`
    再 `npm run build` 确认 `dist/` 下直出 HTML 的路径集合与预期一致。
 8. **`BASE_ROUTE_MARKERS` 的裸段/尾斜杠区分有语义**：列表段用裸匹配（`/shuoshuo`），
    只有详情段带尾斜杠（`/post/`）。这条由测试锁死，不要"顺手统一"。
+9. **只做跳转的路由不预渲染**：`/posts/:id`（→ `/post/:id`）这类别名路由不带 `ssg`/`sitemap`，
+   否则误写 URL 会被生成成可索引的独立页面。它必须**两处成对**：`public/_redirects` 给爬虫与
+   外链返回真 301（Cloudflare Pages 才生效），`src/App.tsx` 的 `<Navigate replace>` 兜住站内
+   `Link` 与不支持 `_redirects` 的托管环境（EdgeOne）。只留一边，另一边就会失效。
 
 ## 常见陷阱
 

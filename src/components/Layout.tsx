@@ -17,7 +17,6 @@ import { useReadingMode, ReadingModeProvider } from './ReadingModeContext';
 import { routeTransition } from '@/utils/motion';
 
 const BackToTop = lazy(() => import('./BackToTop').then((m) => ({ default: m.BackToTop })));
-const FeedbackDock = lazy(() => import('./FeedbackDock').then((m) => ({ default: m.FeedbackDock })));
 const CommandPalette = lazy(() => import('./CommandPalette').then((m) => ({ default: m.CommandPalette })));
 
 const isEditableTarget = (target: EventTarget | null) => {
@@ -749,7 +748,6 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
         {!isReadingMode && (
           <Suspense fallback={null}>
             <BackToTop />
-            <FeedbackDock />
           </Suspense>
         )}
         {!isReadingMode && <Footer />}

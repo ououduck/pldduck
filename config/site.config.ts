@@ -114,11 +114,6 @@ export interface SiteFriendsPage {
   applyUrl: string;
 }
 
-export interface SiteFeedback {
-  /** 站点反馈表单地址（Tally），右侧中下部贴边的反馈侧签点击直达。 */
-  url: string;
-}
-
 export interface SiteContent {
   /** 文章源文件所在仓库（用于"在 GitHub 上编辑此文"跳转）。默认回退 friendsPage.repoUrl。 */
   repoUrl?: string;
@@ -154,8 +149,6 @@ export interface SiteConfig {
   comments: SiteComments;
   guestbook: SiteGuestbook;
   friendsPage: SiteFriendsPage;
-  /** 站点反馈表单入口（右侧中下部贴边的反馈侧签）。 */
-  feedback: SiteFeedback;
   /** 文章内容仓库（"在 GitHub 上编辑此文"/查看源文件入口使用）。 */
   content?: SiteContent;
   beian: SiteBeian;

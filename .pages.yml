@@ -187,11 +187,6 @@ content:
         fields:
           - { name: text, label: 备案号, type: string }
           - { name: url, label: 备案链接, type: string }
-      - name: feedback
-        label: 反馈表单
-        type: object
-        fields:
-          - { name: url, label: 反馈表单地址, type: string }
 
   # ── 首页内容（config/portal.config.json）：构建期与运行期都合并回 siteConfig.portal ──
   - name: portalConfig

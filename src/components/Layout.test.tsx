@@ -9,9 +9,6 @@ import { Layout } from './Layout';
 vi.mock('@/components/BackToTop', () => ({
   BackToTop: () => <div data-testid="mock-back-to-top" />,
 }));
-vi.mock('@/components/FeedbackDock', () => ({
-  FeedbackDock: () => <div data-testid="mock-feedback-dock" />,
-}));
 vi.mock('@/components/CookieNotice', () => ({
   CookieNotice: () => <div data-testid="mock-cookie-notice" />,
 }));
@@ -141,12 +138,7 @@ describe('Layout', () => {
     expect(screen.getByText('页面内容')).toBeInTheDocument();
   });
 
-  it('渲染反馈侧签（反馈入口不进入导航清单）', () => {
-    renderLayout();
-    expect(screen.getByTestId('mock-feedback-dock')).toBeInTheDocument();
-  });
-
-  it('导航面板中不含反馈入口（已迁至右侧反馈侧签）', async () => {
+  it('导航面板中不含反馈入口', async () => {
     const user = userEvent.setup();
     renderLayout();
     await user.click(screen.getByRole('button', { name: '打开导航菜单' }));

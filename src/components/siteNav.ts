@@ -12,7 +12,6 @@ import {
   Github,
   House,
   Image as ImageIcon,
-  Info,
   Mail,
   MessageCircle,
   MessageSquareText,
@@ -71,7 +70,6 @@ export const navGroups: NavGroup[] = [
       { key: 'stats', path: '/stats', label: '统计', hint: '站点数据', icon: BarChart3 },
       { key: 'friends', path: '/friends', label: '友链', hint: '友情链接', icon: Users },
       { key: 'guestbook', path: '/guestbook', label: '留言', hint: '留言互动', icon: MessageSquareText },
-      { key: 'about', path: '/about', label: '关于', hint: '站点介绍', icon: Info },
       {
         key: 'travellings',
         href: 'https://www.travellings.cn/go.html',

@@ -69,7 +69,7 @@ images:
 
 ## 文章更新订阅
 
-文章页/关于页可订阅 GitHub Issue（`src/components/IssueSubscriptionCard.tsx`），新文章发布时
+文章页/首页可订阅 GitHub Issue（`src/components/IssueSubscriptionCard.tsx`），新文章发布时
 `.github/workflows/notify-post-update.yml` 自动在指定 Issue 发布更新通知。
 
 ## Giscus 评论

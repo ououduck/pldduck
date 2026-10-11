@@ -67,6 +67,10 @@ export interface SitePortal {
     prompt: string;
     detail: string;
   };
+  /** 「关于本站」栏目正文（原关于页的折腾记录，改由首页承载）。 */
+  identity?: string;
+  /** 「关于本站」栏目的技术栈清单。 */
+  stack?: string[];
   entries?: PortalEntry[];
   links?: PortalLink[];
   projects?: PortalProject[];

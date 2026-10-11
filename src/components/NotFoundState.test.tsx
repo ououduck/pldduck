@@ -21,10 +21,10 @@ describe('NotFoundState', () => {
 
   it('返回链接使用 backTo 与 backLabel', () => {
     renderWithRouter(
-      <NotFoundState title="页面不存在" description="你访问的页面走丢了" backTo="/about" backLabel="去关于页" />,
+      <NotFoundState title="页面不存在" description="你访问的页面走丢了" backTo="/guestbook" backLabel="去留言板" />,
     );
-    const link = screen.getByRole('link', { name: '去关于页' });
-    expect(link).toHaveAttribute('href', '/about');
+    const link = screen.getByRole('link', { name: '去留言板' });
+    expect(link).toHaveAttribute('href', '/guestbook');
   });
 
   it('默认返回首页', () => {

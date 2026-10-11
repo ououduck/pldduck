@@ -10,13 +10,13 @@ const URI_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:/i;
 const EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 const DEFAULT_STATIC_ROUTES = new Set([
   '/',
+  '/posts',
   '/archive',
   '/tags',
   '/stats',
   '/friends',
   '/shuoshuo',
   '/guestbook',
-  '/about',
   '/cover',
   '/watermark',
   '/search',

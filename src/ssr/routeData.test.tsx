@@ -80,7 +80,7 @@ describe('buildSsgRouteData', () => {
   const posts = [makePost('a'), makePost('b', { date: '2026-02-01', category: '分享' }), makePost('c')];
 
   it('非文章 URL 返回 undefined', () => {
-    expect(buildSsgRouteData(posts, '/about')).toBeUndefined();
+    expect(buildSsgRouteData(posts, '/guestbook')).toBeUndefined();
     expect(buildSsgRouteData(posts, '/')).toBeUndefined();
   });
 

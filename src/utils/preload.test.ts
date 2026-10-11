@@ -13,8 +13,10 @@ describe('preloadPage', () => {
   });
 
   it('不支持网络信息时允许预加载并调用对应 loader', () => {
-    const spy = vi.spyOn(pageLoaders, '/about').mockReturnValue(Promise.resolve({ default: (() => null) as never }));
-    preloadPage('/about');
+    const spy = vi
+      .spyOn(pageLoaders, '/guestbook')
+      .mockReturnValue(Promise.resolve({ default: (() => null) as never }));
+    preloadPage('/guestbook');
     expect(spy).toHaveBeenCalledTimes(1);
   });
 

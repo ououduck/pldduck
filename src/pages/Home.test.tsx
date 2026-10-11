@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { Home } from './Home';
@@ -140,6 +140,26 @@ describe('Home', () => {
     expect(externalLink).toHaveAttribute('href', project!.url);
     expect(externalLink).toHaveAttribute('target', '_blank');
     expect(externalLink).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('首页承载站点身份文案：站主自述、「关于本站」正文与技术栈清单', () => {
+    renderHome();
+    expect(screen.getByText(siteConfig.author.bio)).toBeInTheDocument();
+
+    const identity = siteConfig.portal?.identity;
+    const stack = siteConfig.portal?.stack ?? [];
+    expect(identity).toBeTruthy();
+    expect(stack.length).toBeGreaterThan(0);
+
+    const about = screen.getByRole('heading', { level: 2, name: '关于本站' }).closest('section');
+    expect(about).not.toBeNull();
+    expect(within(about!).getByText(identity!)).toBeInTheDocument();
+    stack.forEach((item) => expect(within(about!).getByText(item)).toBeInTheDocument());
+  });
+
+  it('原关于页的订阅引导卡落在首页末尾', () => {
+    renderHome();
+    expect(screen.getByRole('heading', { level: 2, name: '订阅新文章提醒' })).toBeInTheDocument();
   });
 
   it('复制 QQ 号成功后给出播报', async () => {

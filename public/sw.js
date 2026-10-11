@@ -17,7 +17,7 @@ const CORE_ASSET_PATHS = [
 /* ROUTES:BEGIN —— 本块由 scripts/lib/sw-version.mjs 在构建期从 config/routes.mjs 注入，请勿手改 */
 const SPA_ROUTE_PATTERNS = [
   /^\/$/,
-  /^\/(?:post|posts|archive|tags|stats|friends|shuoshuo|guestbook|about|cover|watermark|search)(?:\/|$)/,
+  /^\/(?:post|posts|archive|tags|stats|friends|shuoshuo|guestbook|cover|watermark|search)(?:\/|$)/,
 ];
 /* ROUTES:END */
 

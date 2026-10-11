@@ -2,26 +2,34 @@
 
 ## 功能概述
 
-站点导流门户页：站名与自我介绍（`siteConfig.title` 作 h1、大尺寸头像 128px、助记词、状态徽标）、站内搜索入口（仅负责跳转）、站点入口磁贴与次级链接、开源项目、联系方式（GitHub / 邮箱 / QQ 一键复制）。
+站点门户，同时是站主的主页（原 `/about` 已并入本页）：站名与自我介绍（`siteConfig.title` 作 h1、
+大尺寸头像 128px、助记词、状态徽标、`author.bio` 自述段）、「关于本站」栏目（站点折腾记录与技术栈
+清单，来自 `portal.identity` / `portal.stack`）、站内搜索入口（仅负责跳转）、站点入口磁贴与次级链接、
+开源项目、联系方式（GitHub / 邮箱 / QQ 一键复制）、新文章订阅卡（`IssueSubscriptionCard`）。
 
 英雄区**不再输出 `siteConfig.subtitle` 小字**：站点身份已经由全站外壳（侧边栏 + 顶栏面包屑）承担，首页只留站名与描述。
 
-**本页不出现任何文章/说说/友链的正文**，也不承载列表的筛选、排序、分页与搜索结果展示：文章列表在 `/posts`（见 `posts.md`），归档/标签/搜索分别在 `/archive`、`/tags`、`/search`。首页只给出指向它们的入口。
+**本页不出现任何文章/说说/友链的正文内容列表**，也不承载列表的筛选、排序、分页与搜索结果展示：文章列表在
+`/posts`（见 `posts.md`），归档/标签/搜索分别在 `/archive`、`/tags`、`/search`。首页只给出指向它们的入口。
+站点**自身**的身份文案（自述、折腾记录、技术栈）属于本页职责，不是内容列表。
 
 ## 关键文件
 
 - `src/pages/Home.tsx`
-- `config/portal.config.json`（入口磁贴、次级链接、开源项目、tagline/status/tags/memory 全部由此驱动；构建期/运行期都合并成 `siteConfig.portal`）与 `config/site.config.ts` 的 `SitePortal` 类型
+- `config/portal.config.json`（入口磁贴、次级链接、开源项目、tagline/status/tags/memory/identity/stack 全部由此驱动；构建期/运行期都合并成 `siteConfig.portal`）与 `config/site.config.ts` 的 `SitePortal` 类型
+- `config/site.config.json` 的 `author.bio`（Hero 自述段与 ProfilePage schema 的 mainEntity 共用）
 - `src/utils/preload.ts`（磁贴悬停预加载的 chunk 键）
+- `src/components/IssueSubscriptionCard.tsx`（首页末尾的订阅卡，与文章页同一组件）
 
 ## 修改规则（必须遵守）
 
-1. **纯导流**：不得渲染 `PostCard`、说说摘要、友链头像等任何内容列表；需要新增栏目就加一条 `portal.entries`，不是把内容搬进首页。搜索表单只做 `navigate('/search?q=…')`；空查询不跳转。
+1. **纯导流**：不得渲染 `PostCard`、说说摘要、友链头像等任何内容列表；需要新增栏目就加一条 `portal.entries`。搜索表单只做 `navigate('/search?q=…')`；空查询不跳转。站点身份文案（`author.bio`、`portal.identity`、`portal.stack`）是例外——它们描述本站，不是内容列表。
 2. **URL 状态最小化**：首页唯一合法 URL 是无参 `/`。挂载时把残留参数清掉（`replace`），`?q=` 则整串转交 `/search`（兼容旧版首页的搜索分享链接）。新增交互不得再引入查询参数。
 3. **SSG/水合确定性**：门户文案一律来自构建期内联的 `siteConfig.portal`；渲染期禁止 fetch、`Date.now()`、`Math.random()`、`window`/`document` 访问。
-4. **内容不硬编码**：站点入口/次级链接/开源项目来自 `siteConfig.portal`，新增图标在 `PORTAL_ICONS` 注册并保留 `Sparkles` 兜底；不得把清单抄进组件。
+4. **内容不硬编码**：站点入口/次级链接/开源项目与「关于本站」正文都来自 `siteConfig.portal`，新增图标在 `PORTAL_ICONS` 注册并保留 `Sparkles` 兜底；不得把清单抄进组件。在 `portal.config.json` 加字段必须同步在 `.pages.yml` 的 `portalConfig.fields` 声明，否则 PagesCMS 保存时会把它抹掉。
 5. **链接语义**：站内路径用 `<Link>` + `onMouseEnter={() => preloadPage(path)}`；外链用 `<a target="_blank" rel="noopener noreferrer">` 并在可访问名称里标注「外部站点」。站内/外链判定统一走 `isInternalPath`（`//` 开头的协议相对地址不算站内）。
 6. **SEO**：`<Seo title={siteConfig.title} description={siteConfig.description} />` —— `title` 必须逐字等于 `siteConfig.title`，否则 `seoHomeTitle`/`seoHomeDescription` 的首页覆盖不生效（见 `Seo.tsx`）；该覆盖只对 `/` 有效，其他页面（含 `/posts`）不得复用 `siteConfig.title` 作为标题。
+   首页额外输出 `ProfilePage` schema（站主即站点，原 `/about` 的实体随页面合并）：显式传 `structuredData` 会**替换**掉 `Seo` 的默认站点 schema，必须 `[...buildSiteSchemas(...), profilePageSchema]` 一并带上 WebSite + Organization；`buildSiteSchemas` 的入参要与 `Seo` 对首页选的文案（`seoHomeDescription` 优先）保持一致。`config/routes.mjs` 的 `/` 条目不得加 `seo.schemaType`，否则 SSG 会再注入一份，`seo-audit` 报「@type 重复」。
 7. **无障碍**：每个 `Section` 用 `aria-labelledby` 指向自身 `h2`；搜索表单 `role="search"` + `<label className="sr-only">`；复制成功通过 `role="status"` 播报；头像保留 `alt`。
 8. **动画克制**：不使用 framer-motion 入场/视差动画（首帧必须是最终可见状态，保证 LCP 与无 JS 可读）；只允许 CSS `motion-safe:` 级别的小动效。
 9. **性能**：组件内 state 仅限局部交互（搜索输入框、复制反馈、头像回退），不得引发整页重渲染。

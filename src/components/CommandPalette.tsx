@@ -19,7 +19,6 @@ import {
   Rss,
   Search,
   Tags,
-  Users,
 } from 'lucide-react';
 import { SlideModal } from './SlideModal';
 import { usePostSearch } from '@/hooks/usePostSearch';
@@ -99,7 +98,6 @@ export const CommandPalette: React.FC<{ onClose: () => void }> = ({ onClose }) =
       { id: 'nav-archive', label: '归档', icon: <Clock size={15} />, run: () => closeAndNavigate('/archive') },
       { id: 'nav-tags', label: '标签', icon: <Tags size={15} />, run: () => closeAndNavigate('/tags') },
       { id: 'nav-shuoshuo', label: '说说', icon: <BookOpen size={15} />, run: () => closeAndNavigate('/shuoshuo') },
-      { id: 'nav-about', label: '关于', icon: <Users size={15} />, run: () => closeAndNavigate('/about') },
     ];
 
     const actionCommands: PaletteCommand[] = [

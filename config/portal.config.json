@@ -7,6 +7,8 @@
     "prompt": "教你一句话记住本网站",
     "detail": "跑路的(pld)duck(duck)"
   },
+  "identity": "热衷于探索前端 Web 技术，喜欢构建极致性能和优秀交互的用户界面，目前正致力于开源项目的贡献与个人产品的打磨。",
+  "stack": ["React", "TypeScript", "Tailwind CSS", "Vite", "Node.js", "Framer Motion"],
   "entries": [
     {
       "title": "博客文章",
@@ -38,7 +40,6 @@
     }
   ],
   "links": [
-    { "title": "关于我", "url": "/about", "icon": "about" },
     { "title": "站内搜索", "url": "/search", "icon": "search" },
     { "title": "站点统计", "url": "/stats", "icon": "stats" },
     { "title": "留言板", "url": "/guestbook", "icon": "guestbook" },

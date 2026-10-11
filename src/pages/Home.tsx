@@ -1,9 +1,10 @@
 /**
- * 首页：站点导流页（门户）。
+ * 首页：站点门户，也是站主的主页。
  *
  * 文章列表、说说、友链的正文内容一律不在这里出现，只留指向各栏目的入口；
- * 搜索表单只负责把关键词交给 /search 页处理。入口清单来自构建期内联的站点配置，
- * 渲染期不访问任何客户端 API，SSG 与水合首帧严格一致。
+ * 搜索表单只负责把关键词交给 /search 页处理。站点自身的身份文案（简介、技术栈、
+ * 折腾记录）由 `siteConfig` 与 `siteConfig.portal` 驱动，与入口清单同一份配置。
+ * 文案全部构建期内联，渲染期不访问任何客户端 API，SSG 与水合首帧严格一致。
  */
 
 import React, { useEffect, useState } from 'react';
@@ -25,13 +26,14 @@ import {
   Search,
   Sparkles,
   Stamp,
-  User,
   type LucideIcon,
 } from 'lucide-react';
 import { siteConfig, type PortalEntry, type PortalLink, type PortalProject } from '@config/site.config';
-import { Seo } from '@/components/Seo';
+import { Seo, buildSiteSchemas } from '@/components/Seo';
+import { IssueSubscriptionCard } from '@/components/IssueSubscriptionCard';
 import { useResetTimer } from '@/hooks/useResetTimer';
 import { preloadPage } from '@/utils/preload';
+import { absoluteSiteUrl } from '@/utils/siteUrl';
 import { copyTextToClipboard } from '@/utils/clipboard';
 import { mergeClassName } from '@/utils/classNames';
 
@@ -42,7 +44,6 @@ const PORTAL_ICONS: Record<string, LucideIcon> = {
   archive: Archive,
   shuoshuo: MessageSquare,
   friends: Link2,
-  about: User,
   search: Search,
   stats: BarChart3,
   guestbook: PenLine,
@@ -51,6 +52,31 @@ const PORTAL_ICONS: Record<string, LucideIcon> = {
 };
 
 const portal = siteConfig.portal ?? {};
+
+// 首页即站主主页（原 /about 的 ProfilePage schema 随页面合并）：url 指向站点根，
+// 与 Seo 默认输出的 WebSite schema 同域，isPartOf 显式回指该站点。
+const profilePageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfilePage',
+  name: siteConfig.author.name,
+  description: siteConfig.description,
+  url: absoluteSiteUrl('/', siteConfig.url),
+  inLanguage: 'zh-CN',
+  isPartOf: {
+    '@type': 'WebSite',
+    name: siteConfig.title,
+    url: absoluteSiteUrl('/', siteConfig.url),
+  },
+  mainEntity: {
+    '@type': 'Person',
+    name: siteConfig.author.name,
+    jobTitle: siteConfig.author.role,
+    description: siteConfig.author.bio,
+    url: absoluteSiteUrl('/', siteConfig.url),
+    image: siteConfig.author.avatar,
+    sameAs: [siteConfig.social.github],
+  },
+};
 
 /** 站内路径以 / 开头（排除 //protocol-relative 与完整 URL），决定磁贴用 Link 还是 <a>。 */
 const isInternalPath = (value: string) => value.startsWith('/') && !value.startsWith('//');
@@ -64,31 +90,18 @@ interface SectionProps {
   id: string;
   eyebrow: string;
   title: string;
-  action?: { label: string; to: string };
   children: React.ReactNode;
 }
 
-const Section: React.FC<SectionProps> = ({ id, eyebrow, title, action, children }) => (
+const Section: React.FC<SectionProps> = ({ id, eyebrow, title, children }) => (
   <section className="border-t border-zinc-200 py-8 md:py-10 dark:border-zinc-800" aria-labelledby={`${id}-heading`}>
-    <div className="mb-5 flex items-end justify-between gap-4 md:mb-6">
-      <div>
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
-          {eyebrow}
-        </p>
-        <h2 id={`${id}-heading`} className="font-serif text-2xl font-bold text-ink dark:text-white md:text-3xl">
-          {title}
-        </h2>
-      </div>
-      {action && (
-        <Link
-          to={action.to}
-          onMouseEnter={() => preloadPage(action.to)}
-          className="inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-semibold text-zinc-600 transition-colors hover:text-ink dark:text-zinc-400 dark:hover:text-white"
-        >
-          {action.label}
-          <ChevronRight size={15} aria-hidden="true" />
-        </Link>
-      )}
+    <div className="mb-5 md:mb-6">
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
+        {eyebrow}
+      </p>
+      <h2 id={`${id}-heading`} className="font-serif text-2xl font-bold text-ink dark:text-white md:text-3xl">
+        {title}
+      </h2>
     </div>
     {children}
   </section>
@@ -255,7 +268,16 @@ export const Home = () => {
 
   return (
     <div className="pb-10 md:pb-14">
-      <Seo title={siteConfig.title} description={siteConfig.description} />
+      <Seo
+        title={siteConfig.title}
+        description={siteConfig.description}
+        // 显式传 structuredData 会替换掉 Seo 的默认站点 schema，因此站点级两条要自己带上；
+        // 描述沿用 Seo 对首页的覆盖规则（seoHomeDescription 优先），保证产物逐字不变。
+        structuredData={[
+          ...buildSiteSchemas(siteConfig.seoHomeDescription || siteConfig.description),
+          profilePageSchema,
+        ]}
+      />
 
       <section className="py-6 md:py-10">
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
@@ -266,6 +288,11 @@ export const Home = () => {
             <p className="mt-4 max-w-xl text-sm leading-7 text-zinc-600 dark:text-zinc-300 md:text-base">
               {siteConfig.description}
               {portal.tagline && <span className="text-zinc-400 dark:text-zinc-500"> · {portal.tagline}</span>}
+            </p>
+            {/* 站主自述独立成段：与描述段共用一个 <p> 会把两段文本并成单个可访问名，
+                也会让首页描述文案的断言失真。 */}
+            <p className="mt-3 max-w-xl text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">
+              {siteConfig.author.bio}
             </p>
 
             {(portal.status || (portal.tags && portal.tags.length > 0)) && (
@@ -346,8 +373,30 @@ export const Home = () => {
         </form>
       </section>
 
+      {(portal.identity || (portal.stack && portal.stack.length > 0)) && (
+        <Section id="about" eyebrow="ABOUT" title="关于本站">
+          {portal.identity && (
+            <p className="max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base md:leading-8">
+              {portal.identity}
+            </p>
+          )}
+          {portal.stack && portal.stack.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {portal.stack.map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-medium text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          )}
+        </Section>
+      )}
+
       {entries.length > 0 && (
-        <Section id="portal" eyebrow="NAVIGATION" title="站点入口" action={{ label: '关于我', to: '/about' }}>
+        <Section id="portal" eyebrow="NAVIGATION" title="站点入口">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {entries.map((entry, index) => (
               <DestinationTile key={entry.title} entry={entry} primary={index === 0} />
@@ -409,6 +458,10 @@ export const Home = () => {
           {qqCopied ? 'QQ 号已复制到剪贴板' : ''}
         </p>
       </Section>
+
+      <div className="border-t border-zinc-200 pt-8 md:pt-10 dark:border-zinc-800">
+        <IssueSubscriptionCard />
+      </div>
     </div>
   );
 };

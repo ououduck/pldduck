@@ -16,7 +16,6 @@ import { SsgRouteContext, readSsgRouteData } from './ssr/routeData';
 
 const Post = lazy(() => import('./pages/Post').then((m) => ({ default: m.Post })));
 const PostsPage = lazy(pageLoaders['/posts']);
-const About = lazy(pageLoaders['/about']);
 const ArchivePage = lazy(pageLoaders['/archive']);
 const Stats = lazy(pageLoaders['/stats']);
 const Friends = lazy(pageLoaders['/friends']);
@@ -144,7 +143,6 @@ const AppRoutes: React.FC = () => {
           <Route path="/shuoshuo" element={<ShuoShuoPage />} />
           <Route path="/shuoshuo/:id" element={<ShuoShuoDetailPage />} />
           <Route path="/guestbook" element={<GuestbookPage />} />
-          <Route path="/about" element={<About />} />
           <Route path="/cover" element={<CoverGenerator />} />
           <Route path="/watermark" element={<Watermark />} />
           <Route path="/search" element={<SearchPage />} />

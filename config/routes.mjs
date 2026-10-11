@@ -127,15 +127,6 @@ export const ROUTES = [
     sitemap: { changefreq: 'weekly', priority: '0.5' },
   },
   {
-    path: '/about',
-    segment: 'about',
-    preload: true,
-    sw: true,
-    ssg: 'static',
-    seo: { schemaType: 'ProfilePage', schemaFromSeo: true },
-    sitemap: { changefreq: 'monthly', priority: '0.7' },
-  },
-  {
     path: '/cover',
     segment: 'cover',
     preload: true,

@@ -28,7 +28,7 @@
 ## 文档索引
 
 ### 前端页面
-- [首页（导流门户）](home.md) · [文章列表页](posts.md) · [文章详情页](post.md) · [归档页](archive.md) · [标签页](tags.md) · [搜索](search.md) · [统计页](stats.md) · [友链页](friends.md) · [说说](shuoshuo.md) · [留言板](guestbook.md) · [关于页](about.md) · [404 页](not-found.md)
+- [首页（门户与站点身份）](home.md) · [文章列表页](posts.md) · [文章详情页](post.md) · [归档页](archive.md) · [标签页](tags.md) · [搜索](search.md) · [统计页](stats.md) · [友链页](friends.md) · [说说](shuoshuo.md) · [留言板](guestbook.md) · [404 页](not-found.md)
 - [封面生成器](cover-generator.md) · [水印工具](watermark.md)
 
 ### 通用系统

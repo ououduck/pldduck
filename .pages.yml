@@ -213,6 +213,11 @@ content:
           - { name: label, label: 小标题, type: string }
           - { name: prompt, label: 提示语, type: string }
           - { name: detail, label: 解释内容, type: string }
+      - { name: identity, label: 关于本站正文, type: text }
+      - name: stack
+        label: 技术栈
+        type: list
+        field: { type: string, label: 技术项 }
       - name: entries
         label: 站点入口磁贴
         type: list
@@ -224,7 +229,7 @@ content:
             - { name: url, label: 地址（站内以 / 开头，外链写完整 URL）, type: string, required: true }
             - name: icon
               label: 图标名
-              hint: posts / archive / shuoshuo / friends / about / search / stats / guestbook / cover / watermark，未识别时回退到 Sparkles
+              hint: posts / archive / shuoshuo / friends / search / stats / guestbook / cover / watermark，未识别时回退到 Sparkles
               type: string
             - { name: note, label: 右下角备注, type: string }
       - name: links

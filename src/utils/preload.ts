@@ -32,7 +32,6 @@ const pageLoaders: Record<string, ModuleLoader> = {
   '/friends': () => import('../pages/Friends').then((m) => ({ default: m.Friends })),
   '/shuoshuo': () => import('../pages/ShuoShuo').then((m) => ({ default: m.ShuoShuo })),
   '/guestbook': () => import('../pages/Guestbook').then((m) => ({ default: m.Guestbook })),
-  '/about': () => import('../pages/About').then((m) => ({ default: m.About })),
   '/cover': () => import('../pages/CoverGenerator').then((m) => ({ default: m.CoverGenerator })),
   '/watermark': () => import('../pages/Watermark').then((m) => ({ default: m.Watermark })),
   '/search': () => import('../pages/Search').then((m) => ({ default: m.Search })),

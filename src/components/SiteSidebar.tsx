@@ -72,7 +72,7 @@ const SiteNavList: React.FC<SiteNavListProps> = ({
                         onClick={() => onSelectPath(item.path)}
                         disabled={interactionDisabled}
                         aria-current={isActive ? 'page' : undefined}
-                        className={`${rowClass} w-full text-left disabled:cursor-not-allowed disabled:opacity-60`}
+                        className={`${rowClass} w-full text-left disabled:cursor-not-allowed`}
                       >
                         {content}
                       </button>
@@ -106,7 +106,11 @@ const SiteNavList: React.FC<SiteNavListProps> = ({
                   >
                     <Icon size={16} aria-hidden="true" className="shrink-0" />
                     {label}
-                    {opensNewTab ? <ExternalLink size={11} aria-hidden="true" className="shrink-0 opacity-60" /> : hint}
+                    {opensNewTab ? (
+                      <ExternalLink size={11} aria-hidden="true" className="nav-item-external shrink-0 opacity-60" />
+                    ) : (
+                      hint
+                    )}
                   </a>
                 </li>
               );
@@ -151,7 +155,7 @@ const SidebarBrand: React.FC<{ onSelectPath?: (path: string) => void; interactio
         onClick={() => onSelectPath('/')}
         disabled={interactionDisabled}
         aria-label={`${siteConfig.title} 首页`}
-        className="sidebar-brand flex w-full min-w-0 items-center gap-2.5 rounded-control p-1 text-left transition-colors hover:bg-zinc-100/80 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-zinc-900/80"
+        className="sidebar-brand flex w-full min-w-0 items-center gap-2.5 rounded-control p-1 text-left transition-colors hover:bg-zinc-100/80 disabled:cursor-not-allowed dark:hover:bg-zinc-900/80"
       >
         {content}
       </button>

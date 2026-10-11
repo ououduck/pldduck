@@ -32,10 +32,11 @@ html[data-nav-collapsed='true'] {
   transition: width 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* 折叠态只留图标条：文字直接移出布局，行内容居中；导航项本身仍是
-   同一批 DOM 节点（无障碍名不丢失），只是宽度变窄后被裁剪。 */
+/* 折叠态只留图标条：文字与 ↗ 外链角标一并移出布局（角标是修饰行文字的，图标条里没有
+   意义），行内容居中；导航项本身仍是同一批 DOM 节点（无障碍名不丢失），只是宽度变窄后被裁剪。 */
 html[data-nav-collapsed='true'] .site-sidebar .nav-item-label,
 html[data-nav-collapsed='true'] .site-sidebar .nav-item-hint,
+html[data-nav-collapsed='true'] .site-sidebar .nav-item-external,
 html[data-nav-collapsed='true'] .site-sidebar .sidebar-nav-group-title,
 html[data-nav-collapsed='true'] .site-sidebar .sidebar-brand-text,
 html[data-nav-collapsed='true'] .site-sidebar .sidebar-footer {
@@ -271,11 +272,21 @@ html[data-nav-collapsed='true'] .site-sidebar .sidebar-brand {
 
 .mobile-nav-backdrop,
 .mobile-nav-panel {
-  transition-property: opacity, transform;
   transition-duration: var(--mobile-nav-duration, 340ms);
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 遮罩只淡入，面板只位移：两者同时做会让半透明面板在滑动途中透出正文，
+   「推入」和「淡入」叠在一起，观感就是动画割裂。 */
+.mobile-nav-backdrop {
+  transition-property: opacity;
+  will-change: opacity;
+}
+
+.mobile-nav-panel {
+  transition-property: transform;
   backface-visibility: hidden;
-  will-change: opacity, transform;
+  will-change: transform;
 }
 
 .mobile-nav-backdrop[data-open='false'] {
@@ -295,15 +306,20 @@ html[data-nav-collapsed='true'] .site-sidebar .sidebar-brand {
 /* 左侧抽屉：静置态移出资区左侧，打开时归位；拖拽关闭沿 X 轴（见 Layout 的
    handleTouchMove/End）。面板高度由 inset-y-0 撑满，无需再设 max-height。 */
 .mobile-nav-panel {
-  opacity: 0;
   transform: translate3d(-100%, 0, 0);
   pointer-events: none;
 }
 
 .mobile-nav-panel[data-open='true'] {
-  opacity: 1;
   transform: translate3d(0, 0, 0);
   pointer-events: auto;
+}
+
+/* 退场换 ease-in：开场曲线是强 ease-out（先猛冲后拖尾），用在关闭时不像「被推走」。
+   只改 timing-function——时长仍由 --mobile-nav-duration 统一供给，不得在此单独设值：
+   Layout 的 MOBILE_NAV_ANIMATION_DURATION_MS 是状态机卸载计时与这条 CSS 的唯一同步点。 */
+.mobile-nav-panel[data-state='closing'] {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .mobile-nav-panel[data-swiping='true'] {
@@ -367,6 +383,7 @@ html[data-nav-collapsed='true'] .site-sidebar .sidebar-brand {
 
   .site-sidebar .nav-item-label,
   .site-sidebar .nav-item-hint,
+  .site-sidebar .nav-item-external,
   .site-sidebar .sidebar-nav-group-title,
   .site-sidebar .sidebar-brand-text,
   .site-sidebar .sidebar-footer {

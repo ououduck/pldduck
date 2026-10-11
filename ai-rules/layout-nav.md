@@ -27,6 +27,7 @@
 7. **Cookie 提示**：「同意」永久持久化（localStorage）、「关闭」会话级（sessionStorage）语义保持。
 8. **返回顶部**：隐藏时同步 visibility/tabIndex 并主动 blur 焦点。
 9. **SSG 确定性**：主题/网络状态/侧栏折叠先渲染默认态再在 effect 中纠正；getServiceWorkerState 只读模块变量。
+10. **抽屉动画**：面板只做位移（`transition-property: transform`，静置态 `translate3d(-100%,0,0)` 移出视口），遮罩单独淡入；动画期间不得改变导航行的透明度/可见性（`disabled` 只保留 `cursor-not-allowed`，交互保护由 `disabled` 属性、`[data-locked]` 的 `pointer-events:none` 与 `requestCloseMobileNav` 的动画期守卫三层承担）——行内容在起手/收尾瞬间跳变会读成「二次跳动」。退场曲线用 `[data-state='closing']` 覆盖 timing-function，**时长始终走 `--mobile-nav-duration`**，与 `MOBILE_NAV_ANIMATION_DURATION_MS` 这个唯一同步点不得拆开。
 
 ## 常见陷阱
 

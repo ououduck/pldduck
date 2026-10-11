@@ -704,6 +704,20 @@ const findImageDimensions = (imageDimensions: PostMetadata['imageDimensions'], s
   return matchingKey ? imageDimensions[matchingKey] : undefined;
 };
 
+/**
+ * 段落源码里是否出现图片。Markdown 把 `![..](..)` 解析成 <p><img></p>，而本页 img
+ * 渲染器输出块级 <figure>；HTML 内容模型禁止 figure 作为 p 的后代。判断必须走 hast 子树：
+ * `[![图](src)](src)` 时 img 在 a 之下，React children 里看不到 figure 的痕迹。
+ */
+const hastContainsImage = (node: unknown): boolean => {
+  if (typeof node !== 'object' || node === null) {
+    return false;
+  }
+
+  const { tagName, children } = node as { tagName?: unknown; children?: unknown };
+  return tagName === 'img' || (Array.isArray(children) && children.some(hastContainsImage));
+};
+
 const createMarkdownComponents = (
   onPreviewImage: (image: { src: string; alt?: string }) => void,
   mermaidRenderer: MermaidRenderer | null,
@@ -802,6 +816,18 @@ const createMarkdownComponents = (
   const isImageUrl = (url: string) => /\.(jpe?g|png|gif|webp|avif|svg|bmp|ico)(\?.*)?$/i.test(url);
 
   return {
+    // 含图片的段落必须换掉 <p> 容器（判定见 hastContainsImage）：浏览器解析直出 HTML 时
+    // <figure> 会隐式闭合 <p>，落地成「空 <p> + 游离 <figure>」，水合必然对不上并回退重渲染，
+    // 空段落还带正文 margin，每张图前会多出一截空隙。md-paragraph 在 index.css 里与
+    // <p> 共用同一组正文排版规则。
+    p: ({ children, node, ...props }: React.ComponentPropsWithoutRef<'p'> & { node?: unknown }) =>
+      hastContainsImage(node) ? (
+        <div {...props} className="md-paragraph">
+          {children}
+        </div>
+      ) : (
+        <p {...props}>{children}</p>
+      ),
     a: ({
       href,
       children,

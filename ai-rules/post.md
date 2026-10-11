@@ -24,6 +24,7 @@
 7. **阅读进度**：进度/恢复逻辑在 `readingProgress.ts`（start/end 阈值、clamp、完成阈值），不得在组件内重写公式。
 8. **无障碍**：`role="application"` 仅限 Mermaid 视口容器（其确实接管键盘）；复制/分享按钮有可访问名称；快捷键有 kbd 提示。
 9. **性能**：`stripMarkdown(post.content)` 结果必须 useMemo 缓存（meta description 与 articleBody 共用）；useMemo 不得放在条件早退之后（Hooks 规则）。
+10. **HTML 结构合法**：正文 Markdown 的块级元素（`img` 渲染器输出的 `figure`）不得留在 `<p>` 内——浏览器解析直出 HTML 时会隐式闭合 `<p>`，落地成「空 `<p>` + 游离 `<figure>`」，既触发水合回退又多出空段落间距。`p` 渲染器以 hast 子树判定段落是否含图片（`[![图](src)](src)` 时 img 在 a 之下，React children 看不到），含图片时升格为 `<div class="md-paragraph">`；`index.css` 的正文段落规则用 `:is(p, .md-paragraph)` 同时覆盖两者，新增段落级排版规则时必须照此写法。
 
 ## 常见陷阱
 

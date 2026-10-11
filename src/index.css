@@ -492,15 +492,17 @@ html[data-nav-collapsed='true'] .site-sidebar .sidebar-brand {
 }
 
 /* 中文正文两端对齐：消除参差右缘，行尾不留明显空隙。
-   inter-ideograph 在 Safari/Firefox/Chrome 均可正确压缩 CJK 字间空隙。 */
-.post-prose p,
+   inter-ideograph 在 Safari/Firefox/Chrome 均可正确压缩 CJK 字间空隙。
+   .md-paragraph 是含图片段落的合法容器（figure 不能作 p 的后代，见 Post.tsx 的 p 渲染器），
+   正文段落规则必须同时覆盖它，否则图文混排段会丢掉对齐与末行排版规则。 */
+.post-prose :is(p, .md-paragraph),
 .post-prose li,
 .post-prose blockquote {
   text-align: justify;
   text-justify: inter-ideograph;
 }
 
-.post-prose p {
+.post-prose :is(p, .md-paragraph) {
   /* 段落末行避免孤字（text-wrap: pretty 兼容性差时自动退化为 normal） */
   text-wrap: pretty;
   orphans: 3;
@@ -1571,7 +1573,7 @@ html.dark .mermaid-diagram > svg {
   line-height: 1.95;
 }
 
-.reading-mode-article .post-prose p,
+.reading-mode-article .post-prose :is(p, .md-paragraph),
 .reading-mode-article .post-prose li {
   line-height: 1.95;
 }
@@ -1612,7 +1614,7 @@ html.dark .mermaid-diagram > svg {
     line-height: 1.9;
   }
 
-  .reading-mode-article .post-prose p,
+  .reading-mode-article .post-prose :is(p, .md-paragraph),
   .reading-mode-article .post-prose li {
     line-height: 1.9;
   }
@@ -1699,7 +1701,7 @@ html.dark .mermaid-diagram > svg {
   }
 
   .post-prose,
-  .post-prose p,
+  .post-prose :is(p, .md-paragraph),
   .post-prose li,
   .post-prose strong,
   .post-prose em,
@@ -1807,7 +1809,7 @@ html.dark .mermaid-diagram > svg {
     page-break-after: avoid;
   }
 
-  .post-prose p,
+  .post-prose :is(p, .md-paragraph),
   .post-prose li {
     orphans: 3;
     widows: 3;

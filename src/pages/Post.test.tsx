@@ -189,6 +189,38 @@ describe('Post', () => {
     // "no-dark" 是深色适配标记不是 caption，不透传；普通 title 正常透传
     expect(viewerProps.images[2]).toMatchObject({ title: '图二说明' });
     expect(viewerProps.initialIndex).toBe(1);
+
+    // 正文 figure 不得有任何 <p> 祖先（HTML 内容模型）：浏览器解析直出 HTML 时会隐式
+    // 闭合 p，落地成「空 <p> + 游离 <figure>」，水合必然对不上并回退重渲染该子树。
+    const galleryProse = document.querySelector('.post-prose') as HTMLElement;
+    galleryProse.querySelectorAll('figure[data-role="markdown-figure"]').forEach((figure) => {
+      expect(figure.closest('p')).toBeNull();
+    });
+  });
+
+  it('含图片的段落升格为 div.md-paragraph，纯文字段落仍是 <p>', async () => {
+    vi.mocked(postsService.getPostById).mockResolvedValue(
+      makePost({
+        content:
+          '纯文字段落。\n\n![独立图](/posts-img/a.png)\n\n图前文字 ![内联图](/posts-img/b.png) 图后文字\n\n[![链接图](/posts-img/c.png)](https://img.example.com/c.png)',
+      }) as never,
+    );
+    renderPost();
+    await screen.findByText('测试文章标题');
+
+    const prose = document.querySelector('.post-prose') as HTMLElement;
+    await waitFor(() => expect(prose.querySelectorAll('figure[data-role="markdown-figure"]')).toHaveLength(3));
+
+    // 三种写法（独立图 / 图文混排 / 图片套链接）都必须由 div 承载：套链接时 img 藏在 a 的
+    // 渲染结果里，只看 React children 会漏判，所以判定走 hast 子树。
+    prose.querySelectorAll('figure[data-role="markdown-figure"]').forEach((figure) => {
+      expect(figure.closest('p')).toBeNull();
+      expect(figure.parentElement?.classList.contains('md-paragraph')).toBe(true);
+    });
+
+    // 没有图片的段落保持原生 <p>，不被动过容器。
+    expect(prose.querySelector('p')?.textContent).toBe('纯文字段落。');
+    expect(prose.querySelectorAll('.md-paragraph > figure')).toHaveLength(3);
   });
 
   it('正文标题 id 在多次重渲染后保持与 headings 数组一致（目录点击跳转回归）', async () => {

@@ -111,11 +111,11 @@ describe('PagesCMS 站点配置字段与三份配置文件一一对应', () => {
       }
       if (child && typeof child === 'object' && !Array.isArray(child)) {
         collectMissing(child, field.fields, [...trail, key], acc);
-      } else if (Array.isArray(child) && field.type === 'list' && field.field?.fields) {
-        // 列表项是同构对象：只按每一项的键下钻（PagesCMS 的 list 模板即如此）。
+      } else if (Array.isArray(child) && field.type === 'object' && field.list && field.fields) {
+        // 列表项是同构对象（type: object + list: true）：只按每一项的键下钻。
         for (const item of child) {
           if (item && typeof item === 'object') {
-            collectMissing(item, field.field.fields, [...trail, key], acc);
+            collectMissing(item, field.fields, [...trail, key], acc);
           }
         }
       }
@@ -141,7 +141,7 @@ describe('PagesCMS 站点配置字段与三份配置文件一一对应', () => {
   it('首页入口磁贴的每个字段都可编辑（新增磁贴属性时不能漏声明）', () => {
     const fields = pagesConfig.content.find((item) => item.name === 'portalConfig')?.fields;
     const portalJson = JSON.parse(readFileSync(path.join(repoRoot, 'config/portal.config.json'), 'utf8'));
-    const entryFields = new Set((findField(fields, 'entries')?.field?.fields ?? []).map((f) => f.name));
+    const entryFields = new Set((findField(fields, 'entries')?.fields ?? []).map((f) => f.name));
     for (const entry of portalJson.entries ?? []) {
       expect([...Object.keys(entry)].filter((key) => !entryFields.has(key))).toEqual([]);
     }
@@ -161,6 +161,80 @@ describe('PagesCMS 站点配置字段与三份配置文件一一对应', () => {
       for (let j = i + 1; j < keySets.length; j += 1) {
         expect([...keySets[i]].filter((key) => keySets[j].has(key))).toEqual([]);
       }
+    }
+  });
+});
+
+/**
+ * 字段声明合法性守护（回归：CMS「首页内容」里几个板块整块不显示）。
+ *
+ * Pages CMS 没有 `type: list` 这个字段类型：数组一律写成「字段自身类型 + list: true」
+ * （对象列表 = type: object + list: true + fields，字符串列表 = type: string + list: true）。
+ * 写成 type: list 时解析不出编辑器组件，字段在 CMS 里直接消失，而 JSON 里的数据还在 ——
+ * 表现是「板块不见了」而不是报错，所以只能靠这层静态守护兜住。
+ * 同理 `hint` 不是 Pages CMS 的键（帮助文本叫 description），会被静默忽略；
+ * 嵌套字段只有复数 `fields`，单数 `field` 是 Decap 的写法，这里同样不认。
+ * 类型清单出处：https://pagescms.org/docs/configuration/content/fields/
+ */
+const PAGES_FIELD_TYPES = new Set([
+  'block',
+  'boolean',
+  'code',
+  'date',
+  'file',
+  'image',
+  'number',
+  'object',
+  'reference',
+  'rich-text',
+  'select',
+  'string',
+  'text',
+  'uuid',
+]);
+
+const walkFields = (fields, trail = [], acc = []) => {
+  for (const field of fields ?? []) {
+    const where = [...trail, field.name ?? '(匿名)'].join('.');
+    acc.push({ where, field });
+    walkFields(field.fields, [...trail, field.name ?? '(匿名)'], acc);
+  }
+  return acc;
+};
+
+describe('PagesCMS 字段声明：type 与键名必须是 Pages CMS 认识的写法', () => {
+  const allFields = pagesConfig.content.flatMap((entry) => walkFields(entry.fields, [entry.name]));
+
+  it('遍历到了字段树（防止 walker 失效退化成空断言）', () => {
+    expect(allFields.length).toBeGreaterThan(80);
+  });
+
+  it('每个字段的 type 都在受支持清单内（含回归：不存在 type: list）', () => {
+    expect(
+      allFields
+        .filter(({ field }) => !PAGES_FIELD_TYPES.has(field.type))
+        .map(({ where, field }) => `${where}=${field.type}`),
+    ).toEqual([]);
+  });
+
+  it('不使用单数 field 键（嵌套字段只有复数 fields）', () => {
+    expect(allFields.filter(({ field }) => 'field' in field).map(({ where }) => where)).toEqual([]);
+  });
+
+  it('帮助文本用 description 而不是 hint', () => {
+    expect(allFields.filter(({ field }) => 'hint' in field).map(({ where }) => where)).toEqual([]);
+  });
+
+  it('首页内容的 5 个数组字段都按 list: true 声明', () => {
+    const fields = pagesConfig.content.find((item) => item.name === 'portalConfig')?.fields ?? [];
+    for (const name of ['tags', 'stack', 'entries', 'links', 'projects']) {
+      expect(fields.find((item) => item.name === name)?.list, name).toBeTruthy();
+    }
+    // 对象列表必须自带 fields，否则 CMS 渲染不出可编辑项。
+    for (const name of ['entries', 'links', 'projects']) {
+      const field = fields.find((item) => item.name === name);
+      expect(field?.type, name).toBe('object');
+      expect(field?.fields?.length > 0, name).toBe(true);
     }
   });
 });

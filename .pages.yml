@@ -100,7 +100,7 @@ content:
       - { name: url, label: 站点地址, type: string, required: true }
       - name: unavailable
         label: 已失联
-        hint: 手动勾选标记该友链暂时无法访问（归入「已失联的博客」板块）；不勾选（默认）视为正常访问
+        description: 手动勾选标记该友链暂时无法访问（归入「已失联的博客」板块）；不勾选（默认）视为正常访问
         type: boolean
 
   # ── 评论关键词配置（单文件，CMS 中直接编辑，保存即推送到仓库生效）──
@@ -134,12 +134,12 @@ content:
     format: json
     fields:
       - { name: title, label: 站点标题, type: string, required: true }
-      - { name: subtitle, label: 站点副标题（英文别名）, type: string, hint: 仅用于 JSON-LD 的 alternateName（结构化数据里的品牌别名），不再出现在页面文案中 }
-      - { name: seoHomeTitle, label: 首页 SEO 标题, type: string, hint: 浏览器标签页与搜索结果里首页显示的完整标题，逐字使用，不参与「页面名 | 站点名」拼接 }
+      - { name: subtitle, label: 站点副标题（英文别名）, type: string, description: 仅用于 JSON-LD 的 alternateName（结构化数据里的品牌别名），不再出现在页面文案中 }
+      - { name: seoHomeTitle, label: 首页 SEO 标题, type: string, description: 浏览器标签页与搜索结果里首页显示的完整标题，逐字使用，不参与「页面名 | 站点名」拼接 }
       - { name: seoHomeDescription, label: 首页 SEO 描述, type: text }
       - { name: description, label: 站点描述, type: text, required: true }
-      - { name: logo, label: Logo 链接, type: string, hint: '站内展示位统一使用 QQ 头像直链，如 https://q1.qlogo.cn/g?b=qq&nk=<QQ号>&s=100；public/logo.png 仅作为构建期分享卡与封面工具的本地底图' }
-      - { name: logoSmall, label: 小 Logo 链接, type: string, hint: 顶部导航 96px 位使用的图片 URL，可与 logo 相同 }
+      - { name: logo, label: Logo 链接, type: string, description: '站内展示位统一使用 QQ 头像直链，如 https://q1.qlogo.cn/g?b=qq&nk=<QQ号>&s=100；public/logo.png 仅作为构建期分享卡与封面工具的本地底图' }
+      - { name: logoSmall, label: 小 Logo 链接, type: string, description: 顶部导航 96px 位使用的图片 URL，可与 logo 相同 }
       - { name: seoImage, label: 分享图链接, type: string }
       - { name: footerText, label: 页脚版权文字, type: string }
       - { name: url, label: 站点 URL, type: string, required: true }
@@ -152,7 +152,7 @@ content:
           - { name: rawEmail, label: 邮箱地址, type: string }
           - name: qq
             label: QQ 号
-            hint: 纯数字文本；首页「找到我」区展示一键复制按钮，留空则不展示
+            description: 纯数字文本；首页「找到我」区展示一键复制按钮，留空则不展示
             type: string
       - name: author
         label: 作者信息
@@ -195,12 +195,12 @@ content:
     path: config/portal.config.json
     format: json
     fields:
+      # 数组一律写成「字段类型 + list: true」：Pages CMS 没有 type: list 这个字段类型
+      # （对象列表 = type: object + list: true + fields，字符串列表 = type: string + list: true），
+      # 写成 type: list 时该字段解析不出编辑器，CMS 里整块不显示。
       - { name: tagline, label: 一句话定位, type: string }
       - { name: status, label: 状态徽标文案, type: string }
-      - name: tags
-        label: 徽标标签
-        type: list
-        field: { type: string, label: 标签 }
+      - { name: tags, label: 徽标标签, type: string, list: true }
       - name: memory
         label: 助记词
         type: object
@@ -209,46 +209,40 @@ content:
           - { name: prompt, label: 提示语, type: string }
           - { name: detail, label: 解释内容, type: string }
       - { name: identity, label: 关于本站正文, type: text }
-      - name: stack
-        label: 技术栈
-        type: list
-        field: { type: string, label: 技术项 }
+      - { name: stack, label: 技术栈, type: string, list: true }
       - name: entries
         label: 站点入口磁贴
-        type: list
-        field:
-          type: object
-          fields:
-            - { name: title, label: 标题, type: string, required: true }
-            - { name: description, label: 描述, type: text }
-            - { name: url, label: 地址（站内以 / 开头，外链写完整 URL）, type: string, required: true }
-            - name: icon
-              label: 图标名
-              hint: posts / archive / shuoshuo / friends / search / stats / guestbook / cover / watermark，未识别时回退到 Sparkles
-              type: string
-            - { name: note, label: 右下角备注, type: string }
+        type: object
+        list: true
+        fields:
+          - { name: title, label: 标题, type: string, required: true }
+          - { name: description, label: 描述, type: text }
+          - { name: url, label: 地址（站内以 / 开头，外链写完整 URL）, type: string, required: true }
+          - name: icon
+            label: 图标名
+            description: posts / archive / shuoshuo / friends / search / stats / guestbook / cover / watermark，未识别时回退到 Sparkles
+            type: string
+          - { name: note, label: 右下角备注, type: string }
       - name: links
         label: 次级链接
-        type: list
-        field:
-          type: object
-          fields:
-            - { name: title, label: 标题, type: string, required: true }
-            - { name: url, label: 地址, type: string, required: true }
-            - name: icon
-              label: 图标名
-              hint: 与入口磁贴共用同一套图标名（见 src/pages/Home.tsx 的 PORTAL_ICONS）
-              type: string
+        type: object
+        list: true
+        fields:
+          - { name: title, label: 标题, type: string, required: true }
+          - { name: url, label: 地址, type: string, required: true }
+          - name: icon
+            label: 图标名
+            description: 与入口磁贴共用同一套图标名（见 src/pages/Home.tsx 的 PORTAL_ICONS）
+            type: string
       - name: projects
         label: 开源项目
-        type: list
-        field:
-          type: object
-          fields:
-            - { name: title, label: 项目名, type: string, required: true }
-            - { name: description, label: 描述, type: text }
-            - { name: url, label: 仓库地址, type: string, required: true }
-            - { name: tag, label: 技术栈标签, type: string }
+        type: object
+        list: true
+        fields:
+          - { name: title, label: 项目名, type: string, required: true }
+          - { name: description, label: 描述, type: text }
+          - { name: url, label: 仓库地址, type: string, required: true }
+          - { name: tag, label: 技术栈标签, type: string }
 
   # ── 评论与留言板（config/comments.config.json）：合并回 siteConfig 的 giscusEnabled / comments / guestbook ──
   - name: commentsConfig
@@ -268,11 +262,11 @@ content:
           - { name: categoryId, label: 分类 ID, type: string }
           - name: origin
             label: giscus 来源地址
-            hint: 默认 https://giscus.app（官方直连）；自托管/镜像时填完整 URL。大陆网络下官方地址被 DNS 污染可能无法加载
+            description: 默认 https://giscus.app（官方直连）；自托管/镜像时填完整 URL。大陆网络下官方地址被 DNS 污染可能无法加载
             type: string
           - name: strict
             label: 严格匹配
-            hint: 关闭（推荐）：按标题匹配并允许自动建讨论；开启：按正文 SHA-1 哈希匹配（历史讨论需含哈希标记）
+            description: 关闭（推荐）：按标题匹配并允许自动建讨论；开启：按正文 SHA-1 哈希匹配（历史讨论需含哈希标记）
             type: boolean
       - name: guestbook
         label: 留言板

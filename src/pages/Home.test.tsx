@@ -86,11 +86,12 @@ describe('Home', () => {
   });
 
   it('纯导流：不出现任何文章/说说/友链正文，也不链向具体文章', () => {
-    renderHome();
+    const { container } = renderHome();
     expect(screen.queryAllByRole('article')).toHaveLength(0);
     expect(screen.queryByText('文章甲')).not.toBeInTheDocument();
     expect(screen.queryAllByRole('link', { name: /^阅读文章：/ })).toHaveLength(0);
-    expect(screen.queryAllByRole('link', { name: /前往 .*（外部站点）/ }).length).toBeGreaterThan(0);
+    // 站外出口由开源项目行承担：外链必须新标签打开且带 rel 保护。
+    expect(container.querySelectorAll('a[target="_blank"][rel~="noopener"]').length).toBeGreaterThan(0);
   });
 
   it('站内搜索提交后跳转到 /search 并带上 q 参数', async () => {
@@ -121,19 +122,23 @@ describe('Home', () => {
     await waitFor(() => expect(probeLocation).toBe('/search?q=react'));
   });
 
-  it('站点入口磁贴按配置渲染，外链标注「外部站点」且不省略 rel', () => {
+  it('站点入口磁贴按配置渲染，开源项目外链保留 target 与 rel', () => {
     renderHome();
     const internalEntry = siteConfig.portal?.entries?.find((entry) => entry.url.startsWith('/'));
-    const externalEntry = siteConfig.portal?.entries?.find((entry) => !entry.url.startsWith('/'));
     expect(internalEntry).toBeDefined();
-    expect(externalEntry).toBeDefined();
 
     expect(screen.getByRole('link', { name: `前往 ${internalEntry!.title}` })).toHaveAttribute(
       'href',
       internalEntry!.url,
     );
-    const externalLink = screen.getByRole('link', { name: `前往 ${externalEntry!.title}（外部站点）` });
-    expect(externalLink).toHaveAttribute('href', externalEntry!.url);
+
+    // 门户清单里已无站外条目，站外语义由开源项目行承担。
+    const project = siteConfig.portal?.projects?.find((item) => !item.url.startsWith('/'));
+    expect(project).toBeDefined();
+
+    const externalLink = screen.getByRole('link', { name: new RegExp(project!.title) });
+    expect(externalLink).toHaveAttribute('href', project!.url);
+    expect(externalLink).toHaveAttribute('target', '_blank');
     expect(externalLink).toHaveAttribute('rel', 'noopener noreferrer');
   });
 

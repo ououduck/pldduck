@@ -26,7 +26,6 @@ import {
   Sparkles,
   Stamp,
   User,
-  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 import { siteConfig, type PortalEntry, type PortalLink, type PortalProject } from '@config/site.config';
@@ -42,7 +41,6 @@ const PORTAL_ICONS: Record<string, LucideIcon> = {
   posts: BookOpen,
   archive: Archive,
   shuoshuo: MessageSquare,
-  tool: Wrench,
   friends: Link2,
   about: User,
   search: Search,

@@ -224,7 +224,7 @@ content:
             - { name: url, label: 地址（站内以 / 开头，外链写完整 URL）, type: string, required: true }
             - name: icon
               label: 图标名
-              hint: posts / archive / shuoshuo / tool / friends / about / search / stats / guestbook / cover / watermark，未识别时回退到 Sparkles
+              hint: posts / archive / shuoshuo / friends / about / search / stats / guestbook / cover / watermark，未识别时回退到 Sparkles
               type: string
             - { name: note, label: 右下角备注, type: string }
       - name: links

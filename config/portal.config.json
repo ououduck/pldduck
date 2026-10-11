@@ -30,13 +30,6 @@
       "note": "随性更新"
     },
     {
-      "title": "D-Tool 工具箱",
-      "description": "纯前端在线工具箱，格式化、转换、生成一类小工具。",
-      "url": "https://tool.pldduck.com",
-      "icon": "tool",
-      "note": "外部站点"
-    },
-    {
       "title": "友情链接",
       "description": "一些优秀的技术博客和有趣的网站，排名不分先后。",
       "url": "/friends",
@@ -58,12 +51,6 @@
       "description": "纯静态自研博客，构建期直出每篇文章的 HTML。",
       "url": "https://github.com/ououduck/pldduck",
       "tag": "React + Vite"
-    },
-    {
-      "title": "D-Tool",
-      "description": "纯前端在线工具箱，无后端依赖。",
-      "url": "https://github.com/ououduck/D-Tool",
-      "tag": "Node"
     },
     {
       "title": "Dynamic Island",

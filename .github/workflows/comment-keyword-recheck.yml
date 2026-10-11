@@ -36,10 +36,26 @@ jobs:
     # 全量遍历 + 逐条处理：几百条评论的量级下几分钟内可完成，15 分钟上限留足余量。
     timeout-minutes: 15
     steps:
+      # 与 deploy.yml 同款守卫：workflow_dispatch 的 inputs.payload 是调用方传入的任意 JSON，
+      # 本 workflow 持有 discussions: write，若直接采用 payload 里的 repository.ref，
+      # 恶意分支上的脚本会在有写权限的环境里改写真实讨论区的评论。
+      # 此步在 checkout 之前拦截，非 main 直接失败（空 payload 表示从 Actions 页面
+      # 手动触发，回退到触发分支，放行）。ref 经 env 间接引用：GitHub 表达式在 shell
+      # 拼接前展开，payload 内嵌的 $(...)/反引号会以代码执行（注入面），不能内插进 run:。
+      - name: Validate dispatch ref
+        env:
+          PAYLOAD_REF: ${{ inputs.payload != '' && fromJSON(inputs.payload).repository.ref || '' }}
+        run: |
+          if [ -n "$PAYLOAD_REF" ] && [ "$PAYLOAD_REF" != "main" ]; then
+            echo "::error::评论复查仅允许 main 分支，收到 ref: $PAYLOAD_REF"
+            exit 1
+          fi
+          echo "Dispatch ref accepted: ${PAYLOAD_REF:-<empty，按触发分支复查>}"
+
       - name: Check out repository
         uses: actions/checkout@v5
         with:
-          # Pages CMS 触发时按 CMS 当前打开的分支（main）检出，
+          # Pages CMS 触发时按 CMS 当前打开的分支（main，已由上一步校验）检出，
           # 保证脚本读取到最新保存的关键词配置；手动触发时回退到触发分支。
           ref: ${{ inputs.payload != '' && fromJSON(inputs.payload).repository.ref || '' }}
       - name: Set up Node.js

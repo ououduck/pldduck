@@ -297,6 +297,16 @@ actions:
       message: 将在 GitHub Actions 中构建全站，并直传部署到 Cloudflare Pages 与 EdgeOne Pages
       button: 开始部署
 
+  # ── 评论关键词全量复查：用当前关键词配置重新审查仓库内全部评论 ──
+  - name: recheck-comments
+    label: 🔍 重新审查全部评论
+    workflow: comment-keyword-recheck.yml
+    ref: current
+    confirm:
+      title: 确认重新审查全部评论？
+      message: 将遍历仓库内全部评论，使用当前「评论关键词」配置重新匹配并执行处理动作（minimize 折叠 / delete 删除 / none 仅记录）。已放行的评论不会被反向恢复。
+      button: 开始审查
+
   # ── 文章外链失效扫描：扫描 posts/*.md 全部 http/https 外链，失效链接汇总推送 飞书机器人 Webhook ──
   - name: check-broken-links
     label: 🔗 检查失效外链

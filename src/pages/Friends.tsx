@@ -1,5 +1,6 @@
 /**
- * 友链页：展示友情链接（失联分组）与友链申请/修改入口（跳转 GitHub Issue 表单）。
+ * 友链页：展示友情链接（失联分组）与友链申请入口（跳转 GitHub Issue 表单）；
+ * 已收录条目的信息修改走站长邮箱，不再单独设计申请流程。
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -262,9 +263,9 @@ export const Friends = () => {
           aria-controls="friend-link-panel"
         >
           <div className="min-w-0 flex-1">
-            <span className="text-base font-semibold text-zinc-950 dark:text-white">申请/修改友链</span>
+            <span className="text-base font-semibold text-zinc-950 dark:text-white">申请友链</span>
             <p className="mt-1 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-              查看本站友链信息，并前往 GitHub 提交申请或修改
+              查看本站友链信息，并前往 GitHub 提交申请
             </p>
           </div>
           <motion.div
@@ -349,6 +350,15 @@ export const Friends = () => {
                           查看友链目录
                         </a>
                       </div>
+                      <p className="mt-4 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                        如有友链信息修改需求，请联系{' '}
+                        <a
+                          href={siteConfig.social.email}
+                          className="font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-2 transition-colors hover:text-zinc-950 hover:decoration-zinc-500 dark:text-zinc-300 dark:decoration-zinc-700 dark:hover:text-white dark:hover:decoration-zinc-400"
+                        >
+                          {siteConfig.social.rawEmail}
+                        </a>
+                      </p>
                     </Surface>
                   </motion.div>
                 </div>

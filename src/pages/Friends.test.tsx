@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Friends } from './Friends';
@@ -103,12 +103,12 @@ describe('Friends', () => {
     expect(screen.getByText('示例博客')).toBeInTheDocument();
   });
 
-  it('申请/修改友链入口跳转 GitHub Issue 表单', async () => {
+  it('申请友链入口跳转 GitHub Issue 表单，信息修改引导到站长邮箱', async () => {
     const user = userEvent.setup();
     renderFriends();
     await screen.findByText('示例博客');
-    // 展开「申请/修改友链」面板后直接展示本站信息与入口。
-    await user.click(screen.getByRole('button', { name: /申请\/修改友链/ }));
+    // 展开「申请友链」面板后直接展示本站信息与入口。
+    await user.click(screen.getByRole('button', { name: /申请友链/ }));
     expect(screen.getByText('本站友链信息')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /我已添加/ })).not.toBeInTheDocument();
     const applyLink = await screen.findByRole('link', { name: /通过 GitHub 申请友链/ });
@@ -121,5 +121,9 @@ describe('Friends', () => {
     // 友链目录次级链接（此前闲置的 repoFriendsUrl）。
     const directoryLink = screen.getByRole('link', { name: '查看友链目录' });
     expect(directoryLink).toHaveAttribute('href', siteConfig.friendsPage.repoFriendsUrl);
+    // 已收录条目的修改不开新的申请流程，面板里直接给邮箱。
+    const contact = screen.getByText(/如有友链信息修改需求/);
+    expect(within(contact).getByRole('link')).toHaveAttribute('href', siteConfig.social.email);
+    expect(contact).toHaveTextContent(siteConfig.social.rawEmail);
   });
 });

@@ -17,7 +17,7 @@
 ## 修改规则（必须遵守）
 
 1. **失联分组**：`friend.unavailable === true` 的友链必须归入「已失联的博客」折叠板块，不混入主列表；标记由站长在 Pages CMS 手动维护，前端只读。
-2. **申请入口 = GitHub Issue**：申请/修改友链统一跳转 `siteConfig.friendsPage.applyUrl`（指向 `friend-link-application.yml` 模板），按钮 `target="_blank" rel="noopener noreferrer"`；两步向导的步骤状态（`currentApplicationStep`）与本站信息卡（`siteInfo`）保留在组件内。**不得再引入 Tally 等外部表单**，也不得在站内自建提交表单（Issue 表单即采集面）。
+2. **申请入口 = GitHub Issue**：申请友链（面板标题「申请友链」）统一跳转 `siteConfig.friendsPage.applyUrl`（指向 `friend-link-application.yml` 模板），按钮 `target="_blank" rel="noopener noreferrer"`；两步向导的步骤状态（`currentApplicationStep`）与本站信息卡（`siteInfo`）保留在组件内。**不得再引入 Tally 等外部表单**，也不得在站内自建提交表单（Issue 表单即采集面）。**已收录条目的信息修改走站长邮箱**（2026-10 用户授权：入口下方固定提示「如有友链信息修改需求，请联系 i@pldduck.com」，邮箱取 `siteConfig.social.email` / `rawEmail`，不为它新增配置键）；表单的「申请类型」仍保留 `修改`（机器人按归一化 URL 恰好命中一条时才更新），但 UI 不再引导用户用它。
 3. **自动检测仅供参考**：反链检测（`opened`/`edited`/`reopened`/申请人评论触发的 `findBacklink`）**只产出证据评论 + 标签 + 飞书「待审核」**，任何情况下都不得凭检测结果自动写文件。**`friend-approved` 标签是唯一写入触发器**；人工放行时即使检测未命中也照样入库，但评论必须写明「反链未检测到（人工放行）」并附上最后一次证据。**唯一允许机器人自己下的结论是可达性闸门**（2026-10 用户授权）：检测前先探申报的站点地址与头像，任一在 Actions 出口（境外 IP）拿不到 2xx/3xx —— 连接超时/被拒、DNS 失败、4xx（含 403 的禁海外/反爬）、5xx —— 即回复固定话术 `UNREACHABLE_NOTICE`、打 `friend-unreachable`、**关闭 Issue**、推飞书「已驳回」，并跳过反链检测。闸门只驳回不入库；「下架」申请不受闸门约束（站点打不开正是申请人要撤链的理由）。站长不认同自动驳回时，重开 Issue 再打 `friend-approved` 即可正常入库。**`friend-rejected` 分支**：回复固定拒绝文案（邮箱取 `REJECT_CONTACT_EMAIL`，现与站点公开邮箱 `i@pldduck.com` 一致，有漂移测试守着）→ 关闭 Issue → 飞书「已拒绝」，不写文件、不 dispatch、不追加审核页脚（避免被读成「补打标签就能上架」）；重新申请要开新 Issue。
 4. **反链判定口径**（改动必须同步本节，不得只写在代码注释里）：
    - 只认 `<a href>` 解析出的绝对 http(s) 地址；host 必须**精确等于或为子域**于 `www.pldduck.com` / `pldduck.com`（`pldduck.com.evil.net`、`evil-pldduck.com` 不算命中）。

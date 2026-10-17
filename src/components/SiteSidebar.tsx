@@ -220,19 +220,27 @@ export const SiteSidebarBody: React.FC<SiteSidebarBodyProps> = ({ onClose, ...na
   </div>
 );
 
-/** 桌面端常驻左栏：lg 以上显示，折叠态宽度由 `html[data-nav-collapsed]` 的 CSS 控制。 */
+/**
+ * 桌面端常驻左栏：lg 以上显示。外层只占图标条宽度（正文据此让位）并作为定位上下文，
+ * 内层 `.site-sidebar-inner` 是绝对定位浮层，静置态同宽、鼠标移入或键盘聚焦时由 CSS
+ * 展开到完整宽度盖在正文之上 —— 见 index.css 的侧边导航区块。
+ */
 export const SiteSidebar: React.FC<{ pathname: string }> = ({ pathname }) => (
   <aside
     id="site-sidebar"
     aria-label="站点导航"
-    className="site-sidebar sticky top-0 hidden h-screen shrink-0 flex-col self-start overflow-y-auto border-r border-zinc-200/80 bg-paper dark:border-zinc-800/80 dark:bg-void no-scrollbar lg:flex"
-    style={{
-      paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))',
-      paddingRight: '0.75rem',
-      paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
-      paddingLeft: 'calc(0.75rem + env(safe-area-inset-left, 0px))',
-    }}
+    className="site-sidebar sticky top-0 z-sidebar hidden h-screen shrink-0 self-start lg:block"
   >
-    <SiteSidebarBody pathname={pathname} labelPrefix="侧边栏" />
+    <div
+      className="site-sidebar-inner flex flex-col border-r border-zinc-200/80 bg-paper no-scrollbar dark:border-zinc-800/80 dark:bg-void"
+      style={{
+        paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))',
+        paddingRight: '0.75rem',
+        paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+        paddingLeft: 'calc(0.75rem + env(safe-area-inset-left, 0px))',
+      }}
+    >
+      <SiteSidebarBody pathname={pathname} labelPrefix="侧边栏" />
+    </div>
   </aside>
 );

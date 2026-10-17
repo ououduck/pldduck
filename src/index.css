@@ -9,48 +9,80 @@
      浮层都以 calc(var(--tab-bar-height, 0px) + …) 定位，留 0 即可自然归零，
      无需逐处改写表达式。 */
   --tab-bar-height: 0px;
-  /* 侧边导航宽度：展开/折叠两档，折叠态由 html[data-nav-collapsed] 切换。 */
+  /* 侧边导航宽度：静置态只保留图标条，正文按 --sidebar-active-width 让位。
+     展开态是浮在正文之上的浮层（不挤压布局），故不改动 --sidebar-active-width ——
+     底部贴边浮层（Cookie 条等）读的正是「正文让出的宽度」。 */
   --sidebar-width: 16rem;
-  --sidebar-collapsed-width: 4.25rem;
-  --sidebar-active-width: var(--sidebar-width);
+  --sidebar-rail-width: 4.25rem;
+  --sidebar-active-width: var(--sidebar-rail-width);
   /* 文章标题锚点顶部偏移：唯一数据源。Layout 运行时按实测导航栏高度覆盖
      （专注阅读为 1.5rem）；JS（TOC 跳转/active 判断/hash 深链）与下方
      .post-prose 的 scroll-margin-top 统一读取。6.5rem=104px 为桌面兜底。 */
   --article-heading-offset: 6.5rem;
 }
 
-/* 侧边导航折叠：偏好由 index.html 的引导脚本在首帧写入 html[data-nav-collapsed]，
-   宽度与标签显隐全部由 CSS 驱动 —— React 树不因折叠态重建，SSG 首帧无闪烁，
-   也避免「渲染期读 localStorage」造成的水合不一致（ai-rules/layout-nav.md）。 */
-html[data-nav-collapsed='true'] {
-  --sidebar-active-width: var(--sidebar-collapsed-width);
-}
-
+/* 侧边导航：常驻图标条 + 鼠标移入（或键盘聚焦）时展开为浮层。
+   外层 .site-sidebar 只占图标条宽度并作为定位上下文，内层 .site-sidebar-inner
+   绝对定位、可溢出到正文之上；展开只改内层宽度，正文不重排、不横向抖动。
+   纯 CSS 驱动，React 树不因状态重建 —— 无闪烁、无水合差异，也不需要首帧引导脚本。 */
 .site-sidebar {
   width: var(--sidebar-active-width);
+}
+
+.site-sidebar-inner {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--sidebar-width);
   overflow-x: hidden;
-  transition: width 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  overflow-y: auto;
+  transition: width 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* 折叠态只留图标条：文字与 ↗ 外链角标一并移出布局（角标是修饰行文字的，图标条里没有
-   意义），行内容居中；导航项本身仍是同一批 DOM 节点（无障碍名不丢失），只是宽度变窄后被裁剪。 */
-html[data-nav-collapsed='true'] .site-sidebar .nav-item-label,
-html[data-nav-collapsed='true'] .site-sidebar .nav-item-hint,
-html[data-nav-collapsed='true'] .site-sidebar .nav-item-external,
-html[data-nav-collapsed='true'] .site-sidebar .sidebar-nav-group-title,
-html[data-nav-collapsed='true'] .site-sidebar .sidebar-brand-text,
-html[data-nav-collapsed='true'] .site-sidebar .sidebar-footer {
-  display: none;
+/* 静置态只留图标条：文字与 ↗ 外链角标撤出布局（角标是修饰行文字的，图标条里没有
+   意义），行内容居中。导航项仍是同一批 DOM 节点 —— 卸载会丢掉无障碍名与键盘可达性。
+   展开时文字随内层宽度从 overflow-x 边缘逐步擦出，比同步淡入更接近「被推开」的观感。 */
+@media (hover: hover) {
+  .site-sidebar:not(:hover):not(:focus-within) .site-sidebar-inner {
+    width: var(--sidebar-rail-width);
+  }
+
+  .site-sidebar:not(:hover):not(:focus-within)
+    :is(
+      .nav-item-label,
+      .nav-item-hint,
+      .nav-item-external,
+      .sidebar-nav-group-title,
+      .sidebar-brand-text,
+      .sidebar-footer
+    ) {
+    display: none;
+  }
+
+  .site-sidebar:not(:hover):not(:focus-within) :is(.nav-item, .sidebar-brand) {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 
-html[data-nav-collapsed='true'] .site-sidebar .nav-item,
-html[data-nav-collapsed='true'] .site-sidebar .sidebar-brand {
-  justify-content: center;
-  padding-left: 0;
-  padding-right: 0;
+/* 触屏笔记本与大屏平板（lg 宽度以上却没有 hover 能力）没有「鼠标移入」这条路，
+   去掉折叠按钮后便再无展开手段，故这类设备直接常驻展开态：整栏按展开宽度参与布局。 */
+@media (hover: none) {
+  :root {
+    --sidebar-active-width: var(--sidebar-width);
+  }
 }
 
-/* 横屏矮视口的自动折叠见文件后半「landscape」区块，与浮动控件收窄同处维护。 */
+/* 右滑呼出抽屉与浏览器「横向 overscroll = 后退」抢同一个手势：真机上不关掉它，
+   合成器会把右滑直接吃掉 —— 页面收不到 touchend，抽屉不弹，反倒回退一页。
+   只在「触屏主输入 + lg 以下」（即抽屉可用的场景）关闭横向 overscroll，
+   桌面触控板的双指回退不受影响。 */
+@media (hover: none) and (max-width: 1023.98px) {
+  html {
+    overscroll-behavior-x: none;
+  }
+}
 
 @layer base {
   html {
@@ -350,7 +382,7 @@ html[data-nav-collapsed='true'] .site-sidebar .sidebar-brand {
     transition-duration: 1ms;
   }
 
-  .site-sidebar {
+  .site-sidebar-inner {
     transition-duration: 1ms;
   }
 
@@ -375,28 +407,8 @@ html[data-nav-collapsed='true'] .site-sidebar .sidebar-brand {
 
 /* 横屏/矮视口：右下角浮动控件（返回顶部、阅读进度、目录触发）垂直堆叠会占据
    近一半屏高并遮挡正文。矮屏下收窄到只保留返回顶部，其余隐藏，点按顶部控件
-   也不会再被下方控件误触。侧栏同样默认收成图标条，把宽度让给正文。 */
+   也不会再被下方控件误触。（侧栏本就以图标条为静置态，无需在此再收。） */
 @media (max-height: 480px) and (orientation: landscape) {
-  :root {
-    --sidebar-active-width: var(--sidebar-collapsed-width);
-  }
-
-  .site-sidebar .nav-item-label,
-  .site-sidebar .nav-item-hint,
-  .site-sidebar .nav-item-external,
-  .site-sidebar .sidebar-nav-group-title,
-  .site-sidebar .sidebar-brand-text,
-  .site-sidebar .sidebar-footer {
-    display: none;
-  }
-
-  .site-sidebar .nav-item,
-  .site-sidebar .sidebar-brand {
-    justify-content: center;
-    padding-left: 0;
-    padding-right: 0;
-  }
-
   .reading-progress-badge {
     display: none;
   }

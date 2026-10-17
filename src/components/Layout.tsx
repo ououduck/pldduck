@@ -1,6 +1,6 @@
 /**
- * 全站布局壳：可折叠侧边导航（桌面常驻左栏 + 移动端左滑抽屉）、细顶栏、页脚、
- * 背景纹理与路由内容容器；提供页面级快捷键与不蒜子统计上报。
+ * 全站布局壳：侧边导航（桌面图标条 + hover 展开浮层，移动端左滑抽屉、任意页右滑呼出）、
+ * 细顶栏、页脚、背景纹理与路由内容容器；提供页面级快捷键与不蒜子统计上报。
  */
 
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
@@ -32,22 +32,28 @@ type MobileNavPhase = 'closed' | 'opening' | 'open' | 'closing';
 
 const MOBILE_NAV_ANIMATION_DURATION_MS = 340;
 
-/** 侧栏折叠偏好键；index.html 的引导脚本读同一键，两处必须保持一致。 */
-const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sidebar-collapsed';
-
 const MOBILE_NAV_MENU_BUTTON_ID = 'mobile-nav-menu-button';
+
+/** 抽屉只在 lg 以下出现（Tailwind lg=1024px 是分界），右滑呼出的视口守卫与之对齐。 */
+const MOBILE_NAV_MAX_VIEWPORT_PX = 1024;
+
+/** 右滑呼出所需位移/速度：位移不足但甩动够快也算有意（与抽屉关闭手势同一套判据）。 */
+const SWIPE_OPEN_DISTANCE_PX = 72;
+const SWIPE_OPEN_FLICK_DISTANCE_PX = 40;
+const SWIPE_OPEN_FLICK_VELOCITY_PX_PER_MS = 0.12;
+
+/** 横向位移需明显压过纵向位移才认作右滑，避免把纵向滚动误判成开菜单。 */
+const SWIPE_OPEN_AXIS_RATIO = 1.6;
 
 interface NavbarProps {
   onSearchNavigate: () => void;
-  sidebarCollapsed: boolean;
-  onToggleSidebar: () => void;
 }
 
 /**
  * 顶栏 + 移动端左滑抽屉。抽屉的状态机（四态相位、双 rAF 起步、动画期守卫、
  * 焦点陷阱、滚动锁）沿用既有实现，仅把手势轴从上下翻转为左右。
  */
-const Navbar = ({ onSearchNavigate, sidebarCollapsed, onToggleSidebar }: NavbarProps) => {
+const Navbar = ({ onSearchNavigate }: NavbarProps) => {
   const [mobileNavPhase, setMobileNavPhase] = useState<MobileNavPhase>('closed');
   const [isMobileNavMounted, setIsMobileNavMounted] = useState(false);
   const location = useLocation();
@@ -206,6 +212,96 @@ const Navbar = ({ onSearchNavigate, sidebarCollapsed, onToggleSidebar }: NavbarP
     },
     [isMobileNavAnimating, location.pathname, navigate, requestCloseMobileNav],
   );
+
+  // 任意页面右滑呼出抽屉（仅 lg 以下，抽屉本来就 lg:hidden）。刻意不做拖拽预览：
+  // 四态状态机靠双 rAF 起步 + 固定时长卸载，逐帧改写 transform 会把它带进未验证
+  // 的分支，因此只在手指抬起时判定一次，命中就走既有 openMobileNav —— 与点汉堡
+  // 按钮完全同一条路径，动画时序约束（ai-rules/layout-nav.md #10）不受影响。
+  useEffect(() => {
+    if (isMobileNavMounted) {
+      return;
+    }
+
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    let tracking = false;
+
+    // 起点落在横向可滚动元素（代码块、横向卡片列表…）上时让位给原生横向滚动，
+    // 否则用户想横滚内容却被弹出菜单。
+    const isOverHorizontalScroller = (target: EventTarget | null) => {
+      let node = target instanceof Element ? target : null;
+      while (node && node !== document.body) {
+        const { overflowX } = window.getComputedStyle(node);
+        if ((overflowX === 'auto' || overflowX === 'scroll') && node.scrollWidth > node.clientWidth + 1) {
+          return true;
+        }
+        node = node.parentElement;
+      }
+      return false;
+    };
+
+    const handleSwipeTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      const target = touch?.target;
+      tracking = Boolean(
+        touch &&
+        window.innerWidth < MOBILE_NAV_MAX_VIEWPORT_PX &&
+        !hasOpenOverlay() &&
+        !isOverHorizontalScroller(target) &&
+        !document.getElementById(MOBILE_NAV_MENU_BUTTON_ID)?.contains(target instanceof Node ? target : null),
+      );
+
+      if (!tracking || !touch) {
+        return;
+      }
+
+      startX = touch.clientX;
+      startY = touch.clientY;
+      startTime = Date.now();
+    };
+
+    const handleSwipeTouchEnd = (event: TouchEvent) => {
+      if (!tracking) {
+        return;
+      }
+      tracking = false;
+
+      const touch = event.changedTouches[0];
+      if (!touch) {
+        return;
+      }
+
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      if (deltaX <= 0 || deltaX <= Math.abs(deltaY) * SWIPE_OPEN_AXIS_RATIO) {
+        return;
+      }
+
+      const elapsed = Date.now() - startTime;
+      const velocity = elapsed > 0 ? deltaX / elapsed : 0;
+      const isLongSwipe = deltaX >= SWIPE_OPEN_DISTANCE_PX;
+      const isFlick = deltaX >= SWIPE_OPEN_FLICK_DISTANCE_PX && velocity > SWIPE_OPEN_FLICK_VELOCITY_PX_PER_MS;
+
+      if (isLongSwipe || isFlick) {
+        openMobileNav();
+      }
+    };
+
+    const handleSwipeTouchCancel = () => {
+      tracking = false;
+    };
+
+    window.addEventListener('touchstart', handleSwipeTouchStart, { passive: true });
+    window.addEventListener('touchend', handleSwipeTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', handleSwipeTouchCancel, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleSwipeTouchStart);
+      window.removeEventListener('touchend', handleSwipeTouchEnd);
+      window.removeEventListener('touchcancel', handleSwipeTouchCancel);
+    };
+  }, [isMobileNavMounted, openMobileNav]);
 
   // 滑动关闭手势处理
   // iOS 上 React 合成的 touchmove 监听是 passive 的，无法 preventDefault：
@@ -484,8 +580,6 @@ const Navbar = ({ onSearchNavigate, sidebarCollapsed, onToggleSidebar }: NavbarP
     <>
       <SiteTopBar
         pathname={location.pathname}
-        sidebarCollapsed={sidebarCollapsed}
-        onToggleSidebar={onToggleSidebar}
         mobileNavOpen={isMobileNavOpen}
         mobileNavAnimating={isMobileNavAnimating}
         onToggleMobileNav={handleToggleMobileNav}
@@ -594,27 +688,6 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
   const { isReadingMode } = useReadingMode();
   const prefersReducedMotion = useSiteReducedMotion();
 
-  // 侧栏折叠态：SSG 首帧一律渲染展开态；真实偏好由 index.html 的引导脚本写入
-  // html[data-nav-collapsed]（宽度由 CSS 立即生效、无闪烁），挂载后再同步进 React
-  // 状态，仅用于折叠按钮的图标与 aria-expanded（见 ai-rules/layout-nav.md 的
-  // SSG 确定性约束：渲染期不得读 localStorage）。
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  useEffect(() => {
-    setSidebarCollapsed(document.documentElement.dataset.navCollapsed === 'true');
-  }, []);
-
-  const toggleSidebar = useCallback(() => {
-    const nextCollapsed = !sidebarCollapsed;
-    setSidebarCollapsed(nextCollapsed);
-    document.documentElement.dataset.navCollapsed = nextCollapsed ? 'true' : 'false';
-    try {
-      localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, nextCollapsed ? 'true' : 'false');
-    } catch {
-      // 浏览器存储不可用时，折叠态仅本次浏览有效。
-    }
-  }, [sidebarCollapsed]);
-
   // 文章标题锚点偏移：单一数据源（--article-heading-offset）。普通模式实测
   // 吸顶导航栏（含 safe-area）高度 + 16px 余量；专注阅读无导航，仅保留
   // 1.5rem。JS（TOC 跳转/active 判断/hash 深链）与 CSS scroll-margin-top
@@ -707,14 +780,12 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           跳到主要内容
         </a>
       )}
-      {/* 桌面左栏：lg 以上常驻，折叠态由 html[data-nav-collapsed] 的 CSS 收窄为图标条 */}
+      {/* 桌面左栏：lg 以上常驻为图标条，鼠标移入/键盘聚焦时展开为浮层（纯 CSS 驱动） */}
       {!isReadingMode && <SiteSidebar pathname={location.pathname} />}
       {/* 内容列：细顶栏（sticky）→ 正文 → 页脚。顶栏不再是 fixed，因此正文不再
           需要「导航高度 + safe-area」的顶部内边距补偿。 */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {!isReadingMode && (
-          <Navbar onSearchNavigate={openPalette} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={toggleSidebar} />
-        )}
+        {!isReadingMode && <Navbar onSearchNavigate={openPalette} />}
         <main
           id="main-content"
           tabIndex={-1}

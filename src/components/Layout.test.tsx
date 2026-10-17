@@ -56,13 +56,14 @@ describe('Layout', () => {
         dispatchEvent: vi.fn(),
       })),
     });
+    // 右滑呼出抽屉按 Tailwind lg(1024px) 判定是否移动端；jsdom 默认宽度恰为 1024，
+    // 会被守卫挡掉，故按真实手机视口设小。
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 500 });
   });
 
   afterEach(() => {
     // 移动端导航锁定 body 滚动：重置避免跨用例污染。
     document.body.style.overflow = '';
-    // 侧栏折叠写在 <html data-nav-collapsed> 上，同样跨用例存活。
-    delete document.documentElement.dataset.navCollapsed;
     localStorage.clear();
   });
 
@@ -153,29 +154,12 @@ describe('Layout', () => {
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });
 
-  it('侧栏折叠按钮默认展开，点击后写入 localStorage 与 html 标记', async () => {
-    const user = userEvent.setup();
+  it('桌面侧栏不再有折叠按钮：静置图标条 + hover/聚焦展开全由 CSS 驱动', () => {
     renderLayout();
-    const toggle = screen.getByRole('button', { name: '折叠侧边栏' });
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(toggle).toHaveAttribute('aria-controls', 'site-sidebar');
-
-    await user.click(toggle);
-
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(document.documentElement.dataset.navCollapsed).toBe('true');
-    expect(localStorage.getItem('sidebar-collapsed')).toBe('true');
-    // 折叠只改宽度：导航项 DOM 不卸载，无障碍名仍可达。
+    expect(screen.queryByRole('button', { name: /侧边栏/ })).not.toBeInTheDocument();
+    // 外层栏只占图标条宽度并作为定位上下文，内层 .site-sidebar-inner 是可溢出的浮层。
+    expect(document.querySelector('#site-sidebar > .site-sidebar-inner')).not.toBeNull();
     expect(within(sidebar()).getByRole('link', { name: /^文章/ })).toBeInTheDocument();
-  });
-
-  it('挂载后从 html[data-nav-collapsed] 恢复折叠态（引导脚本在浏览器首帧写入）', async () => {
-    // 真实页面由 index.html 的引导脚本读 localStorage 后写该属性；React 首帧
-    // 一律按展开渲染，挂载 effect 再同步状态，只影响 aria 与按钮图标。
-    document.documentElement.dataset.navCollapsed = 'true';
-    renderLayout();
-    const toggle = await screen.findByRole('button', { name: '展开侧边栏' });
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('Ctrl+K 打开命令面板', async () => {
@@ -241,5 +225,37 @@ describe('Layout', () => {
     await user.click(within(dialog).getByRole('button', { name: /^标签/ }));
     await waitForNavClosed();
     expect(screen.queryByRole('dialog', { name: '移动端导航菜单' })).not.toBeInTheDocument();
+  });
+
+  // 右滑呼出由 window 上的原生 touch 监听判定（不是 React 合成事件）。jsdom 没有
+  // TouchEvent 构造器，用普通 Event 挂上 touches/changedTouches 即可满足读取。
+  const dispatchSwipe = (fromX: number, toX: number, fromY = 400, toY = 400) => {
+    const start = { clientX: fromX, clientY: fromY, target: document.body };
+    const end = { clientX: toX, clientY: toY, target: document.body };
+
+    const startEvent = new Event('touchstart', { bubbles: true, cancelable: true });
+    Object.assign(startEvent, { touches: [start], changedTouches: [start] });
+    window.dispatchEvent(startEvent);
+
+    const endEvent = new Event('touchend', { bubbles: true, cancelable: true });
+    Object.assign(endEvent, { touches: [], changedTouches: [end] });
+    window.dispatchEvent(endEvent);
+  };
+
+  it('任意页面右滑即可呼出导航抽屉', async () => {
+    renderLayout();
+    dispatchSwipe(30, 260);
+    const dialog = await screen.findByRole('dialog', { name: '移动端导航菜单' });
+    expect(dialog).toBeInTheDocument();
+  });
+
+  it('纵向滚动与短促右滑不误开抽屉', async () => {
+    renderLayout();
+    dispatchSwipe(30, 340, 200, 700); // 横向位移被纵向位移压过
+    dispatchSwipe(30, 60); // 未达位移阈值，也不构成甩动
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: '移动端导航菜单' })).not.toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('mobile-nav-panel')).not.toBeInTheDocument();
   });
 });

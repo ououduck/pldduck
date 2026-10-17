@@ -80,6 +80,9 @@ export default {
       zIndex: {
         floating: '40',
         nav: '50',
+        // 侧栏展开态是盖在正文之上的浮层，必须高于顶栏（z-nav）与 main（relative,
+        // 同层 auto 且 DOM 靠后），又低于命令面板/弹层（z-popover 起）。
+        sidebar: '60',
         'nav-panel': '85',
         popover: '70',
         modal: '100',

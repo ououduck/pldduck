@@ -30,21 +30,6 @@
       })();
     </script>
 
-    <!-- 侧边栏折叠态引导：与主题脚本同族，在首帧之前把用户偏好写到
-       <html data-nav-collapsed>，宽度与标签显隐由 CSS 直接生效（无闪烁、
-       无水合差异 —— React 首帧不渲染该属性，挂载后再同步进组件状态用于
-       aria-expanded）。渲染期读 localStorage 会破坏 SSG 确定性，故必须
-       放在这里。键名与 Layout.tsx 的 SIDEBAR_COLLAPSED_STORAGE_KEY 一致。 -->
-    <script>
-      (function () {
-        try {
-          if (localStorage.getItem('sidebar-collapsed') === 'true') {
-            document.documentElement.dataset.navCollapsed = 'true';
-          }
-        } catch (_) {}
-      })();
-    </script>
-
     <!-- DNS 预解析和预连接优化 -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.gstatic.com" />

@@ -38,7 +38,7 @@ React 19 + Vite 6 + TypeScript，构建期直出全站 HTML（SSG），客户端
 | 工具 | `/cover`、`/watermark` | 封面生成器（批量 ZIP 导出）、水印工具（图片不离开浏览器） |
 
 阅读与呈现：目录导航、阅读进度恢复、专注阅读模式、代码高亮与折叠、KaTeX、Mermaid、
-图片预览、深浅色双态（`View Transitions` 过渡）、侧边栏可折叠导航、Service Worker 离线壳、
+图片预览、深浅色双态（`View Transitions` 过渡）、侧边栏图标条（鼠标移入展开为浮层）、Service Worker 离线壳、
 OG/Twitter Card、JSON-LD、RSS、Sitemap、`llms.txt`。动效一律尊重 `prefers-reduced-motion`。
 
 ## 技术栈

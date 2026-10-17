@@ -34,11 +34,12 @@ describe('ContentStatus', () => {
 });
 
 describe('LoadingStatus', () => {
-  it('文案可见并带三步图形', () => {
+  it('文案可见并带三步图形与站名字样', () => {
     render(<LoadingStatus label="正在加载" />);
     expect(screen.getByText('正在加载')).toBeInTheDocument();
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(document.querySelectorAll('.duck-loader-step')).toHaveLength(3);
+    expect(screen.getByText('PLDDUCK')).toBeInTheDocument();
     expect(document.querySelector('.duck-loader-rule')).toBeNull();
   });
 

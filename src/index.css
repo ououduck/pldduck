@@ -15,6 +15,10 @@
   --sidebar-width: 16rem;
   --sidebar-rail-width: 3.75rem;
   --sidebar-active-width: var(--sidebar-rail-width);
+  /* 加载态节拍：脚掌、花体字样、扫线共用同一拍（扫线取两拍），相位锁定才不会
+     出现两套周期互相拍频的割裂感。 */
+  --loader-beat: 1.15s;
+  --loader-ease: cubic-bezier(0.22, 1, 0.36, 1);
   /* 文章标题锚点顶部偏移：唯一数据源。Layout 运行时按实测导航栏高度覆盖
      （专注阅读为 1.5rem）；JS（TOC 跳转/active 判断/hash 深链）与下方
      .post-prose 的 scroll-margin-top 统一读取。6.5rem=104px 为桌面兜底。 */
@@ -297,9 +301,35 @@
   }
 }
 
-/* 加载态：一串依次抬起的小脚掌，呼应站名「跑路的duck」。纯 CSS、零图片依赖，
-   所以慢网下 JS 包还没到也能先动起来；左右交替的倾角与错位让它在走路而不是单纯闪点。 */
+/* 加载态：一串依次抬起的小脚掌 + PLDDUCK 花体字样，呼应站名「跑路的duck」。
+   纯 CSS、零图片依赖，所以慢网下 JS 包还没到也能先动起来；出现时统一淡入上移，
+   路由占位换成页内占位时不会硬切。 */
+.duck-loader-group {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
 .duck-loader {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  animation: duck-loader-in 240ms var(--loader-ease) both;
+}
+
+@keyframes duck-loader-in {
+  from {
+    opacity: 0;
+    translate: 0 0.2rem;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.duck-loader-steps {
   display: inline-flex;
   align-items: flex-start;
   gap: 0.5rem;
@@ -312,17 +342,17 @@
   background: currentColor;
   opacity: 0.22;
   rotate: -16deg;
-  animation: duck-loader-step 1.15s ease-in-out infinite;
+  animation: duck-loader-step var(--loader-beat) var(--loader-ease) infinite;
 }
 
 .duck-loader-step:nth-child(2) {
   rotate: 16deg;
   margin-top: 0.2rem;
-  animation-delay: 0.13s;
+  animation-delay: calc(var(--loader-beat) / 9);
 }
 
 .duck-loader-step:nth-child(3) {
-  animation-delay: 0.26s;
+  animation-delay: calc(var(--loader-beat) / 9 * 2);
 }
 
 @keyframes duck-loader-step {
@@ -341,11 +371,27 @@
   }
 }
 
-/* 页面级加载（路由 chunk 还在下载）：文字下方一条反复扫过的发丝线，把「等待」画成「在前进」 */
+/* 字样与脚掌同拍呼吸（不是另一套周期），字距造成的尾部空隙由负外边距抵掉 */
+.duck-loader-word {
+  animation: duck-loader-word var(--loader-beat) var(--loader-ease) infinite;
+}
+
+@keyframes duck-loader-word {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  45% {
+    opacity: 0.95;
+  }
+}
+
+/* 页面级加载（路由 chunk 还在下载）：字样下方一条反复扫过的发丝线，把「等待」画成「在前进」。
+   宽度跟着 .duck-loader-group 拉伸（= 字样宽度），不写死尺寸。
+   扫线取两拍 —— 每两个脚掌周期回到同一相位，读起来是一套动作而不是两个循环。 */
 .duck-loader-rule {
   position: relative;
   display: block;
-  width: 7.5rem;
   height: 1px;
   overflow: hidden;
 }
@@ -363,7 +409,7 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, transparent, currentColor, transparent);
-  animation: duck-loader-sweep 1.6s ease-in-out infinite;
+  animation: duck-loader-sweep calc(var(--loader-beat) * 2) var(--loader-ease) infinite;
 }
 
 @keyframes duck-loader-sweep {
@@ -491,10 +537,19 @@
     animation-iteration-count: 1 !important;
   }
 
-  /* 加载指示改为静止状态：三点常亮、细线只留底轨，不靠动画表达「在加载」 */
+  /* 加载指示改为静止状态：脚掌与字样常亮、细线只留底轨，不靠动画表达「在加载」 */
+  .duck-loader {
+    animation: none;
+  }
+
   .duck-loader-step {
     animation: none;
     opacity: 0.55;
+  }
+
+  .duck-loader-word {
+    animation: none;
+    opacity: 0.8;
   }
 
   .duck-loader-rule::after {

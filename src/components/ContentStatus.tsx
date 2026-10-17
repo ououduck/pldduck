@@ -54,7 +54,7 @@ export const ContentStatus: React.FC<ContentStatusProps> = ({
 interface LoadingStatusProps {
   label: string;
   className?: string;
-  /** 页面级加载（路由 chunk 下载中）在文字下补一条扫过的发丝线；列表内嵌用默认的行内态。 */
+  /** 页面级加载（路由 chunk 下载中）在字样下补一条扫过的发丝线；列表内嵌用默认的行内态。 */
   withRule?: boolean;
 }
 
@@ -67,12 +67,20 @@ export const LoadingStatus: React.FC<LoadingStatusProps> = ({ label, className, 
       className,
     )}
   >
-    <span className="duck-loader" aria-hidden="true">
-      <i className="duck-loader-step" />
-      <i className="duck-loader-step" />
-      <i className="duck-loader-step" />
+    <span className="duck-loader-group">
+      <span className="duck-loader" aria-hidden="true">
+        <span className="duck-loader-steps">
+          <i className="duck-loader-step" />
+          <i className="duck-loader-step" />
+          <i className="duck-loader-step" />
+        </span>
+        {/* tracking 会在末字后留一个字距的空隙，用等值负外边距抵掉，字样才真正居中 */}
+        <span className="duck-loader-word -mr-[0.32em] select-none font-serif text-[11px] font-bold italic uppercase leading-none tracking-[0.32em]">
+          PLDDUCK
+        </span>
+      </span>
+      {withRule && <i className="duck-loader-rule" aria-hidden="true" />}
     </span>
     <span className="text-sm">{label}</span>
-    {withRule && <i className="duck-loader-rule" aria-hidden="true" />}
   </div>
 );

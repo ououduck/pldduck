@@ -20,11 +20,14 @@
 4. **系统检测**：仅在打开页面（首次水合）时按 `prefers-color-scheme` 解析初始明暗；不设「跟随系统」模式、不监听系统变化实时切换。index.html 的内联首帧脚本必须与上述语义保持一致（显式选择优先，否则按系统偏好回退）。
 5. **阅读模式**：ReadingModeContext 的栈式 Escape 守卫（ESC 栈顶退出）保持。
 6. **加载指示只有一个出口**：页面级与列表级的加载态一律用 `ContentStatus.tsx` 的 `LoadingStatus`
-   （三枚「小鸭掌」+ 文案，`role="status" aria-live="polite"`），路由懒加载占位（`App.tsx` 的
-   `RouteFallback`）也必须走它。图形全在 `index.css` 的 `.duck-loader*` 里，颜色只取 `currentColor`
-   （明暗两处靠外层 `text-zinc-400 dark:text-zinc-500` 继承），**不得引入图片/图标字体**，
-   也不要在别处再写第二套 spinner。
-   **减弱动效靠 CSS 媒体查询**（`@media (prefers-reduced-motion: reduce)` 分支：三点静止常亮、扫线隐藏），
+   （三枚「小鸭掌」+ `PLDDUCK` 花体字样 + 文案，`role="status" aria-live="polite"`），路由懒加载占位
+   （`App.tsx` 的 `RouteFallback`）也必须走它。图形全在 `index.css` 的 `.duck-loader*` 里，颜色只取
+   `currentColor`（明暗两处靠外层 `text-zinc-400 dark:text-zinc-500` 继承），字样用 `font-serif`
+   （Playfair Display）斜体粗体，**不得引入图片/图标字体**，也不要在别处再写第二套 spinner。
+   **所有节拍挂在 `--loader-beat` / `--loader-ease` 上**：脚掌与字样同拍、扫线取两拍，新增片段也走这两个变量
+   —— 各元素相位锁定才不会跳出「两套周期互相拍频」的割裂感；整块出现时统一 `duck-loader-in` 淡入上移。
+   发丝线宽度由 `.duck-loader-group` 拉伸跟随字样宽度，不写死尺寸。
+   **减弱动效靠 CSS 媒体查询**（`@media (prefers-reduced-motion: reduce)` 分支：脚掌与字样静止常亮、扫线隐藏），
    不用 `useReducedMotion()` —— 它是纯样式状态，JS 开关会让组件多一个无谓的订阅。
 
 ## 常见陷阱

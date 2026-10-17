@@ -2226,7 +2226,8 @@ export const Post = () => {
                         </span>
                       </Link>
                     ) : (
-                      <span aria-hidden="true" />
+                      // 占位只在双列时存在：单列下它会让另一侧凭空低一个 gap
+                      <span aria-hidden="true" className="hidden sm:block" />
                     )}
                     {adjacentPosts.next ? (
                       <Link
@@ -2243,11 +2244,11 @@ export const Post = () => {
                         </span>
                         <ArrowRight
                           size={17}
-                          className="mt-0.5 flex-shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-900 dark:text-zinc-700 dark:group-hover:text-zinc-100"
+                          className="mt-0.5 order-first flex-shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-900 sm:order-last dark:text-zinc-700 dark:group-hover:text-zinc-100"
                         />
                       </Link>
                     ) : (
-                      <span aria-hidden="true" />
+                      <span aria-hidden="true" className="hidden sm:block" />
                     )}
                   </div>
 

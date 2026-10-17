@@ -35,7 +35,6 @@ import { useResetTimer } from '@/hooks/useResetTimer';
 import { preloadPage } from '@/utils/preload';
 import { absoluteSiteUrl } from '@/utils/siteUrl';
 import { copyTextToClipboard } from '@/utils/clipboard';
-import { mergeClassName } from '@/utils/classNames';
 
 const COPIED_FEEDBACK_MS = 2000;
 
@@ -107,12 +106,10 @@ const Section: React.FC<SectionProps> = ({ id, eyebrow, title, children }) => (
   </section>
 );
 
-const DestinationTile: React.FC<{ entry: PortalEntry; primary?: boolean }> = ({ entry, primary }) => {
+const DestinationTile: React.FC<{ entry: PortalEntry }> = ({ entry }) => {
   const external = !isInternalPath(entry.url);
-  const className = mergeClassName(
-    'group relative flex h-full flex-col justify-between rounded-surface border border-zinc-300 bg-white p-5 transition-colors hover:border-ink focus-visible:border-ink dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-white dark:focus-visible:border-white',
-    primary && 'lg:col-span-2',
-  );
+  const className =
+    'group relative flex h-full flex-col justify-between rounded-surface border border-zinc-300 bg-white p-5 transition-colors hover:border-ink focus-visible:border-ink dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-white dark:focus-visible:border-white';
   const inner = (
     <>
       <div>
@@ -373,6 +370,33 @@ export const Home = () => {
         </form>
       </section>
 
+      {entries.length > 0 && (
+        <Section id="portal" eyebrow="NAVIGATION" title="站点入口">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {entries.map((entry) => (
+              <DestinationTile key={entry.title} entry={entry} />
+            ))}
+          </div>
+          {links.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {links.map((link) => (
+                <SecondaryLink key={link.title} link={link} />
+              ))}
+            </div>
+          )}
+        </Section>
+      )}
+
+      {projects.length > 0 && (
+        <Section id="projects" eyebrow="OPEN SOURCE" title="开源项目">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((project) => (
+              <ProjectRow key={project.title} project={project} />
+            ))}
+          </div>
+        </Section>
+      )}
+
       {(portal.identity || (portal.stack && portal.stack.length > 0)) && (
         <Section id="about" eyebrow="ABOUT" title="关于本站">
           {portal.identity && (
@@ -392,33 +416,6 @@ export const Home = () => {
               ))}
             </div>
           )}
-        </Section>
-      )}
-
-      {entries.length > 0 && (
-        <Section id="portal" eyebrow="NAVIGATION" title="站点入口">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {entries.map((entry, index) => (
-              <DestinationTile key={entry.title} entry={entry} primary={index === 0} />
-            ))}
-          </div>
-          {links.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {links.map((link) => (
-                <SecondaryLink key={link.title} link={link} />
-              ))}
-            </div>
-          )}
-        </Section>
-      )}
-
-      {projects.length > 0 && (
-        <Section id="projects" eyebrow="OPEN SOURCE" title="开源项目">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {projects.map((project) => (
-              <ProjectRow key={project.title} project={project} />
-            ))}
-          </div>
         </Section>
       )}
 

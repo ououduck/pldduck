@@ -2,11 +2,11 @@
 
 ## 功能概述
 
-GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署到 Cloudflare Worker）、feishu-webhook、comment 三件套、akismet、notify-post-update、check-broken-links、friend-link（友链反链检测 + 人工放行后写文件并触发部署）；PagesCMS 动作按钮（.pages.yml）。
+GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署到 Cloudflare Worker）、feishu-webhook、comment 三件套、akismet、notify-post-update、check-broken-links、friend-link（友链反链检测 + 人工放行后写文件并触发部署）、friend-availability-audit（每日友链失联巡检，双向同步 `unavailable`）；PagesCMS 动作按钮（.pages.yml）。
 
 ## 关键文件
 
-- `.github/workflows/*.yml`（9 个）
+- `.github/workflows/*.yml`（10 个）
 - `.pages.yml`（CMS 集合/字段/动作按钮）
 
 ## 修改规则（必须遵守）
@@ -15,7 +15,8 @@ GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署�
 2. **并发与超时**：所有 workflow 保持 concurrency 策略（串行/取消语义按事件类型合理选择）与 timeout-minutes。
 3. **secrets 最小传递**：只传给需要的步骤；日志不得输出 secrets（GitHub 会脱敏 CI 侧，本地运行无保护）。
 4. **构建同源**：deploy 与 ci 必须共用 `npm run build` 同一流程，禁止双套构建。
-5. **白名单同步**：新增 workflow 必须同步 feishu-webhook.yml 的 workflow_run 白名单。
+5. **白名单同步**：新增 workflow 必须同步 feishu-webhook.yml 的 workflow_run 白名单
+   （`scripts/workflows-config.test.mjs` 会钉住白名单覆盖、`.pages.yml` 指向与本文件计数，漂移即红）。
 6. **版本固定**：第三方 action 用 major tag（checkout@v5 等）；CLI 工具（wrangler）用精确版本（部署可复现）。
 7. **PagesCMS 字段白名单**：.pages.yml 的 siteConfig / portalConfig / commentsConfig fields 必须覆盖各自配置文件实际使用的全部键（缺字段 CMS 保存会丢数据）。
 8. **CI 门禁**：check/test/build 三 job 的职责边界保持（类型+内容校验 / 单测 / 构建+审计）。
@@ -28,11 +29,16 @@ GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署�
     `run:`（或只交给 `node` 脚本处理），**禁止 `${{ }}` 内插进 `run:`**。自触发守卫
     （`sender.type != 'Bot'`、机器人正文标记、`author_association` 白名单）防的是机器人
     自己喂事件给自己 —— 评论重测与 `labeled` 入口都必须带，否则一次运行会级联出自循环。
-12. **写权限必须配「人工确认 + 窄写入面」**：授予 `contents: write` 的 workflow 不得把
-    「自动检测结果」当作写入条件（判定只出证据），写入必须由仓库成员的人工动作（打标签）
-    触发；写入点硬编码目录、文件名不由正文派生、单次只改一个文件、sha 乐观锁、
-    只扩 permissions 的声明范围。job 级 permissions 只能收窄不能扩权，故 workflow 级
-    必须声明到实际最大值（后人「优化」成 read 会静默失去写入能力）。
+12. **写权限必须配「人工闸门 + 窄写入面」，且区分两道写入道**：
+    - **A 道（站点内容写入）**：不得把「自动检测结果」当作写入条件（判定只出证据），写入必须由
+      仓库成员的人工动作（打标签 / CMS 保存）触发。
+    - **B 道（定时数据维护）**：唯一获准的自动写入是 `friend-availability-audit` 改 `friends/*.json`
+      的 `unavailable` **单个键**（2026-10 用户明确授权，含覆盖站长手工勾选；护栏见 ai-rules/friends.md）。
+      自动判定要写数据必须同时具备：只改一个已知键、单轮标记上限、失败复测、全局熔断
+      （判定异常时只报告不写）、受限结果冻结不动、写入点按固定文件名定位。缺任一条即退回 A 道。
+    - 两道共同：文件名不由正文派生、单次只改一个文件、sha 乐观锁、只扩 permissions 的声明范围。
+      job 级 permissions 只能收窄不能扩权，故 workflow 级必须声明到实际最大值
+      （后人「优化」成 read 会静默失去写入能力）。
 
 ## 常见陷阱
 

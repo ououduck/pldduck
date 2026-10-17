@@ -26,6 +26,7 @@ import {
   renderUnreachableComment,
   suggestFilename,
   validateFriendRecord,
+  withUnavailable,
 } from './friend-form-core.mjs';
 import { buildAcceptedHosts } from './friend-backlink.mjs';
 
@@ -338,6 +339,43 @@ describe('buildRecordJson / mergeRecordJson', () => {
   it('unavailable 非 true 的一切取值都写成 false', () => {
     expect(JSON.parse(mergeRecordJson({ unavailable: undefined }, record, 'a')).unavailable).toBe(false);
     expect(JSON.parse(buildRecordJson({ record, filename: 'a', unavailable: 'true' })).unavailable).toBe(false);
+  });
+});
+
+describe('withUnavailable（失联巡检的唯一写入形态）', () => {
+  const original = {
+    name: '阿叶的小站',
+    filename: 'ayeez',
+    description: '记录学习历程',
+    avatar: 'https://qiniu.ayeez.cn/avatar.jpg',
+    url: 'https://blog.ayeez.cn',
+    unavailable: false,
+  };
+
+  it('只翻 unavailable，其余五键与键序原样保留', () => {
+    const json = withUnavailable(original, true);
+    expect(Object.keys(JSON.parse(json))).toEqual(['name', 'filename', 'description', 'avatar', 'url', 'unavailable']);
+    expect(JSON.parse(json)).toEqual({ ...original, unavailable: true });
+    expect(json).toBe(JSON.stringify({ ...original, unavailable: true }, null, 2));
+    expect(json.endsWith('}')).toBe(true);
+  });
+
+  it('不改动传入对象', () => {
+    const before = { ...original };
+    withUnavailable(original, true);
+    expect(original).toEqual(before);
+  });
+
+  it('非 true 一律写成 false（双向同步的恢复方向）', () => {
+    expect(JSON.parse(withUnavailable({ ...original, unavailable: true }, undefined)).unavailable).toBe(false);
+    expect(JSON.parse(withUnavailable(original, 'true')).unavailable).toBe(false);
+  });
+
+  it('缺/坏 filename 时抛错：巡检据此跳过该条，绝不产出会穿越目录的文件', () => {
+    const { filename, ...rest } = original;
+    expect(() => withUnavailable(rest, true)).toThrow(/filename/);
+    expect(() => withUnavailable({ ...original, filename: '../evil' }, true)).toThrow();
+    expect(() => withUnavailable({ ...original, filename: 'a/b' }, true)).toThrow();
   });
 });
 

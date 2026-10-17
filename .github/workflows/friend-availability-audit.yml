@@ -1,0 +1,77 @@
+# friend-availability-audit.yml — 友链失联每日巡检（定时 + 手动）。
+#
+# 友链会随对方站点下线而失效，此前只能靠站长在 Pages CMS 里手工勾选「已失联」。
+# 本 workflow 执行 scripts/friend-availability-check.mjs：
+# - 探测 friends/*.json 每条记录的站点 URL（复用 check-broken-links 的 checkUrl，
+#   4 并发 + 150ms 间隔，受限状态码 401/403/405/406/407/429 判「可达但受限」不标失联）；
+# - 不可达的候选等 30s 复测一次，两次都失败才动开关；
+# - **双向**同步 unavailable（标记失联 + 移回正常），会覆盖站长手工勾选
+#   （依据用户 2026-10 明确授权，护栏与口径见 ai-rules/friends.md 规则 1/5）；
+# - 单轮最多标 3 个；不可达占比 ≥50% 视为探测侧故障，整轮熔断不写；
+# - 有实际提交时 dispatch 一次 deploy.yml（GITHUB_TOKEN 的 push 不触发 workflow）；
+# - 结果推飞书机器人 Webhook（未配置 FEISHU_WEBHOOK_URL 时优雅跳过）。
+#
+# 触发方式：
+#   1. 每天 02:00 UTC（北京时间 10:00）定时执行；
+#   2. Pages CMS 侧边栏「友链失联审核」按钮（见 .pages.yml 的 actions 段）；
+#   3. GitHub Actions 页面手动 Run workflow（payload 最小可用 {"repository":{"ref":"main"}}）。
+#
+# 一次性配置：复用仓库已有的 CLOUDFLARE 之外的两个凭据即可 —— GITHUB_TOKEN 由 Actions
+# 自动提供（本 workflow 在 workflow 级声明 contents/actions 写权限），飞书地址为
+# FEISHU_WEBHOOK_URL。脚本只认 main 分支（dispatch payload 的 repository.ref 与 GITHUB_REF）。
+name: Friend Availability Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: 'Pages CMS payload as JSON，手动触发可用 {"repository":{"ref":"main"}}'
+        required: true
+        type: string
+      dry_run:
+        description: '只报告不写入（先跑一遍看清单，再关开关正式执行）'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '0 2 * * *'
+
+# workflow 级直接声明到实际用到的最大值（job 级不再扩权）：写 friends/*.json 要
+# contents: write，dispatch deploy.yml 要 actions: write。
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  # 定时与手动串行：两轮同时写同一个 friends 文件会互相撞 sha。
+  group: friend-availability-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    # 14 条友链 × (20s 超时 + 复测 30s 等待) + 写入与部署 dispatch，15 分钟足够。
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Audit friend availability
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          # payload 经 env 间接引用：GitHub 表达式在 shell 拼接前展开，
+          # payload 内嵌的 $(...)/反引号会以代码执行（注入面），故不能内插进 run:。
+          DISPATCH_PAYLOAD: ${{ inputs.payload }}
+          AUDIT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=()
+          if [ "$AUDIT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          node scripts/friend-availability-check.mjs "${args[@]}"

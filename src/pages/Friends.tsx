@@ -657,7 +657,7 @@ export const Friends = () => {
               </span>
             </span>
             <p className="mt-1 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-              以下友链暂时无法正常访问，恢复上线后请在 Pages CMS 取消勾选「已失联」即可回到上方列表
+              以下友链暂时无法正常访问，站点恢复后会自动移回上方列表
             </p>
           </div>
           <motion.div

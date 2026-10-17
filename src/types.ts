@@ -51,8 +51,9 @@ export interface Friend {
   description: string;
   avatar: string;
   url: string;
-  /** 已失联标记：在 Pages CMS「友链」集合中手动维护；未配置（缺失/false）默认视为正常，
-   *  true 时在友链页归入「已失联的博客」板块。 */
+  /** 已失联标记：由友链失联巡检（.github/workflows/friend-availability-audit.yml）每日双向同步，
+   *  Pages CMS 里的手工勾选会被下一轮巡检覆写；未配置（缺失/false）默认视为正常，
+   *  true 时在友链页归入「已失联的博客」板块。前端只读。 */
   unavailable?: boolean;
 }
 

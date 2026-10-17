@@ -367,6 +367,29 @@ export const mergeRecordJson = (original, record, filename) =>
     unavailable: original?.unavailable === true,
   });
 
+/**
+ * 只翻 `unavailable` 一个键，展示字段原样透传（失联巡检专用）。
+ *
+ * 不删键、不改键序：现有 14 个文件都带 `unavailable`，生成器把缺失当 false
+ * （generate-site-data.mjs），但 Pages CMS 的表单模板按键存在与否渲染，
+ * 少写一个键就是一次无谓的 diff。值已一致的比较交给调用方做，本函数总是重新序列化。
+ * @param {object} original 现有 JSON 解析结果
+ * @param {boolean} unavailable
+ * @returns {string}
+ */
+export const withUnavailable = (original, unavailable) => {
+  // 不能只靠 assertFriendlyPath：字符串 "undefined" 恰好是合法文件名，
+  // 缺键的记录会静默写出 friends/undefined.json。
+  if (typeof original?.filename !== 'string' || original.filename === '') {
+    throw new Error('记录缺 filename 键，拒绝序列化');
+  }
+  return buildRecordJson({
+    record: original,
+    filename: original.filename,
+    unavailable: unavailable === true,
+  });
+};
+
 /* ------------------------------------------------------------------ */
 /* Issue 评论渲染                                                       */
 /* ------------------------------------------------------------------ */

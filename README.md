@@ -100,7 +100,7 @@ pldduck/
 │   └── App.tsx / index.tsx    # 路由与渲染入口
 ├── ai-rules/                  # 各功能模块的约束清单（改动前必读）
 ├── .pages.yml                 # PagesCMS 配置（后台编辑内容）
-└── .github/workflows/         # 部署、评论审核、友链检测、更新通知、外链扫描
+└── .github/workflows/         # 部署、评论审核、友链检测与失联巡检、更新通知、外链扫描
 ```
 
 `generated/`、`public/feed.xml` 与 Sitemap 均为构建产物，不应手工编辑。
@@ -151,6 +151,11 @@ pldduck/
    并自动触发部署；按「拒绝」标签则回复固定文案并关闭 Issue。
 5. 已收录条目如需修改名称、地址、简介或头像，请直接邮件联系 <pldduck@outlook.com>（不走 Issue 流程）。
 6. 条目生效需要等待那次部署跑完，提交后不会立即出现在友链页。
+
+收录之后由机器人持续巡检：每天 02:00 UTC（北京时间 10:00）探测各站点可达性，两次都打不开的自动
+归入「已失联的博客」，恢复访问的自动移回上方列表；被反爬/防盗链拦下（401/403/429 等）只记录不动开关。
+单次最多标记 3 个，若过半站点同时判为不可达则视为本站出口故障、整轮只报告不改动。也可在 Pages CMS
+侧边栏点「友链失联审核」立即执行一次（先在 Actions 里勾 `dry_run` 看清单更稳）。
 
 友链数据以「一站一文件」的形式存放在 [`friends/`](https://github.com/ououduck/pldduck/tree/main/friends)，
 可在 GitHub 上直接查阅。

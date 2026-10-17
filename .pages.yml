@@ -100,7 +100,7 @@ content:
       - { name: url, label: 站点地址, type: string, required: true }
       - name: unavailable
         label: 已失联
-        description: 手动勾选标记该友链暂时无法访问（归入「已失联的博客」板块）；不勾选（默认）视为正常访问
+        description: 勾选后该友链归入「已失联的博客」板块。每日失联巡检会按探测结果双向覆写此开关（两次探测都打不开则勾上、恢复访问则取消），手工勾选会在下一轮巡检时被覆盖
         type: boolean
 
   # ── 评论关键词配置（单文件，CMS 中直接编辑，保存即推送到仓库生效）──
@@ -299,6 +299,16 @@ actions:
       title: 确认扫描文章外链？
       message: 将逐个请求 posts/ 中全部外链（Markdown 链接 + HTML 链接，排除图片与站内锚点）：发现的失效链接会按文章分组汇总（带行号与 HTTP 状态）推送到 飞书机器人 Webhook，不修改仓库、不触发部署。
       button: 开始扫描
+
+  # ── 友链失联审核：探测 friends/*.json 全部站点，双向同步「已失联」开关并触发一次部署 ──
+  - name: friend-availability-audit
+    label: 友链失联审核
+    workflow: friend-availability-audit.yml
+    ref: current
+    confirm:
+      title: 确认审核友链失联状态？
+      message: 将逐个请求 friends/ 中每个友链的站点地址（不可达的等 30 秒复测一次），并按结论**覆写「已失联」开关**（含取消站长手工勾选）：有改动时提交 friends/*.json 并触发一次部署。单轮最多标记 3 个，不可达过半自动熔断只报告。
+      button: 开始审核
 
   # ── 飞书机器人 Webhook 通知测试：验证 FEISHU_WEBHOOK_URL 配置，并向飞书机器人 Webhook 发送测试消息 ──
   - name: test-feishu-webhook

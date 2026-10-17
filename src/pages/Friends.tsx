@@ -36,8 +36,8 @@ interface FriendCardProps {
 
 /**
  * 友链卡片：正常友链与已失联友链共用同一布局，保证两板块视觉一致。
- * 已失联状态由站长在 Pages CMS「友链」集合中手动勾选「已失联」，在 friends/*.json
- * 中写入 `"unavailable": true` 标记；未配置（缺失/false）默认视为正常。
+ * 已失联状态由友链失联巡检（friend-availability-audit.yml）每日双向同步进 friends/*.json
+ * 的 `"unavailable": true`；Pages CMS 里的手工勾选会被下一轮巡检覆写。未配置（缺失/false）视为正常。
  */
 const FriendCard = ({ friend, unavailable = false }: FriendCardProps) => {
   return (
@@ -389,7 +389,7 @@ export const Friends = () => {
     });
   }, [friendDomains, friends, searchQuery]);
 
-  // 已失联友链（friend.unavailable === true，由站长在 Pages CMS 手动标记）与正常友链分开渲染：
+  // 已失联友链（friend.unavailable === true，由失联巡检写入）与正常友链分开渲染：
   // 正常友链留在主列表，失联友链全部归入下方「已失联的博客」折叠板块。
   const activeFriends = useMemo(
     () => filteredFriends.filter((friend) => friend.unavailable !== true),
@@ -635,8 +635,8 @@ export const Friends = () => {
         )}
       </div>
 
-      {/* 已失联的博客：失联状态由站长在 Pages CMS「友链」集合中手动标记（勾选「已失联」），
-          随 friends/*.json 更新并在此处体现。 */}
+      {/* 已失联的博客：失联状态由友链失联巡检每日写入 friends/*.json（探测不可达即置
+          unavailable: true，恢复后自动移回上方板块），Pages CMS 的手动勾选会被覆写。 */}
       <div className="mb-3 border-y border-zinc-200 dark:border-zinc-800">
         <button
           type="button"

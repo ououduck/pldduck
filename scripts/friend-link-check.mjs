@@ -21,7 +21,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseEnvNumber } from './lib/env.mjs';
 import { sendFeishuWebhookMessage } from './lib/feishu-webhook.mjs';
 import {
@@ -64,6 +64,7 @@ import {
   validateFriendRecord,
 } from './lib/friend-form-core.mjs';
 import { loadSiteConfig } from './site-config-loader.mjs';
+import { createRepoClient } from './lib/friend-repo-io.mjs';
 
 const logger = createActionLogger('friend-link');
 installGlobalErrorHandlers(logger);
@@ -82,9 +83,6 @@ const MAX_RESPONSE_BYTES = parseEnvNumber(process.env.FRIEND_MAX_RESPONSE_BYTES,
 const MAX_REDIRECTS = parseEnvNumber(process.env.FRIEND_MAX_REDIRECTS, 5);
 const REQUEST_RETRIES = 1;
 
-const API_BASE = 'https://api.github.com';
-/** 写入目标分支固定 main：机器人不接受「往别的分支写」。 */
-const TARGET_BRANCH = 'main';
 const DEPLOY_WORKFLOW = 'deploy.yml';
 
 const LABELS = Object.freeze({
@@ -132,41 +130,11 @@ const REPOSITORY = process.env.GITHUB_REPOSITORY || '';
 const [OWNER, REPO] = REPOSITORY.split('/');
 
 /**
- * 调 GitHub REST。错误信息里只保留状态与 API 文案，不带 token、不带响应体全文。
- * @returns {Promise<any>}
+ * GitHub REST 客户端（读文件/写文件/dispatch 的实现在 lib/friend-repo-io，与失联巡检共用）。
+ * 错误信息里只保留状态与 API 文案，不带 token、不带响应体全文。
  */
-const githubRequest = async (method, endpoint, { body, headers = {}, allow404 = false } = {}) => {
-  if (!GITHUB_TOKEN) throw new Error('GITHUB_TOKEN 未设置，无法调用 GitHub API');
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    method,
-    headers: {
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-      Authorization: `Bearer ${GITHUB_TOKEN}`,
-      ...(body ? { 'Content-Type': 'application/json' } : {}),
-      ...headers,
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-
-  if (response.status === 404 && allow404) {
-    await response.body?.cancel().catch(() => {});
-    return null;
-  }
-
-  const text = await response.text();
-  if (!response.ok) {
-    const error = new Error(`GitHub API ${method} ${endpoint} → HTTP ${response.status}`);
-    error.status = response.status;
-    try {
-      error.apiMessage = String(JSON.parse(text).message || '').slice(0, 200);
-    } catch {
-      error.apiMessage = text.slice(0, 200);
-    }
-    throw error;
-  }
-  return text ? JSON.parse(text) : null;
-};
+const repoClient = createRepoClient({ token: GITHUB_TOKEN, owner: OWNER, repo: REPO, logger });
+const githubRequest = repoClient.request;
 
 const issueEndpoint = (number, suffix = '') => `/repos/${OWNER}/${REPO}/issues/${number}${suffix}`;
 
@@ -489,60 +457,24 @@ const runDetect = async (issue) => {
 /* B. 执行阶段：friend-approved 是唯一写入路径                          */
 /* ------------------------------------------------------------------ */
 
-/** 读取目标文件现有内容与 blob sha（不存在时返回 null）。 */
-const readRepoFile = async (filePath) => {
-  const data = await githubRequest('GET', `/repos/${OWNER}/${REPO}/contents/${filePath}?ref=${TARGET_BRANCH}`, {
-    allow404: true,
-  });
-  if (!data || Array.isArray(data)) return null;
-  const content = Buffer.from(String(data.content || ''), 'base64').toString('utf8');
-  return { sha: data.sha, content };
-};
+/* 读文件 / 写文件 / dispatch 的实现在 lib/friend-repo-io（与失联巡检共用），这里只留本路径的判据。 */
+const readRepoFile = repoClient.readRepoFile;
 
 /**
  * 写入单个文件（Contents API + sha 乐观锁）。冲突时重取 sha 重试一次，
  * 且只在「冲突文件仍是同一条友链（归一化 URL 相同）」时重试 —— 否则绝不覆盖别人。
  */
-const writeRepoFile = async ({ filePath, content, message, sha, canonicalUrl }) => {
-  let currentSha = sha;
-
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
-    const payload = {
-      message,
-      content: Buffer.from(content, 'utf8').toString('base64'),
-      branch: TARGET_BRANCH,
-      ...(currentSha ? { sha: currentSha } : {}),
-    };
-    try {
-      return await githubRequest('PUT', `/repos/${OWNER}/${REPO}/contents/${filePath}`, { body: payload });
-    } catch (error) {
-      const conflict = error.status === 409 || /sha was supposed to be/i.test(error.apiMessage || '');
-      if (!conflict || attempt === 2) throw error;
-      logger.warn('写入冲突（sha 过期），重取 sha 后重试一次', { filePath });
-      const fresh = await readRepoFile(filePath);
-      if (!fresh) throw error;
-      let sameRecord = false;
-      try {
-        sameRecord = normalizeFriendUrl(JSON.parse(fresh.content).url) === canonicalUrl;
-      } catch {
-        sameRecord = false;
-      }
-      if (!sameRecord) throw new Error('目标文件已被他人改动成另一条记录，为避免覆盖请人工处理');
-      currentSha = fresh.sha;
-    }
-  }
-  throw new Error('未到达（写入重试循环提前返回）');
-};
+const writeRepoFile = ({ filePath, content, message, sha, canonicalUrl }) =>
+  repoClient.writeRepoFile({
+    filePath,
+    content,
+    message,
+    sha,
+    assertSame: (record) => normalizeFriendUrl(record.url) === canonicalUrl,
+  });
 
 /** 触发部署（deploy.yml 只允许 main，payload 按其守卫形状给）。 */
-const dispatchDeploy = async () => {
-  await githubRequest('POST', `/repos/${OWNER}/${REPO}/actions/workflows/${DEPLOY_WORKFLOW}/dispatches`, {
-    body: {
-      ref: TARGET_BRANCH,
-      inputs: { payload: JSON.stringify({ repository: { ref: TARGET_BRANCH } }) },
-    },
-  });
-};
+const dispatchDeploy = () => repoClient.dispatchWorkflow(DEPLOY_WORKFLOW);
 
 const runApply = async (issue) => {
   const { validated, filename, blocked, comment } = resolveApplication(issue);
@@ -914,4 +846,10 @@ const main = async () => {
   else if (route.action === 'reject') await runReject(issue);
 };
 
-await main();
+// 只有作为主模块直接运行时才执行：被测试或其他脚本 import 时不得有任何副作用
+// （顶层会读事件载荷并发真实请求，误跑一次就是往 Issue 里写评论、打标签）。
+const isMainModule = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMainModule) {
+  await main();
+}

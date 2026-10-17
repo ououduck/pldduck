@@ -151,7 +151,8 @@ export interface SiteConfig {
   friendsPage: SiteFriendsPage;
   /** 文章内容仓库（"在 GitHub 上编辑此文"/查看源文件入口使用）。 */
   content?: SiteContent;
-  beian: SiteBeian;
+  /** 备案号。Pages CMS 可整块留空，未配置时页脚/侧栏不渲染备案入口。 */
+  beian?: SiteBeian;
   /** 首页引导区（站点入口/开源项目/自我介绍）内容，来自 config/portal.config.json。 */
   portal?: SitePortal;
 }

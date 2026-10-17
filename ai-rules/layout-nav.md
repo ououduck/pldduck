@@ -29,6 +29,8 @@
 9. **SSG 确定性**：主题/网络状态先渲染默认态再在 effect 中纠正；侧栏展开态是纯 CSS 状态（不读存储、无需引导脚本）；getServiceWorkerState 只读模块变量。
 10. **抽屉动画**：面板只做位移（`transition-property: transform`，静置态 `translate3d(-100%,0,0)` 移出视口），遮罩单独淡入；动画期间不得改变导航行的透明度/可见性（`disabled` 只保留 `cursor-not-allowed`，交互保护由 `disabled` 属性、`[data-locked]` 的 `pointer-events:none` 与 `requestCloseMobileNav` 的动画期守卫三层承担）——行内容在起手/收尾瞬间跳变会读成「二次跳动」。退场曲线用 `[data-state='closing']` 覆盖 timing-function，**时长始终走 `--mobile-nav-duration`**，与 `MOBILE_NAV_ANIMATION_DURATION_MS` 这个唯一同步点不得拆开。
 
+11. **备案入口可缺省**：`siteConfig.beian` 是可选块（Pages CMS 把整块留空时直接不写这个键），`Layout` 页脚与侧栏页脚都必须条件渲染备案链接，不得裸读 `siteConfig.beian.url` —— 2026-10 站长在 CMS 里删掉备案块，裸读让整站渲染崩掉、`beian: SiteBeian` 的必填声明也让 typecheck 红了。要显示备案就在 CMS 里把块填回来，配置回来了链接就回来。
+
 ## 常见陷阱
 
 - 修改 Layout 的动画时序会影响 Layout.test（真实计时器等待）；

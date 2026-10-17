@@ -231,7 +231,8 @@ export const SiteSidebar: React.FC<{ pathname: string }> = ({ pathname }) => (
       className="site-sidebar-inner flex flex-col border-r border-zinc-200/80 bg-paper no-scrollbar dark:border-zinc-800/80 dark:bg-void"
       style={{
         paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))',
-        paddingRight: '0.75rem',
+        // 右边框占掉 1px，扣掉它才能让行高亮块与图标同轴落在 rail 中心线上
+        paddingRight: 'calc(0.5rem - 1px)',
         paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
         paddingLeft: 'calc(0.5rem + env(safe-area-inset-left, 0px))',
       }}

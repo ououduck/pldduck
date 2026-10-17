@@ -360,7 +360,9 @@ export const Friends = () => {
     name: siteConfig.title,
     description: siteConfig.description,
     url: siteConfig.url,
-    avatar: siteConfig.logo,
+    // 展示位与「LOGO：」复制文本共用同一个值，必须是绝对地址 —— 申请人要把它挂到自己站上，
+    // 站内相对路径（/logo.png）对他们没有任何意义。
+    avatar: absoluteSiteUrl(siteConfig.logo, siteConfig.url),
   };
 
   // 域名解析结果预计算（new URL 解析与 hosts 剥离）：搜索过滤每次击键不再对

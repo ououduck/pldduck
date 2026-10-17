@@ -33,7 +33,7 @@ import { Seo, buildSiteSchemas } from '@/components/Seo';
 import { IssueSubscriptionCard } from '@/components/IssueSubscriptionCard';
 import { useResetTimer } from '@/hooks/useResetTimer';
 import { preloadPage } from '@/utils/preload';
-import { absoluteSiteUrl } from '@/utils/siteUrl';
+import { absoluteSiteUrl, assetUrl } from '@/utils/siteUrl';
 import { copyTextToClipboard } from '@/utils/clipboard';
 
 const COPIED_FEEDBACK_MS = 2000;
@@ -216,9 +216,6 @@ export const Home = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [term, setTerm] = useState('');
-  // 头像源站（q1.qlogo.cn）不可达时回退到 ui-avatars 生成的首字母头像；
-  // 仅在 onError 事件中切换，渲染期不访问客户端 API。
-  const [avatarFailed, setAvatarFailed] = useState(false);
   const [qqCopied, setQqCopied] = useState(false);
   const { schedule: scheduleCopiedReset } = useResetTimer();
 
@@ -254,10 +251,6 @@ export const Home = () => {
     setQqCopied(true);
     scheduleCopiedReset(() => setQqCopied(false), COPIED_FEEDBACK_MS);
   };
-
-  const avatarUrl = avatarFailed
-    ? `https://ui-avatars.com/api/?name=${encodeURIComponent(siteConfig.author.name)}&background=1c1917&color=f2f0e9&bold=true`
-    : siteConfig.author.avatar;
 
   const entries = portal.entries ?? [];
   const links = portal.links ?? [];
@@ -332,12 +325,11 @@ export const Home = () => {
           <div className="flex items-center gap-4 md:flex-col md:items-end md:gap-3">
             <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full border border-zinc-300 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 sm:h-32 sm:w-32">
               <img
-                src={avatarUrl}
+                src={assetUrl(siteConfig.author.avatar)}
                 alt={siteConfig.author.name}
                 width={128}
                 height={128}
                 decoding="async"
-                onError={() => setAvatarFailed(true)}
                 className="h-full w-full object-cover"
               />
             </div>

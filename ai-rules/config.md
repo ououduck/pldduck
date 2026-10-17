@@ -22,10 +22,15 @@
 4. **构建配置**：修改 tsconfig/vite/tailwind 需全量回归（typecheck + 构建 + 测试）；启用的严格项不得擅自关闭。
 5. **路径别名**：`@/*`（src）、`@config/*`（config）语义保持，新增目录不得引入新别名。
 6. **依赖升级**：安全相关升级（如 react-router 修复 CVE）优先；major 升级需全量验证并评估迁移成本。
-7. **站标双轨**：`siteConfig.logo` / `logoSmall` 只服务**站内展示位**（导航、卡片、JSON-LD
-   `publisher.logo`），可以是远程 URL；凡进 canvas 绘制或构建期生成图片的场合（OG 卡片、
-   封面生成器默认图标）必须用 `public/` 下的本地底图（`logo.png` / `logo-96.png`）。
-   远程图会把 canvas 变成 tainted，`toDataURL()` 直接抛 SecurityError。
+7. **站标双轨**：站内展示位（侧栏/顶栏站标、首页与说说作者头像、友链页本站信息、JSON-LD
+   `publisher.logo`）默认用 `public/` 下的本地底图 —— `logo` = `/logo.png`（600×600），
+   `logoSmall` 与 `author.avatar` = `/logo-96.png`；**不得再回到 QQ 图床直链**（`q1.qlogo.cn`
+   限流或需境外网络时页头直接空一块，还多引一个第三方域名）。
+   配置值允许是站内相对路径，但消费方式有讲究：渲染处必须过 `assetUrl()`（补 base path），
+   进 JSON-LD 的由 `toAbsoluteUrl` / `absoluteSiteUrl` 补全，友链页**给申请人复制的 LOGO 文本
+   必须是绝对地址**（相对路径对对方站点毫无意义）。
+   凡进 canvas 绘制或构建期生成图片的场合（OG 卡片、封面生成器默认图标）只能用 `public/` 的本地
+   底图（`logo.png` / `logo-96.png`）—— 远程图会把 canvas 变成 tainted，`toDataURL()` 直接抛 SecurityError。
 8. **标题拼接**：`siteConfig.title` 是全站标题后缀（「页面名 | 站点名」，分隔符固定为竖线）；
    只有首页用 `siteConfig.seoHomeTitle` 逐字覆盖，不参与拼接。JSON-LD 的 `name` 与 SSG
    直出的 `<title>` 必须走同一格式（`scripts/ssg.mjs` / 各页 structuredData）。改站点名或分隔符

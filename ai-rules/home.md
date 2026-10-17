@@ -33,11 +33,11 @@
    首页额外输出 `ProfilePage` schema（站主即站点，原 `/about` 的实体随页面合并）：显式传 `structuredData` 会**替换**掉 `Seo` 的默认站点 schema，必须 `[...buildSiteSchemas(...), profilePageSchema]` 一并带上 WebSite + Organization；`buildSiteSchemas` 的入参要与 `Seo` 对首页选的文案（`seoHomeDescription` 优先）保持一致。`config/routes.mjs` 的 `/` 条目不得加 `seo.schemaType`，否则 SSG 会再注入一份，`seo-audit` 报「@type 重复」。
 7. **无障碍**：每个 `Section` 用 `aria-labelledby` 指向自身 `h2`；搜索表单 `role="search"` + `<label className="sr-only">`；复制成功通过 `role="status"` 播报；头像保留 `alt`。
 8. **动画克制**：不使用 framer-motion 入场/视差动画（首帧必须是最终可见状态，保证 LCP 与无 JS 可读）；只允许 CSS `motion-safe:` 级别的小动效。
-9. **性能**：组件内 state 仅限局部交互（搜索输入框、复制反馈、头像回退），不得引发整页重渲染。
+9. **性能**：组件内 state 仅限局部交互（搜索输入框、复制反馈），不得引发整页重渲染。
 
 ## 常见陷阱
 
-- 头像（`q1.qlogo.cn`）不可达时在 `onError` 里切到 ui-avatars 兜底：只能在事件回调中改状态，不得在渲染期探测。
+- 作者头像取自 `siteConfig.author.avatar`（现为站内本地 `/logo-96.png`），渲染必须过 `assetUrl()`（子路径部署下裸相对路径会 404）。曾经的 ui-avatars 首字母兜底已删除：那是第三方域名，大陆命中不了，而站内资源只有构建缺件才会失败 —— 别为它再加一个 `onError` 状态。
 - 首屏最大的封面图 preload 属于 `/posts`（`scripts/ssg.mjs` 里按 `page.path === 'posts'` 注入）：搬到首页会让 Chrome 报「preloaded 但未使用」，因为首页已经没有文章卡片了。
 - 页脚由 `Layout` 统一渲染，首页不得重复输出。
 

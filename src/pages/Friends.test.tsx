@@ -103,7 +103,7 @@ describe('Friends', () => {
     expect(screen.getByText('示例博客')).toBeInTheDocument();
   });
 
-  it('申请/修改友链入口跳转外部表单', async () => {
+  it('申请/修改友链入口跳转 GitHub Issue 表单', async () => {
     const user = userEvent.setup();
     renderFriends();
     await screen.findByText('示例博客');
@@ -111,9 +111,15 @@ describe('Friends', () => {
     await user.click(screen.getByRole('button', { name: /申请\/修改友链/ }));
     expect(screen.getByText('本站友链信息')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /我已添加/ })).not.toBeInTheDocument();
-    const applyLink = await screen.findByRole('link', { name: /申请或修改友链/ });
+    const applyLink = await screen.findByRole('link', { name: /通过 GitHub 申请友链/ });
     expect(applyLink).toHaveAttribute('href', siteConfig.friendsPage.applyUrl);
+    // 入口必须是 GitHub Issue 模板：改回 Tally 等外部表单时这里先变红。
+    expect(applyLink.getAttribute('href')).toMatch(/^https:\/\/github\.com\//);
+    expect(siteConfig.friendsPage.applyUrl).toContain('template=friend-link-application.yml');
     expect(applyLink).toHaveAttribute('target', '_blank');
     expect(applyLink).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    // 友链目录次级链接（此前闲置的 repoFriendsUrl）。
+    const directoryLink = screen.getByRole('link', { name: '查看友链目录' });
+    expect(directoryLink).toHaveAttribute('href', siteConfig.friendsPage.repoFriendsUrl);
   });
 });

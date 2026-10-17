@@ -1,5 +1,5 @@
 /**
- * 友链页：展示友情链接（失联分组）与友链申请/修改入口（外部表单跳转）。
+ * 友链页：展示友情链接（失联分组）与友链申请/修改入口（跳转 GitHub Issue 表单）。
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -245,7 +245,7 @@ export const Friends = () => {
         </p>
         <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-5xl">友情链接</h1>
         <p className="mt-4 max-w-2xl text-zinc-600 dark:text-zinc-400">
-          这里汇集了一些优秀的技术博客和有趣的网站。如果你也想交换友链，可以通过在线表单提交申请。
+          这里汇集了一些优秀的技术博客和有趣的网站。如果你也想交换友链，可以通过 GitHub Issue 提交申请。
         </p>
         <p className="mt-4 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
           <Sparkles size={14} />
@@ -264,7 +264,7 @@ export const Friends = () => {
           <div className="min-w-0 flex-1">
             <span className="text-base font-semibold text-zinc-950 dark:text-white">申请/修改友链</span>
             <p className="mt-1 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-              查看本站友链信息，并前往在线表单申请或修改友链
+              查看本站友链信息，并前往 GitHub 提交申请或修改
             </p>
           </div>
           <motion.div
@@ -303,7 +303,10 @@ export const Friends = () => {
                           本站友链信息
                         </h2>
                         <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                          请将以下信息添加到你的友链页，随后可直接申请或修改友链。
+                          请将以下信息添加到你的友链页（要服务端直出的
+                          <code className="mx-1 font-mono text-xs">&lt;a href&gt;</code>
+                          ，JS 渲染的挂件检测不到），随后通过 GitHub Issue
+                          提交申请。机器人会自动检测反链作为审核参考，但是否收录由站长确认。
                         </p>
                       </div>
                       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
@@ -326,15 +329,25 @@ export const Friends = () => {
                           </div>
                         </div>
                       </div>
-                      <a
-                        href={siteConfig.friendsPage.applyUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="editorial-button-primary mt-5 inline-flex items-center gap-2"
-                      >
-                        申请或修改友链
-                        <ArrowRight size={16} />
-                      </a>
+                      <div className="mt-5 flex flex-wrap items-center gap-4">
+                        <a
+                          href={siteConfig.friendsPage.applyUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="editorial-button-primary inline-flex items-center gap-2"
+                        >
+                          通过 GitHub 申请友链
+                          <ArrowRight size={16} />
+                        </a>
+                        <a
+                          href={siteConfig.friendsPage.repoFriendsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-zinc-500 underline-offset-4 hover:underline dark:text-zinc-400"
+                        >
+                          查看友链目录
+                        </a>
+                      </div>
                     </Surface>
                   </motion.div>
                 </div>

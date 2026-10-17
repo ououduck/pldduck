@@ -110,7 +110,7 @@ export interface SiteFriendsPage {
   repoUrl: string;
   repoFriendsUrl: string;
   repoFriendsDir: string;
-  /** 友链申请/修改外部表单地址（Tally）。 */
+  /** 友链申请/修改入口：GitHub Issue 表单（template=friend-link-application.yml）。 */
   applyUrl: string;
 }
 

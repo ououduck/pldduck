@@ -174,7 +174,7 @@ content:
           - { name: repoUrl, label: 仓库地址, type: string }
           - { name: repoFriendsUrl, label: 友链目录地址, type: string }
           - { name: repoFriendsDir, label: 友链目录名, type: string }
-          - { name: applyUrl, label: 友链申请表单地址, type: string }
+          - { name: applyUrl, label: 友链申请 Issue 地址, type: string }
       - name: content
         label: 文章内容仓库（"在 GitHub 上编辑此文"入口使用）
         type: object

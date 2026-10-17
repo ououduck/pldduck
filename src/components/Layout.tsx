@@ -45,6 +45,33 @@ const SWIPE_OPEN_FLICK_VELOCITY_PX_PER_MS = 0.12;
 /** 横向位移需明显压过纵向位移才认作右滑，避免把纵向滚动误判成开菜单。 */
 const SWIPE_OPEN_AXIS_RATIO = 1.6;
 
+/**
+ * 自己认领了横向手势的 touch-action 取值：`none` 表示元素要独占全部手势（图片查看器、
+ * Mermaid 平移、封面画布），`pan-x`/`pan-left`/`pan-right` 表示浏览器该去横向滚动（代码块）。
+ * `pan-y`/`manipulation`/`auto` 不含横向语义，仍可呼出抽屉。`pinch-zoom` 只关缩放，不算。
+ */
+const HORIZONTAL_TOUCH_ACTIONS = new Set(['none', 'pan-x', 'pan-left', 'pan-right']);
+
+const claimsHorizontalTouchAction = (touchAction: string) =>
+  touchAction.split(/\s+/).some((token) => HORIZONTAL_TOUCH_ACTIONS.has(token));
+
+/**
+ * 拖选文字与右滑共用同一根手指轨迹。记录按下时的选择状态，抬手时若期间产生了新的非空
+ * 选择，判定意图是「选文字」而非「开菜单」。
+ */
+interface SelectionSnapshot {
+  collapsed: boolean;
+  text: string;
+}
+
+const snapshotSelection = (): SelectionSnapshot => {
+  const selection = window.getSelection();
+  return {
+    collapsed: !selection || selection.isCollapsed,
+    text: selection?.toString() ?? '',
+  };
+};
+
 interface NavbarProps {
   onSearchNavigate: () => void;
 }
@@ -226,14 +253,20 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
     let startY = 0;
     let startTime = 0;
     let tracking = false;
+    let multiTouch = false;
+    let startSelection: SelectionSnapshot = { collapsed: true, text: '' };
 
-    // 起点落在横向可滚动元素（代码块、横向卡片列表…）上时让位给原生横向滚动，
-    // 否则用户想横滚内容却被弹出菜单。
-    const isOverHorizontalScroller = (target: EventTarget | null) => {
+    // 起点落在「自己认领了横向手势」的元素上时让位给它，否则用户想横滚代码 / 平移画布
+    // 却被弹出菜单。两种认领方式都要查：overflow-x 滚动条只在真的溢出时生效，
+    // touch-action 则连没溢出的代码块也一并覆盖。
+    const claimsHorizontalGesture = (target: EventTarget | null) => {
       let node = target instanceof Element ? target : null;
       while (node && node !== document.body) {
-        const { overflowX } = window.getComputedStyle(node);
-        if ((overflowX === 'auto' || overflowX === 'scroll') && node.scrollWidth > node.clientWidth + 1) {
+        const style = window.getComputedStyle(node);
+        if (claimsHorizontalTouchAction(style.touchAction)) {
+          return true;
+        }
+        if ((style.overflowX === 'auto' || style.overflowX === 'scroll') && node.scrollWidth > node.clientWidth + 1) {
           return true;
         }
         node = node.parentElement;
@@ -244,11 +277,15 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
     const handleSwipeTouchStart = (event: TouchEvent) => {
       const touch = event.touches[0];
       const target = touch?.target;
+      multiTouch = false;
       tracking = Boolean(
         touch &&
+        // 双指是捏合缩放，第一根手指也会横移几百像素，不当作右滑。
+        event.touches.length === 1 &&
         window.innerWidth < MOBILE_NAV_MAX_VIEWPORT_PX &&
         !hasOpenOverlay() &&
-        !isOverHorizontalScroller(target) &&
+        !isEditableTarget(target) &&
+        !claimsHorizontalGesture(target) &&
         !document.getElementById(MOBILE_NAV_MENU_BUTTON_ID)?.contains(target instanceof Node ? target : null),
       );
 
@@ -259,6 +296,13 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
       startX = touch.clientX;
       startY = touch.clientY;
       startTime = Date.now();
+      startSelection = snapshotSelection();
+    };
+
+    const handleSwipeTouchMove = (event: TouchEvent) => {
+      if (event.touches.length > 1) {
+        multiTouch = true;
+      }
     };
 
     const handleSwipeTouchEnd = (event: TouchEvent) => {
@@ -268,7 +312,14 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
       tracking = false;
 
       const touch = event.changedTouches[0];
-      if (!touch) {
+      if (!touch || multiTouch) {
+        return;
+      }
+
+      // 这次拖拽改变了选区内容 → 用户选的是文字，不是开菜单。选区没变（比如沿用上次
+      // 的选中结果滑一下）不算，否则正文里永远呼不出抽屉。
+      const endSelection = snapshotSelection();
+      if (!endSelection.collapsed && endSelection.text !== startSelection.text) {
         return;
       }
 
@@ -293,11 +344,13 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
     };
 
     window.addEventListener('touchstart', handleSwipeTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleSwipeTouchMove, { passive: true });
     window.addEventListener('touchend', handleSwipeTouchEnd, { passive: true });
     window.addEventListener('touchcancel', handleSwipeTouchCancel, { passive: true });
 
     return () => {
       window.removeEventListener('touchstart', handleSwipeTouchStart);
+      window.removeEventListener('touchmove', handleSwipeTouchMove);
       window.removeEventListener('touchend', handleSwipeTouchEnd);
       window.removeEventListener('touchcancel', handleSwipeTouchCancel);
     };

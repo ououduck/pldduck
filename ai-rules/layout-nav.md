@@ -20,7 +20,7 @@
 
 1. **弹层栈语义**：useModalOverlay 的 openOverlayStack/scrollLockCount 是全局共享状态（多层弹层叠加时只第一个锁滚动、最后一个恢复）；hasOpenOverlay 用于页面快捷键守卫 —— 全部不得破坏。
 2. **View Transitions**：页面切换必须 try/catch 回退（已有活动 transition 时同步抛 InvalidStateError）；水合首帧 `hasViewTransition=false`。
-3. **移动抽屉手势**：抽屉从左侧滑入，关闭手势为**向左滑**（`deltaX` 阈值 + 速度判定），面板自身 `scrollLeft<=1` 才允许起手；touchmove 非 passive 监听与成对释放 —— 保持既有行为。（轴向由底部面板改为左侧面板，依据用户授权破例。）**打开手势**为任意页面右滑：只在 window 的 passive touchstart/touchend 上做一次判定（横向位移压过纵向 ×1.6、位移 ≥72px 或甩动 ≥40px 且速度 >0.12px/ms），命中后走既有 `openMobileNav`；**不得改成逐帧拖拽预览**（四态状态机 + 双 rAF 起步 + 固定时长卸载经不起 transform 逐帧改写），也不得在 `innerWidth >= 1024`（Tailwind lg，抽屉 lg:hidden 的分界）或起点位于横向可滚动元素内时触发。**配套 CSS 不可删**：`@media (hover: none) and (max-width: 1023.98px) { html { overscroll-behavior-x: none } }` —— 浏览器的「横向 overscroll = 后退」手势与它抢同一段触摸，不关掉时真机上右滑会被合成器吃掉（页面收不到 touchend，抽屉不弹反倒回退一页），实测由 CDP 原生触摸验证过。
+3. **移动抽屉手势**：抽屉从左侧滑入，关闭手势为**向左滑**（`deltaX` 阈值 + 速度判定），面板自身 `scrollLeft<=1` 才允许起手；touchmove 非 passive 监听与成对释放 —— 保持既有行为。（轴向由底部面板改为左侧面板，依据用户授权破例。）**打开手势**为任意页面右滑：只在 window 的 passive touchstart/touchend 上做一次判定（横向位移压过纵向 ×1.6、位移 ≥72px 或甩动 ≥40px 且速度 >0.12px/ms），命中后走既有 `openMobileNav`；**不得改成逐帧拖拽预览**（四态状态机 + 双 rAF 起步 + 固定时长卸载经不起 transform 逐帧改写），也不得在 `innerWidth >= 1024`（Tailwind lg，抽屉 lg:hidden 的分界）时触发。**让位优先级（用户明确要求「优先保证文字框和菜单栏」，即内容手势赢、抽屉让路）**：起点落在以下任一处即放弃呼出 —— ① 计算 `touch-action` 含 `none`/`pan-x`/`pan-left`/`pan-right` 的元素及其祖先（`.code-scroll` 声明 `pan-x`，Mermaid 放大态、图片查看器、封面画布声明 `none`）；② 真正溢出的 `overflow-x: auto|scroll` 祖先；③ `input`/`textarea`/`select`/`contenteditable`；④ 双指（touchstart 需 `touches.length === 1`，途中第二指落下由 touchmove 记 `multiTouch`，抬手即放弃 —— 捏合缩放的第一指也会横移数百像素）；⑤ 抬手时选区非折叠且与按下时不同（这次拖的是文字）。所有判据**只读不 preventDefault**、监听保持 passive，因此原生的选字/横滚/缩放不受影响，抽屉也仍能在正文上呼出。**配套 CSS 不可删**：`@media (hover: none) and (max-width: 1023.98px) { html { overscroll-behavior-x: none } }` —— 浏览器的「横向 overscroll = 后退」手势与它抢同一段触摸，不关掉时真机上右滑会被合成器吃掉（页面收不到 touchend，抽屉不弹反倒回退一页），实测由 CDP 原生触摸验证过。
 4. **导航清单唯一来源**：新增/删除页面入口只改 `src/components/siteNav.ts`，桌面侧栏与移动抽屉共用同一份模型；不得在组件里另立第二份清单。`resolveNavLabel` 决定顶栏页名与 `aria-current`。
 5. **侧栏展开态**：无折叠按钮、无 localStorage、无引导脚本 —— 静置态是图标条，展开完全由 CSS 的 `@media (hover: hover)` + `.site-sidebar:not(:hover):not(:focus-within)` 驱动（SSG 首帧即确定，无水合差异）。布局约束：外层 `.site-sidebar` 恒占 `--sidebar-active-width`（= `--sidebar-rail-width`，正文按此让位），内层 `.site-sidebar-inner` 绝对定位、宽度在 `--sidebar-rail-width` 与 `--sidebar-width` 之间过渡，展开时作为**浮层盖在正文之上**，不得改为参与布局（否则正文每帧横向抖动）。`hover: none` 的设备没有鼠标移入这条路，`--sidebar-active-width` 直接取展开宽度常驻全展开（去掉按钮后这是唯一的展开手段）。标签/角标/页脚用 `display:none` 隐藏，**不得卸载 DOM**（无障碍名与键盘可达性依赖它）。内层需 `z-sidebar`(60) 抬到顶栏与 `main` 之上，又低于 `z-popover`。
 6. **监听器清理**：window/document 监听、计时器必须成对清理（含主题切换计时器）。
@@ -32,6 +32,8 @@
 ## 常见陷阱
 
 - 修改 Layout 的动画时序会影响 Layout.test（真实计时器等待）；
+- 右滑让位不能用「祖先是否溢出」一条判据兜底：`scrollWidth > clientWidth` 只覆盖真的能横滚的容器，漏掉声明 `touch-action: none` 的缩放画布（Mermaid 放大态、封面）与尚未溢出的代码块；反过来 `touch-action` 也替代不了 overflow 检查（默认值是 `auto`，未声明的滚动容器得靠溢出识别）。两条都要留；
+- jsdom 里 `scrollWidth`/`clientWidth` 恒为 0，溢出分支在单测中测不到 —— 让位用例要么写 `touch-action` 内联样式，要么在真机（CDP 原生触摸）验证；
 - 导航项路径必须存在于 `config/routes.mjs`，否则预加载与离线兜底会漏配；
 - 顶栏必须保留 `.site-navbar` 类名：`--article-heading-offset` 由它测量，文章目录/胶囊导航/工具栏依赖该偏移；
 - 底部贴边浮层（Cookie 条等）在 lg 需用 `lg:left-[var(--sidebar-active-width)]` 让开侧栏；该变量恒等于**图标条宽度**，hover 展开是浮层、不改它 —— 别把它改成 `--sidebar-width`，否则正文与浮层会一起被推走；

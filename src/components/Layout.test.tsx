@@ -166,7 +166,8 @@ describe('Layout', () => {
     const user = userEvent.setup();
     renderLayout();
     await user.keyboard('{Control>}k{/Control}');
-    await screen.findByRole('dialog', { name: '命令面板' });
+    // 命令面板是 lazy import：全量并发跑测试时模块图加载能超过 findBy 的默认 1s。
+    await screen.findByRole('dialog', { name: '命令面板' }, { timeout: 10000 });
     expect(probePathname).toBe('/');
   });
 
@@ -174,7 +175,7 @@ describe('Layout', () => {
     const user = userEvent.setup();
     renderLayout();
     await user.click(screen.getByRole('button', { name: '打开搜索页' }));
-    await screen.findByRole('dialog', { name: '命令面板' });
+    await screen.findByRole('dialog', { name: '命令面板' }, { timeout: 10000 });
     expect(probePathname).toBe('/');
   });
 
@@ -229,9 +230,9 @@ describe('Layout', () => {
 
   // 右滑呼出由 window 上的原生 touch 监听判定（不是 React 合成事件）。jsdom 没有
   // TouchEvent 构造器，用普通 Event 挂上 touches/changedTouches 即可满足读取。
-  const dispatchSwipe = (fromX: number, toX: number, fromY = 400, toY = 400) => {
-    const start = { clientX: fromX, clientY: fromY, target: document.body };
-    const end = { clientX: toX, clientY: toY, target: document.body };
+  const dispatchSwipe = (fromX: number, toX: number, fromY = 400, toY = 400, target: EventTarget = document.body) => {
+    const start = { clientX: fromX, clientY: fromY, target };
+    const end = { clientX: toX, clientY: toY, target };
 
     const startEvent = new Event('touchstart', { bubbles: true, cancelable: true });
     Object.assign(startEvent, { touches: [start], changedTouches: [start] });
@@ -240,6 +241,13 @@ describe('Layout', () => {
     const endEvent = new Event('touchend', { bubbles: true, cancelable: true });
     Object.assign(endEvent, { touches: [], changedTouches: [end] });
     window.dispatchEvent(endEvent);
+  };
+
+  // 右滑被让位给页面时不会有状态更新，等过双 rAF 的起步窗口再断言抽屉缺席。
+  const expectNavStaysClosed = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(screen.queryByTestId('mobile-nav-panel')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: '移动端导航菜单' })).not.toBeInTheDocument();
   };
 
   it('任意页面右滑即可呼出导航抽屉', async () => {
@@ -256,6 +264,75 @@ describe('Layout', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: '移动端导航菜单' })).not.toBeInTheDocument();
     });
-    expect(screen.queryByTestId('mobile-nav-panel')).not.toBeInTheDocument();
+    await expectNavStaysClosed();
+  });
+
+  it('代码块上的右滑让位给横向滚动，不呼出抽屉', async () => {
+    renderLayout();
+    // .code-scroll 声明了 touch-action: pan-x，即使没溢出也算认领横向手势。
+    const code = screen.getByText('页面内容') as HTMLElement;
+    code.style.touchAction = 'pan-x';
+    dispatchSwipe(30, 260, 400, 400, code);
+    await expectNavStaysClosed();
+  });
+
+  it('文本框上的右滑让位给文字操作，不呼出抽屉', async () => {
+    renderLayout();
+    const textarea = document.createElement('textarea');
+    document.body.appendChild(textarea);
+    try {
+      dispatchSwipe(30, 260, 400, 400, textarea);
+      await expectNavStaysClosed();
+    } finally {
+      textarea.remove();
+    }
+  });
+
+  it('一次拖拽产生新选区时让位给选文字，不呼出抽屉', async () => {
+    renderLayout();
+    const getSelection = vi.spyOn(window, 'getSelection');
+    try {
+      // 按下时无选区，抬手时已选中一段文字：同一次手势的两种选择状态。
+      getSelection
+        .mockReturnValueOnce(null as unknown as Selection)
+        .mockReturnValueOnce({ isCollapsed: false, toString: () => '页面内容' } as unknown as Selection);
+      dispatchSwipe(30, 260);
+      await expectNavStaysClosed();
+    } finally {
+      getSelection.mockRestore();
+    }
+  });
+
+  it('双指捏合途中的横向位移不呼出抽屉', async () => {
+    renderLayout();
+    const point = (x: number) => ({ clientX: x, clientY: 400, target: document.body });
+
+    const start = new Event('touchstart', { bubbles: true, cancelable: true });
+    Object.assign(start, { touches: [point(30)], changedTouches: [point(30)] });
+    window.dispatchEvent(start);
+
+    // 第二根手指落下：这是缩放手势，第一根手指的右移不算右滑
+    const move = new Event('touchmove', { bubbles: true, cancelable: true });
+    Object.assign(move, { touches: [point(160), point(240)], changedTouches: [point(160)] });
+    window.dispatchEvent(move);
+
+    const end = new Event('touchend', { bubbles: true, cancelable: true });
+    Object.assign(end, { touches: [point(240)], changedTouches: [point(320)] });
+    window.dispatchEvent(end);
+
+    await expectNavStaysClosed();
+  });
+
+  it('选区未变化时右滑仍呼出抽屉', async () => {
+    renderLayout();
+    const getSelection = vi.spyOn(window, 'getSelection');
+    try {
+      const selection = { isCollapsed: false, toString: () => '旧选区' } as unknown as Selection;
+      getSelection.mockReturnValue(selection);
+      dispatchSwipe(30, 260);
+      expect(await screen.findByRole('dialog', { name: '移动端导航菜单' })).toBeInTheDocument();
+    } finally {
+      getSelection.mockRestore();
+    }
   });
 });

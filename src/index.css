@@ -297,6 +297,84 @@
   }
 }
 
+/* 加载态：一串依次抬起的小脚掌，呼应站名「跑路的duck」。纯 CSS、零图片依赖，
+   所以慢网下 JS 包还没到也能先动起来；左右交替的倾角与错位让它在走路而不是单纯闪点。 */
+.duck-loader {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.duck-loader-step {
+  width: 0.34rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.22;
+  rotate: -16deg;
+  animation: duck-loader-step 1.15s ease-in-out infinite;
+}
+
+.duck-loader-step:nth-child(2) {
+  rotate: 16deg;
+  margin-top: 0.2rem;
+  animation-delay: 0.13s;
+}
+
+.duck-loader-step:nth-child(3) {
+  animation-delay: 0.26s;
+}
+
+@keyframes duck-loader-step {
+  0%,
+  100% {
+    opacity: 0.2;
+    translate: 0 0;
+  }
+  35% {
+    opacity: 0.85;
+    translate: 0 -0.22rem;
+  }
+  62% {
+    opacity: 0.3;
+    translate: 0 0;
+  }
+}
+
+/* 页面级加载（路由 chunk 还在下载）：文字下方一条反复扫过的发丝线，把「等待」画成「在前进」 */
+.duck-loader-rule {
+  position: relative;
+  display: block;
+  width: 7.5rem;
+  height: 1px;
+  overflow: hidden;
+}
+
+.duck-loader-rule::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0.14;
+}
+
+.duck-loader-rule::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  animation: duck-loader-sweep 1.6s ease-in-out infinite;
+}
+
+@keyframes duck-loader-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
 /* 已失联友链头像右下角的红色闪烁小点（由站长在 Pages CMS「友链」集合手动标记） */
 .friend-dead-dot {
   animation: friend-dead-dot-blink 1.2s ease-in-out infinite;
@@ -411,6 +489,17 @@
   .friend-dead-dot {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  /* 加载指示改为静止状态：三点常亮、细线只留底轨，不靠动画表达「在加载」 */
+  .duck-loader-step {
+    animation: none;
+    opacity: 0.55;
+  }
+
+  .duck-loader-rule::after {
+    animation: none;
+    opacity: 0;
   }
 }
 

@@ -54,10 +54,25 @@ export const ContentStatus: React.FC<ContentStatusProps> = ({
 interface LoadingStatusProps {
   label: string;
   className?: string;
+  /** 页面级加载（路由 chunk 下载中）在文字下补一条扫过的发丝线；列表内嵌用默认的行内态。 */
+  withRule?: boolean;
 }
 
-export const LoadingStatus: React.FC<LoadingStatusProps> = ({ label, className }) => (
-  <div role="status" aria-live="polite" className={className}>
-    <span className="sr-only">{label}</span>
+export const LoadingStatus: React.FC<LoadingStatusProps> = ({ label, className, withRule = false }) => (
+  <div
+    role="status"
+    aria-live="polite"
+    className={mergeClassName(
+      'flex flex-col items-center justify-center gap-2.5 py-6 text-zinc-400 dark:text-zinc-500',
+      className,
+    )}
+  >
+    <span className="duck-loader" aria-hidden="true">
+      <i className="duck-loader-step" />
+      <i className="duck-loader-step" />
+      <i className="duck-loader-step" />
+    </span>
+    <span className="text-sm">{label}</span>
+    {withRule && <i className="duck-loader-rule" aria-hidden="true" />}
   </div>
 );

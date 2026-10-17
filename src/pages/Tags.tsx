@@ -14,7 +14,6 @@ import { absoluteSiteUrl } from '@/utils/siteUrl';
 import { clearSearchQueryParams, setSearchQueryParams } from '@/utils/searchParams';
 import { ContentStatus, LoadingStatus } from '@/components/ContentStatus';
 import { usePostSearch } from '@/hooks/usePostSearch';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { getDateTimestamp } from '@/utils/date';
 
 const buildTagList = (posts: PostMetadata[]) => {
@@ -52,7 +51,6 @@ export const Tags = () => {
   const [loading, setLoading] = useState(initialPosts.length === 0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const shouldReduceMotion = useReducedMotion();
   const selectedTag = searchParams.get('tag');
   const queryFromUrl = searchParams.get('q') || '';
   // 用户最近一次通过输入框编辑的查询值：区分「URL 更新还在 startTransition
@@ -266,10 +264,6 @@ export const Tags = () => {
       {loading || isSearching ? (
         <div className="flex items-center justify-center py-20" aria-busy="true">
           <LoadingStatus label={isSearching ? '正在搜索标签和文章' : '正在加载标签'} />
-          <div
-            aria-hidden="true"
-            className={`${shouldReduceMotion ? '' : 'animate-spin '}h-8 w-8 rounded-full border-4 border-zinc-900 border-t-transparent dark:border-zinc-100`}
-          />
         </div>
       ) : loadError || searchError ? (
         <ContentStatus

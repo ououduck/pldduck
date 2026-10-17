@@ -11,6 +11,7 @@ import { Home } from './pages/Home';
 import { pageLoaders } from './utils/preload';
 import { getRouterBasename } from './utils/siteUrl';
 import { OfflineStatus } from './components/OfflineStatus';
+import { LoadingStatus } from './components/ContentStatus';
 import { ServiceWorkerUpdatePrompt } from './components/ServiceWorkerUpdatePrompt';
 import { SsgRouteContext, readSsgRouteData } from './ssr/routeData';
 
@@ -30,8 +31,8 @@ const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m
 const CookieNotice = lazy(() => import('./components/CookieNotice').then((m) => ({ default: m.CookieNotice })));
 
 const RouteFallback: React.FC = () => (
-  <div className="mx-auto flex min-h-[50vh] max-w-7xl items-center justify-center">
-    <p className="text-sm text-zinc-400 dark:text-zinc-500">加载中…</p>
+  <div className="mx-auto flex min-h-[50vh] max-w-7xl flex-col items-center justify-center">
+    <LoadingStatus label="正在加载页面" withRule />
   </div>
 );
 

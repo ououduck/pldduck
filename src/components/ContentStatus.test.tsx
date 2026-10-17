@@ -34,9 +34,21 @@ describe('ContentStatus', () => {
 });
 
 describe('LoadingStatus', () => {
-  it('渲染 sr-only 标签', () => {
+  it('文案可见并带三步图形', () => {
     render(<LoadingStatus label="正在加载" />);
     expect(screen.getByText('正在加载')).toBeInTheDocument();
     expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(document.querySelectorAll('.duck-loader-step')).toHaveLength(3);
+    expect(document.querySelector('.duck-loader-rule')).toBeNull();
+  });
+
+  it('withRule 才补页面级扫线', () => {
+    render(<LoadingStatus label="正在加载页面" withRule />);
+    expect(document.querySelector('.duck-loader-rule')).not.toBeNull();
+  });
+
+  it('图形对读屏隐藏，避免播报装饰内容', () => {
+    render(<LoadingStatus label="正在加载" />);
+    expect(document.querySelector('.duck-loader')).toHaveAttribute('aria-hidden', 'true');
   });
 });

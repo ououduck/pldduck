@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MessageSquareText } from 'lucide-react';
 
 import { siteConfig } from '@config/site.config';
+import { LoadingStatus } from './ContentStatus';
 
 const getGiscusTheme = () => (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
 
@@ -309,13 +310,15 @@ export const GiscusComments = ({ postId, mapping = 'pathname', term }: GiscusCom
         </div>
       ) : isLoaded ? null : (
         // 未加载完成前的占位：保持区块高度，避免加载开始/结束时布局跳动。
-        // 加载成功后隐藏，避免"正在加载评论区…"常驻在评论区上方。
-        <div
-          role="status"
-          aria-live="polite"
-          className="border-y border-zinc-200 px-4 py-6 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400"
-        >
-          {isNearViewport ? '正在加载评论区…' : '评论将在滚动到此处时自动加载。'}
+        // 加载成功后隐藏，避免加载提示常驻在评论区上方。
+        <div className="border-y border-zinc-200 dark:border-zinc-800">
+          {isNearViewport ? (
+            <LoadingStatus label="正在加载评论区" />
+          ) : (
+            <p role="status" aria-live="polite" className="px-4 py-6 text-sm text-zinc-500 dark:text-zinc-400">
+              评论将在滚动到此处时自动加载。
+            </p>
+          )}
         </div>
       )}
       <div ref={containerRef} className={isOffline || !isNearViewport ? 'hidden' : undefined} />

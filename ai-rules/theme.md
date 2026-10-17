@@ -19,6 +19,13 @@
 3. **持久化**：`localStorage.theme` 只存 'light'|'dark'。仅用户显式点击切换时写入（见 toggleTheme）；首次打开检测出的系统默认值不落盘，以便下次打开重新检测。旧值 'system' 视为无显式选择。存储不可用时静默降级（不影响功能）。
 4. **系统检测**：仅在打开页面（首次水合）时按 `prefers-color-scheme` 解析初始明暗；不设「跟随系统」模式、不监听系统变化实时切换。index.html 的内联首帧脚本必须与上述语义保持一致（显式选择优先，否则按系统偏好回退）。
 5. **阅读模式**：ReadingModeContext 的栈式 Escape 守卫（ESC 栈顶退出）保持。
+6. **加载指示只有一个出口**：页面级与列表级的加载态一律用 `ContentStatus.tsx` 的 `LoadingStatus`
+   （三枚「小鸭掌」+ 文案，`role="status" aria-live="polite"`），路由懒加载占位（`App.tsx` 的
+   `RouteFallback`）也必须走它。图形全在 `index.css` 的 `.duck-loader*` 里，颜色只取 `currentColor`
+   （明暗两处靠外层 `text-zinc-400 dark:text-zinc-500` 继承），**不得引入图片/图标字体**，
+   也不要在别处再写第二套 spinner。
+   **减弱动效靠 CSS 媒体查询**（`@media (prefers-reduced-motion: reduce)` 分支：三点静止常亮、扫线隐藏），
+   不用 `useReducedMotion()` —— 它是纯样式状态，JS 开关会让组件多一个无谓的订阅。
 
 ## 常见陷阱
 

@@ -12,7 +12,7 @@
 #   - issues: opened（新 Issue）；
 #   - workflow_run: completed（白名单内 workflow 的运行结果；白名单不含本工作流自身，
 #     避免每次通知运行完成后又触发一次自身运行 —— 双倍 Actions 消耗）；
-#   - workflow_dispatch（手动测试；可配合 .pages.yml「🔔 测试 飞书机器人 Webhook 通知」按钮）。
+#   - workflow_dispatch（手动测试；可配合 .pages.yml「测试 飞书机器人 Webhook 通知」按钮）。
 #
 # 一次性配置（仓库 Settings → Secrets and variables → Actions）：
 #   FEISHU_WEBHOOK_URL — 接收通知的 飞书机器人 Webhook 地址；默认请求体为飞书交互式卡片：
@@ -43,7 +43,7 @@ on:
       - "Check Broken Links"
       - "Comment Keyword Filter"
       - "Comment Keyword Recheck"
-      - "Deploy to Cloudflare & EdgeOne"
+      - "Deploy to Cloudflare Worker"
       - "Notify Blog Post Update"
     types: [completed]
   workflow_dispatch:

@@ -9,7 +9,7 @@
 - `scripts/check-broken-links.mjs`
 - `scripts/lib/feishu-webhook.mjs`（发送共享库）
 - `.github/workflows/check-broken-links.yml`
-- `.pages.yml`（「🔗 检查失效外链」动作按钮）
+- `.pages.yml`（「检查失效外链」动作按钮）
 
 ## 修改规则（必须遵守）
 

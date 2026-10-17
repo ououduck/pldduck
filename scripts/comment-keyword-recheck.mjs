@@ -9,7 +9,7 @@
  * 典型用途：修改关键词配置后，一键清理历史评论中遗漏的广告/引流内容；
  * 也可以作为「重新审查所有评论」的定期巡检手段。
  *
- * 触发方式：Pages CMS 侧边栏「🔍 重新审查全部评论」按钮（见 .pages.yml 的 actions 段），
+ * 触发方式：Pages CMS 侧边栏「重新审查全部评论」按钮（见 .pages.yml 的 actions 段），
  * 由 .github/workflows/comment-keyword-recheck.yml 以 workflow_dispatch 调用；
  * 也可在 GitHub Actions 页面手动 Run workflow。
  *

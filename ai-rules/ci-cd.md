@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动双平台部署）、feishu-webhook、comment 三件套、akismet、notify-post-update、check-broken-links；PagesCMS 动作按钮（.pages.yml）。
+GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署到 Cloudflare Worker）、feishu-webhook、comment 三件套、akismet、notify-post-update、check-broken-links；PagesCMS 动作按钮（.pages.yml）。
 
 ## 关键文件
 
@@ -16,10 +16,10 @@ GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动双平�
 3. **secrets 最小传递**：只传给需要的步骤；日志不得输出 secrets（GitHub 会脱敏 CI 侧，本地运行无保护）。
 4. **构建同源**：deploy 与 ci 必须共用 `npm run build` 同一流程，禁止双套构建。
 5. **白名单同步**：新增 workflow 必须同步 feishu-webhook.yml 的 workflow_run 白名单。
-6. **版本固定**：第三方 action 用 major tag（checkout@v5 等）；CLI 工具（wrangler/edgeone）用精确版本（部署可复现）。
+6. **版本固定**：第三方 action 用 major tag（checkout@v5 等）；CLI 工具（wrangler）用精确版本（部署可复现）。
 7. **PagesCMS 字段白名单**：.pages.yml 的 siteConfig / portalConfig / commentsConfig fields 必须覆盖各自配置文件实际使用的全部键（缺字段 CMS 保存会丢数据）。
 8. **CI 门禁**：check/test/build 三 job 的职责边界保持（类型+内容校验 / 单测 / 构建+审计）。
-9. **部署目标名固定为 `pldduck`**（Cloudflare Pages 与 EdgeOne 两侧同名）：`d-blog` 已被旧站
+9. **部署目标名固定为 `pldduck`**（Cloudflare Worker 名称，见 `wrangler.jsonc`）：`d-blog` 已被旧站
    的迁移跳转页占用，复用会让新站与跳转页互相覆盖，等于把线上博客换成公告页。
 10. **`workflow_dispatch` 的 payload 是不可信输入**：它是调用方自备的 JSON，取值必须校验
     `repository.ref` 为 main（部署只允许 main）；且一律经 `env:` 间接引用，**不得把
@@ -27,7 +27,7 @@ GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动双平�
 
 ## 常见陷阱
 
-- workflow 名称（name:）是 feishu-webhook 白名单与 .pages.yml 动作的匹配键，改名需三处同步；
+- workflow 名称（name:）是 feishu-webhook 白名单与 .pages.yml 动作的匹配键，改名需三处同步；`deploy.yml` 的 `Deploy to Cloudflare Worker` 即三处之一。
 - concurrency group 名跨 workflow 同值时互相串行（评论双过滤器的既有行为）。
 
 ## 破例条款

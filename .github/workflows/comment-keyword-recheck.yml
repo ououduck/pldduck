@@ -6,7 +6,7 @@
 # 适合在修改关键词配置后清理历史评论中遗漏的广告/引流内容。
 #
 # 触发方式（仅 workflow_dispatch）：
-#   1. Pages CMS 侧边栏「🔍 重新审查全部评论」按钮（见 .pages.yml 的 actions 段），
+#   1. Pages CMS 侧边栏「重新审查全部评论」按钮（见 .pages.yml 的 actions 段），
 #   2. GitHub Actions 页面手动 Run workflow（payload 最小可用 {"repository":{"ref":"main"}}）。
 #
 # Pages CMS 会以 JSON 字符串填充 inputs.payload（含 repository.ref / sha、触发人等），

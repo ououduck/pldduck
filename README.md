@@ -125,12 +125,12 @@ pldduck/
 
 ## 部署
 
-**GitHub Actions 构建 + 双平台直传**（Cloudflare Pages 与 EdgeOne Pages）。日常 push 不触发部署，
-仅手动触发：① Pages CMS 侧边栏「🚀 部署到 Cloudflare & EdgeOne」；② Actions 手动 Run `deploy.yml`
+**GitHub Actions 构建 + Cloudflare Worker 直传**（Workers Static Assets，assets-only）。日常 push 不触发部署，
+仅手动触发：① Pages CMS 侧边栏「部署到 Cloudflare Worker」；② Actions 手动 Run `deploy.yml`
 （payload 最小可用 `{"repository":{"ref":"main"}}`）。
 
-仓库 Secrets：`CLOUDFLARE_API_TOKEN`（Pages:Edit）、`CLOUDFLARE_ACCOUNT_ID`、`EDGEONE_API_TOKEN`、
-`FEISHU_WEBHOOK_URL`、`AKISMET_API_KEY`。两个平台的项目名均为 `pldduck`，
+仓库 Secrets：`CLOUDFLARE_API_TOKEN`（Workers Scripts:Edit 权限）、`CLOUDFLARE_ACCOUNT_ID`、
+`FEISHU_WEBHOOK_URL`、`AKISMET_API_KEY`。Worker 名称为 `pldduck`（见 `wrangler.jsonc`），
 **不要改回 `d-blog`**——那个名字属于旧博客的迁移跳转页，复用会互相覆盖。
 
 细节（平台一次性配置、其他平台 SPA fallback、Service Worker 策略、自动化与通知、外链扫描）见

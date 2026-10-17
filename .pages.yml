@@ -278,17 +278,17 @@ content:
 # 文档: https://pagescms.org/docs/configuration/actions/
 actions:
   - name: deploy-site
-    label: 🚀 部署到 Cloudflare & EdgeOne
+    label: 部署到 Cloudflare Worker
     workflow: deploy.yml
     ref: current
     confirm:
       title: 确认部署？
-      message: 将在 GitHub Actions 中构建全站，并直传部署到 Cloudflare Pages 与 EdgeOne Pages
+      message: 将在 GitHub Actions 中构建全站，并直传部署到 Cloudflare Worker（Workers Static Assets）
       button: 开始部署
 
   # ── 评论关键词全量复查：用当前关键词配置重新审查仓库内全部评论 ──
   - name: recheck-comments
-    label: 🔍 重新审查全部评论
+    label: 重新审查全部评论
     workflow: comment-keyword-recheck.yml
     ref: current
     confirm:
@@ -298,7 +298,7 @@ actions:
 
   # ── 文章外链失效扫描：扫描 posts/*.md 全部 http/https 外链，失效链接汇总推送 飞书机器人 Webhook ──
   - name: check-broken-links
-    label: 🔗 检查失效外链
+    label: 检查失效外链
     workflow: check-broken-links.yml
     ref: current
     confirm:
@@ -308,7 +308,7 @@ actions:
 
   # ── 飞书机器人 Webhook 通知测试：验证 FEISHU_WEBHOOK_URL 配置，并向飞书机器人 Webhook 发送测试消息 ──
   - name: test-feishu-webhook
-    label: 🔔 测试 飞书机器人 Webhook 通知
+    label: 测试 飞书机器人 Webhook 通知
     workflow: feishu-webhook.yml
     ref: current
     confirm:

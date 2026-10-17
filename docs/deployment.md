@@ -2,25 +2,29 @@
 
 ## 部署模型
 
-**GitHub Actions 构建 + 双平台直传**：构建在 GitHub 完成（公开仓库 Actions 免费额度），产物直传
-Cloudflare Pages 与 EdgeOne Pages。日常 push 不触发部署，**只手动触发**：
+**GitHub Actions 构建 + Cloudflare Worker 直传**：构建在 GitHub 完成（公开仓库 Actions 免费额度），产物用
+`wrangler deploy` 直传到 Cloudflare Worker（Workers Static Assets，assets-only，平台不构建、不消耗构建额度）。
+日常 push 不触发部署，**只手动触发**：
 
-1. Pages CMS 侧边栏「🚀 部署到 Cloudflare & EdgeOne」按钮（配置见 `.pages.yml`）；
+1. Pages CMS 侧边栏「部署到 Cloudflare Worker」按钮（配置见 `.pages.yml`）；
 2. GitHub Actions 手动 Run workflow（`deploy.yml`，payload 最小可用 `{"repository":{"ref":"main"}}`）。
 
 `deploy.yml` 会跑完整 `npm run build` 流水线（含产物与 SEO 审计），任一阶段失败即不上传。
 
 ### 一次性前置配置
 
-| 项               | 说明                                                                                                                             |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Cloudflare Pages | 项目类型 **Direct Upload**（直传），自定义域名与缓存策略（`public/_headers`）已就位                                              |
-| EdgeOne Pages    | 项目类型 **直传**，域名 CNAME 已切换，缓存规则需在控制台手动配置                                                                 |
-| 仓库 Secrets     | `CLOUDFLARE_API_TOKEN`（Pages:Edit 权限）、`CLOUDFLARE_ACCOUNT_ID`、`EDGEONE_API_TOKEN`、`FEISHU_WEBHOOK_URL`、`AKISMET_API_KEY` |
+| 项                | 说明                                                                                                                    |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Cloudflare Worker | **assets-only Worker**，配置见 `wrangler.jsonc`（`not_found_handling=404-page`）；缓存与安全头由 `public/_headers` 提供 |
+| 仓库 Secrets      | `CLOUDFLARE_API_TOKEN`（Workers Scripts:Edit 权限）、`CLOUDFLARE_ACCOUNT_ID`、`FEISHU_WEBHOOK_URL`、`AKISMET_API_KEY`   |
 
-两个平台的项目名均为 `pldduck`（已在 `deploy.yml` 配置，不一致时修改 `--project-name` / `-n`）。
+Worker 名称为 `pldduck`（已在 `wrangler.jsonc` 配置）。
 **不要改回 `d-blog`**：那个名字属于旧博客（`ououduck/D-blog-old`）的迁移跳转页，
 复用会让新站与跳转页互相覆盖。
+
+> 自定义域名 `www.pldduck.com` 迁移：先在旧 Pages 项目上摘除该域名，再到 Worker 的
+> Settings → Domains and Routes 里挂上（一个域名同一时刻只能被一个计算资源持有）。
+> Workers Static Assets 原生读取 `dist/` 里的 `_headers` 与 `_redirects`，无需额外配置。
 
 ### 其他平台
 
@@ -67,7 +71,7 @@ workflow 的运行结果不会通知。
 401/403/405/406/407/429 会标记为「可达但受限」，只记录提示，不误报为死链。只读操作，
 不修改仓库、不触发部署。
 
-- **触发**：Pages CMS 侧边栏「🔗 检查失效外链」按钮（`check-broken-links.yml`，workflow_dispatch），
+- **触发**：Pages CMS 侧边栏「检查失效外链」按钮（`check-broken-links.yml`，workflow_dispatch），
   或每周一 02:00 UTC 定时自动巡检（schedule）；
 - **本地运行**：`npm run check:links`（默认仅报告，退出码 0）；`--dry-run` 只打印不上报；
   `--fail` 发现失效链接时非零退出（可用于 CI 红叉门禁）；`--ignore-hosts=a.com,b.com` 跳过指定域名

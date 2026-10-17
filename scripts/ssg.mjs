@@ -565,7 +565,7 @@ export const runSsg = async ({
     }
   }
 
-  // 4. 404 页（根级独立 HTML，Cloudflare Pages 以 404.html 作为 404 响应）。
+  // 4. 404 页（根级独立 HTML，Cloudflare Worker 以 not_found_handling=404-page 用 404.html 作 404 响应）。
   // 渲染路径 /__missing__ 是占位路由，不能出现在任何 URL 类 meta 中：
   // - canonical：mergeHead 之后显式剥离；
   // - og:url：替换为站点根地址（否则分享抓取/爬虫会暴露伪 URL）。

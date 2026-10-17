@@ -7,7 +7,7 @@ Microsoft Clarity（项目 ID：`yk9n836sio`）通过 `index.html` 中的官方�
 ## 关键文件
 
 - `index.html` — Clarity 官方标签的唯一注入位置，项目 ID 直接写在标签中
-- `public/_headers` / `edgeone.json` — CSP 同步放行 Clarity 脚本与数据上报域名
+- `public/_headers` — CSP 同步放行 Clarity 脚本与数据上报域名（Workers Static Assets 读取该文件）
 - `scripts/audit-build.mjs` — 构建审计 Clarity 脚本 URL、项目 ID 和 CSP
 - `src/components/CookieNotice.tsx` — 访问分析隐私提示
 
@@ -16,7 +16,7 @@ Microsoft Clarity（项目 ID：`yk9n836sio`）通过 `index.html` 中的官方�
 1. **使用官方标签**：Clarity 脚本保持官方异步注入形态，项目 ID 为 `yk9n836sio`。
 2. **唯一入口**：统计脚本只在 `index.html` 注入，不在 React 组件、配置文件或环境变量中重复维护。
 3. **同步审计**：修改脚本 URL、项目 ID或注入形态时，同步更新 `scripts/audit-build.mjs`。
-4. **CSP 同步**：`public/_headers` 与 `edgeone.json` 必须一起更新，`script-src` 放行 `https://www.clarity.ms`，`connect-src` 放行 Clarity 上报域名。
+4. **CSP 同步**：更新 `public/_headers` 的 CSP，`script-src` 放行 `https://www.clarity.ms`，`connect-src` 放行 Clarity 上报域名。
 5. **不混改统计**：不蒜子仅负责文章阅读量，改动 Clarity 时不得牵动 `src/services/busuanzi.ts`。
 6. **统计页不设入口**：`src/pages/Stats.tsx` 不展示 Clarity 外部卡片或控制台链接。
 

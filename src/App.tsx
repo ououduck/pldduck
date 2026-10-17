@@ -38,7 +38,7 @@ const RouteFallback: React.FC = () => (
 /**
  * /posts/<id> 是把「列表段 + 详情段」混写的产物，统一转回 /post/<id>。
  * 线上直访由 public/_redirects 返回真 301（爬虫与外链都能收到），
- * 这里兜住站内 Link 跳过去以及不支持 _redirects 的托管环境（EdgeOne）。
+ * 这里兜住站内 Link 跳转与本地预览等不走 _redirects 的场景。
  */
 const PostRedirect: React.FC = () => {
   const { id } = useParams<{ id: string }>();

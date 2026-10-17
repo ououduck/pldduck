@@ -1,14 +1,23 @@
 {
   "tagline": "一只游手好闲的鸭子",
   "status": "在线更新中",
-  "tags": ["跑路啦"],
+  "tags": [
+    "跑路啦"
+  ],
   "memory": {
     "label": "助记词",
     "prompt": "教你一句话记住本网站",
     "detail": "跑路的(pld)duck(duck)"
   },
   "identity": "热衷于探索前端 Web 技术，喜欢构建极致性能和优秀交互的用户界面，目前正致力于开源项目的贡献与个人产品的打磨。",
-  "stack": ["React", "TypeScript", "Tailwind CSS", "Vite", "Node.js", "Framer Motion"],
+  "stack": [
+    "React",
+    "TypeScript",
+    "Tailwind CSS",
+    "Vite",
+    "Node.js",
+    "Framer Motion"
+  ],
   "entries": [
     {
       "title": "博客文章",
@@ -40,16 +49,36 @@
     }
   ],
   "links": [
-    { "title": "站内搜索", "url": "/search", "icon": "search" },
-    { "title": "站点统计", "url": "/stats", "icon": "stats" },
-    { "title": "留言板", "url": "/guestbook", "icon": "guestbook" },
-    { "title": "封面生成", "url": "/cover", "icon": "cover" },
-    { "title": "图片水印", "url": "/watermark", "icon": "watermark" }
+    {
+      "title": "站内搜索",
+      "url": "/search",
+      "icon": "search"
+    },
+    {
+      "title": "站点统计",
+      "url": "/stats",
+      "icon": "stats"
+    },
+    {
+      "title": "留言板",
+      "url": "/guestbook",
+      "icon": "guestbook"
+    },
+    {
+      "title": "封面生成",
+      "url": "/cover",
+      "icon": "cover"
+    },
+    {
+      "title": "图片水印",
+      "url": "/watermark",
+      "icon": "watermark"
+    }
   ],
   "projects": [
     {
-      "title": "pldduck 博客",
-      "description": "纯静态自研博客，构建期直出每篇文章的 HTML。",
+      "title": "PLDDUCK 主页",
+      "description": "纯静态个人主页",
       "url": "https://github.com/ououduck/pldduck",
       "tag": "React + Vite"
     },

@@ -455,18 +455,21 @@ export const parseRetryAfter = (headers) => {
 };
 
 /**
- * 限量读取响应体文本（防超大响应体拖垮内存）。超过上限即截断并在结尾标记。
- * 读取过程受外部 signal 保护（AbortError 由调用方处理）。
+ * 限量读取响应体**字节**（不做任何字符集解码）。
+ *
+ * 为什么不能只用 readResponseText：它硬编码 utf-8，而博客圈仍有 GBK/Big5 站点 ——
+ * 字符集嗅探必须从字节层开始（BOM / Content-Type / <meta charset> 都只看原始字节）。
+ * 超过上限即停止读取并取消底层流，返回 truncated 供调用方如实说明「页脚根本没读到」。
  * @param {Response} response
  * @param {object} [options]
  * @param {number} [options.maxBytes=DEFAULT_MAX_RESPONSE_BYTES] 读取上限（字节）。
- * @returns {Promise<string>}
+ * @returns {Promise<{ bytes: Buffer, truncated: boolean }>}
  */
-export const readResponseText = async (response, { maxBytes = DEFAULT_MAX_RESPONSE_BYTES } = {}) => {
+export const readResponseBytesLimited = async (response, { maxBytes = DEFAULT_MAX_RESPONSE_BYTES } = {}) => {
   const reader = response.body?.getReader();
   if (!reader) {
-    // 无 body（如 204）：直接返回空串。
-    return '';
+    // 无 body（如 204）：直接返回空字节。
+    return { bytes: Buffer.alloc(0), truncated: false };
   }
   const chunks = [];
   let total = 0;
@@ -475,14 +478,27 @@ export const readResponseText = async (response, { maxBytes = DEFAULT_MAX_RESPON
     if (done) break;
     total += value.byteLength;
     if (total > maxBytes) {
-      // 超过上限：放弃继续读取并取消底层流（释放 socket）。
+      // 超过上限：截断到剩余额度并取消底层流（释放 socket）。
       chunks.push(value.subarray(0, Math.max(0, maxBytes - (total - value.byteLength))));
       await reader.cancel().catch(() => {});
-      return `${Buffer.concat(chunks).toString('utf8')}\n…<truncated at ${maxBytes} bytes>`;
+      return { bytes: Buffer.concat(chunks), truncated: true };
     }
     chunks.push(value);
   }
-  return Buffer.concat(chunks).toString('utf8');
+  return { bytes: Buffer.concat(chunks), truncated: false };
+};
+
+/**
+ * 限量读取响应体文本（防超大响应体拖垮内存）。超过上限即截断并在结尾标记。
+ * 读取过程受外部 signal 保护（AbortError 由调用方处理）。
+ * @param {Response} response
+ * @param {object} [options]
+ * @param {number} [options.maxBytes=DEFAULT_MAX_RESPONSE_BYTES] 读取上限（字节）。
+ * @returns {Promise<string>}
+ */
+export const readResponseText = async (response, { maxBytes = DEFAULT_MAX_RESPONSE_BYTES } = {}) => {
+  const { bytes, truncated } = await readResponseBytesLimited(response, { maxBytes });
+  return truncated ? `${bytes.toString('utf8')}\n…<truncated at ${maxBytes} bytes>` : bytes.toString('utf8');
 };
 
 /**

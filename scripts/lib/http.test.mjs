@@ -8,6 +8,8 @@ import {
   isResolvedAddressesSafe,
   getSafeFetchAgent,
   getSafeUndiciFetch,
+  readResponseBytesLimited,
+  readResponseText,
 } from './http.mjs';
 /** 沿 cause 链查找错误码（undici 会把连接错误层层包装）。 */
 const findErrorCode = (error, code) => {
@@ -200,5 +202,55 @@ describe('isResolvedAddressesSafe', () => {
         expect(findErrorCode(error, 'ERR_SSRF_BLOCKED')).toBe(true);
       }
     }
+  });
+});
+
+/** 构造一个可流式读取的 Response（逐 chunk 入队，便于验证限量读取的边界）。 */
+const streamResponseOf = (chunks) =>
+  new Response(
+    new ReadableStream({
+      start(controller) {
+        chunks.forEach((chunk) => controller.enqueue(chunk));
+        controller.close();
+      },
+    }),
+  );
+
+describe('readResponseBytesLimited', () => {
+  it('未超上限时返回完整字节且不截断', async () => {
+    const response = streamResponseOf([Buffer.from('你好'), Buffer.from(' world')]);
+    const { bytes, truncated } = await readResponseBytesLimited(response, { maxBytes: 1024 });
+    expect(truncated).toBe(false);
+    expect(bytes.toString('utf8')).toBe('你好 world');
+  });
+
+  it('超上限时按 maxBytes 截断、置 truncated 并取消底层流', async () => {
+    const payload = Buffer.alloc(4096, 0x41);
+    const response = streamResponseOf([payload.subarray(0, 2048), payload]);
+    const { bytes, truncated } = await readResponseBytesLimited(response, { maxBytes: 3000 });
+    expect(truncated).toBe(true);
+    expect(bytes.length).toBe(3000);
+  });
+
+  it('跨 chunk 边界精确截断（剩余额度落在某个 chunk 中间）', async () => {
+    const response = streamResponseOf([Buffer.alloc(100, 0x42), Buffer.alloc(100, 0x43)]);
+    const { bytes, truncated } = await readResponseBytesLimited(response, { maxBytes: 150 });
+    expect(truncated).toBe(true);
+    expect(bytes.length).toBe(150);
+    expect(bytes.subarray(100).every((byte) => byte === 0x43)).toBe(true);
+  });
+
+  it('空 body（204）返回空字节，不抛错', async () => {
+    const { bytes, truncated } = await readResponseBytesLimited(new Response(null, { status: 204 }), {
+      maxBytes: 1024,
+    });
+    expect(truncated).toBe(false);
+    expect(bytes.length).toBe(0);
+  });
+
+  it('readResponseText 复用字节读取：截断时保留尾部标记', async () => {
+    const text = await readResponseText(streamResponseOf([Buffer.from('0123456789')]), { maxBytes: 4 });
+    expect(text).toContain('…<truncated at 4 bytes>');
+    expect(text.startsWith('0123')).toBe(true);
   });
 });

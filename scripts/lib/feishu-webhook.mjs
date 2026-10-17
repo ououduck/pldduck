@@ -21,6 +21,10 @@ const CARD_TEMPLATES = Object.freeze({
   issue: 'orange',
   push: 'purple',
   'link-check': 'orange',
+  'friend-review': 'blue',
+  'friend-added': 'green',
+  'friend-rejected': 'red',
+  'friend-deploy': 'purple',
 });
 
 export const sanitizeFeishuWebhookUrlForLogs = (value) => {

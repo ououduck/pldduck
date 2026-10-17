@@ -1,0 +1,93 @@
+name: 友链申请
+description: 申请把站点收录到 pldduck.com 的友情链接页（机器人静态检测反链，仅作审核参考）
+title: "[友链] "
+labels:
+  - friend-link
+assignees:
+  - ououduck
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 申请须知
+
+        1. **反链必须是服务端直出的 `<a>`**：`<a href="https://www.pldduck.com">跑路的duck</a>`。
+           Vue/React 用 JS 渲染的友链挂件，静态抓取看不到，会被判成「未检测到」。
+        2. **检测结果只是参考证据**，不会自动上架。站长看完证据后手动打 `friend-approved` 标签才会写入，
+           打 `friend-rejected` 则拒绝并关闭本 Issue。
+        3. 只认 `<a href>`：图片、RSS、`rel=canonical`、跳转页、评论区里的链接都不算。
+        4. 常见挂链位置：首页页脚、友情链接/friends 单独页、关于页。
+        5. 请如实填写。名称/简介会公开展示，随时可以开新 Issue 修改；下架也需要人工处理。
+
+  - type: input
+    id: name
+    attributes:
+      label: 站点名称
+      description: 展示在友链卡片上的名字（不超过 50 字）
+      placeholder: 阿叶的小站
+    validations:
+      required: true
+      maxLength: 50
+
+  - type: input
+    id: url
+    attributes:
+      label: 站点地址
+      description: 站点首页完整地址，http/https，不要写 IP、不要带账号信息
+      placeholder: https://blog.example.com
+    validations:
+      required: true
+      maxLength: 500
+
+  - type: input
+    id: backlink-page
+    attributes:
+      label: 反链页面地址
+      description: 实际挂着本站链接的那个页面（必须与站点地址同域）。留空则检测站点首页
+      placeholder: https://blog.example.com/links
+    validations:
+      required: false
+      maxLength: 500
+
+  - type: input
+    id: avatar
+    attributes:
+      label: 头像地址
+      description: 直接可访问的图片链接（http/https），建议 128×128 以上
+      placeholder: https://cdn.example.com/avatar.png
+    validations:
+      required: true
+      maxLength: 500
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 站点简介
+      description: 一两句话说清你的站点在写什么（不超过 120 字）
+      placeholder: 记录前端学习与生活随笔
+    validations:
+      required: true
+      maxLength: 120
+
+  - type: dropdown
+    id: application-type
+    attributes:
+      label: 申请类型
+      description: 本次是新增、修改还是下架
+      options:
+        - 新增
+        - 修改
+        - 下架
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: 确认事项
+      description: 两项都必须勾选，否则检测会被退回
+      options:
+        - label: 我已在自己的站点上添加了指向本站的链接，且是服务端直出的 `<a href>`
+          required: true
+        - label: 我同意站点名称、简介、头像与地址在 pldduck.com 公开展示
+          required: true

@@ -1,9 +1,10 @@
 /**
- * 友链页：展示友情链接（失联分组）与友链申请入口（跳转 GitHub Issue 表单）；
+ * 友链页：展示友情链接（失联分组）与友链申请入口（页面填资料 → 预填 GitHub Issue 正文）；
  * 已收录条目的信息修改走站长邮箱，不再单独设计申请流程。
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Sparkles, ChevronDown, Globe2 } from 'lucide-react';
 import { SearchField } from '@/components/SearchField';
@@ -11,6 +12,7 @@ import { siteConfig } from '@config/site.config';
 import { getFriends, getInitialFriends } from '@/services/friends';
 import { Seo, buildSiteSchemas } from '../components/Seo';
 import { absoluteSiteUrl } from '@/utils/siteUrl';
+import { FRIEND_ISSUE_CONFIRMATIONS, buildFriendIssueUrl } from '@/utils/friendIssue';
 import type { Friend } from '../types';
 import { ProgressiveImage } from '@/components/ProgressiveImage';
 import { ContentStatus, LoadingStatus } from '@/components/ContentStatus';
@@ -100,6 +102,209 @@ const FriendCard = ({ friend, unavailable = false }: FriendCardProps) => {
 // 构建期 SSG：friends.json 已通过 eager glob 内联，SSR 阶段即可同步渲染友链列表，
 // 客户端水合首帧与 SSR 输出一致；异步重取仅用于“重新加载”。
 const initialFriends = getInitialFriends();
+
+/** 已收录条目的信息修改联系邮箱：不接 Issue 流程，也不为此新增配置键。 */
+const FRIEND_EDIT_CONTACT_EMAIL = 'pldduck@outlook.com';
+
+const APPLY_FIELD_CLASS = 'mb-1.5 block text-xs font-semibold text-zinc-700 dark:text-zinc-300';
+
+interface ApplyFormState {
+  name: string;
+  url: string;
+  backlinkUrl: string;
+  avatar: string;
+  description: string;
+  applicationType: string;
+}
+
+const EMPTY_APPLY_FORM: ApplyFormState = {
+  name: '',
+  url: '',
+  backlinkUrl: '',
+  avatar: '',
+  description: '',
+  applicationType: '新增',
+};
+
+/**
+ * 申请资料填写卡：填完直接把正文预填进 GitHub 新建 Issue 页。
+ * 页面自身不发请求、不落数据，采集面仍然是 Issue（正文格式与模板渲染结果同构，
+ * 由 src/utils/friendIssue.test.ts 用机器人的解析器做往返校验）。
+ */
+const FriendApplyForm = () => {
+  const [form, setForm] = useState<ApplyFormState>(EMPTY_APPLY_FORM);
+  const [confirmed, setConfirmed] = useState<boolean[]>([false, false]);
+  const [error, setError] = useState('');
+
+  const updateField = (key: keyof ApplyFormState) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((previous) => ({ ...previous, [key]: event.target.value }));
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const required: Array<[keyof ApplyFormState, string]> = [
+      ['name', '站点名称'],
+      ['url', '站点地址'],
+      ['avatar', '头像地址'],
+      ['description', '站点简介'],
+    ];
+    const missing = required.filter(([key]) => !form[key].trim()).map(([, label]) => label);
+    if (missing.length > 0) {
+      setError(`请先填写：${missing.join('、')}`);
+      return;
+    }
+    if (!/^https?:\/\/\S+$/i.test(form.url.trim()) || !/^https?:\/\/\S+$/i.test(form.avatar.trim())) {
+      setError('站点地址与头像地址都要写成完整的 http/https 链接');
+      return;
+    }
+    if (confirmed.some((checked) => !checked)) {
+      setError('两项确认都要勾选');
+      return;
+    }
+    setError('');
+    window.open(
+      buildFriendIssueUrl({ repoUrl: siteConfig.friendsPage.repoUrl, input: form }),
+      '_blank',
+      'noopener,noreferrer',
+    );
+  };
+
+  return (
+    <Surface variant="card" className="p-4 sm:p-5" aria-labelledby="friend-apply-form">
+      <h3 id="friend-apply-form" className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        填好资料，一键带到 Issue
+      </h3>
+      <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+        先在本站把资料填好，点「生成 Issue 申请」会打开 GitHub 的新建 Issue 页面，正文已经写好，确认无误后提交即可。
+        挂链要用服务端直出的 <code className="font-mono text-xs">&lt;a href&gt;</code>（JS
+        渲染的挂件检测不到）；机器人会先确认站点与头像在境外可以访问（开启禁海外会被自动驳回），再检测反链作为审核参考，
+        是否收录由站长确认。
+      </p>
+      <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className={APPLY_FIELD_CLASS} htmlFor="friend-apply-name">
+              站点名称
+            </label>
+            <input
+              id="friend-apply-name"
+              className="editorial-input"
+              value={form.name}
+              onChange={updateField('name')}
+              maxLength={50}
+              placeholder="阿叶的小站"
+            />
+          </div>
+          <div>
+            <label className={APPLY_FIELD_CLASS} htmlFor="friend-apply-description">
+              站点简介
+            </label>
+            <input
+              id="friend-apply-description"
+              className="editorial-input"
+              value={form.description}
+              onChange={updateField('description')}
+              maxLength={120}
+              placeholder="前端与生活方式记录"
+            />
+          </div>
+          <div>
+            <label className={APPLY_FIELD_CLASS} htmlFor="friend-apply-url">
+              站点地址
+            </label>
+            <input
+              id="friend-apply-url"
+              className="editorial-input"
+              value={form.url}
+              onChange={updateField('url')}
+              maxLength={500}
+              placeholder="https://ayee.example.com"
+            />
+          </div>
+          <div>
+            <label className={APPLY_FIELD_CLASS} htmlFor="friend-apply-avatar">
+              头像地址
+            </label>
+            <input
+              id="friend-apply-avatar"
+              className="editorial-input"
+              value={form.avatar}
+              onChange={updateField('avatar')}
+              maxLength={500}
+              placeholder="https://ayee.example.com/avatar.png"
+            />
+          </div>
+          <div>
+            <label className={APPLY_FIELD_CLASS} htmlFor="friend-apply-backlink">
+              反链页面地址（选填，默认查站点首页）
+            </label>
+            <input
+              id="friend-apply-backlink"
+              className="editorial-input"
+              value={form.backlinkUrl}
+              onChange={updateField('backlinkUrl')}
+              maxLength={500}
+              placeholder="https://ayee.example.com/links"
+            />
+          </div>
+          <div>
+            <label className={APPLY_FIELD_CLASS} htmlFor="friend-apply-type">
+              申请类型
+            </label>
+            <select
+              id="friend-apply-type"
+              className="editorial-input"
+              value={form.applicationType}
+              onChange={updateField('applicationType')}
+            >
+              <option value="新增">新增</option>
+              <option value="下架">下架</option>
+            </select>
+          </div>
+        </div>
+        <fieldset className="space-y-2 pt-1">
+          <legend className="mb-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300">确认事项</legend>
+          {FRIEND_ISSUE_CONFIRMATIONS.map((item, index) => (
+            <label
+              key={item}
+              className="flex items-start gap-2.5 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400"
+            >
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0 accent-zinc-900 dark:accent-zinc-100"
+                checked={confirmed[index]}
+                onChange={(event) =>
+                  setConfirmed((previous) =>
+                    previous.map((value, position) => (position === index ? event.target.checked : value)),
+                  )
+                }
+              />
+              <span>{item}</span>
+            </label>
+          ))}
+        </fieldset>
+        {error ? (
+          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+            {error}
+          </p>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-4 pt-1">
+          <button type="submit" className="editorial-button-primary inline-flex items-center gap-2">
+            生成 Issue 申请
+            <ArrowRight size={16} />
+          </button>
+          <a
+            href={siteConfig.friendsPage.applyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-zinc-500 underline-offset-4 hover:underline dark:text-zinc-400"
+          >
+            改用空白 Issue 表单
+          </a>
+        </div>
+      </form>
+    </Surface>
+  );
+};
 
 export const Friends = () => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -246,7 +451,7 @@ export const Friends = () => {
         </p>
         <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-5xl">友情链接</h1>
         <p className="mt-4 max-w-2xl text-zinc-600 dark:text-zinc-400">
-          这里汇集了一些优秀的技术博客和有趣的网站。如果你也想交换友链，可以通过 GitHub Issue 提交申请。
+          这里汇集了一些优秀的技术博客和有趣的网站。如果你也想交换友链，可以在下方填好资料，一键带到 GitHub Issue。
         </p>
         <p className="mt-4 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
           <Sparkles size={14} />
@@ -265,7 +470,7 @@ export const Friends = () => {
           <div className="min-w-0 flex-1">
             <span className="text-base font-semibold text-zinc-950 dark:text-white">申请友链</span>
             <p className="mt-1 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-              查看本站友链信息，并前往 GitHub 提交申请
+              查看本站友链信息，填好资料后一键提交 GitHub Issue
             </p>
           </div>
           <motion.div
@@ -296,21 +501,12 @@ export const Friends = () => {
                     exit={shouldReduceMotion ? undefined : { opacity: 0 }}
                   >
                     <Surface variant="card" className="p-4 sm:p-5" aria-labelledby="friend-link-site-info">
-                      <div className="mb-4">
-                        <h2
-                          id="friend-link-site-info"
-                          className="text-base font-semibold text-zinc-900 dark:text-zinc-100"
-                        >
-                          本站友链信息
-                        </h2>
-                        <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                          请将以下信息添加到你的友链页（要服务端直出的
-                          <code className="mx-1 font-mono text-xs">&lt;a href&gt;</code>
-                          ，JS 渲染的挂件检测不到），随后通过 GitHub Issue
-                          提交申请。机器人会先确认站点与头像在境外可以访问（开启禁海外会被自动驳回），
-                          再检测反链作为审核参考，但是否收录由站长确认。
-                        </p>
-                      </div>
+                      <h2
+                        id="friend-link-site-info"
+                        className="mb-4 text-base font-semibold text-zinc-900 dark:text-zinc-100"
+                      >
+                        本站友链信息
+                      </h2>
                       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
                         <ProgressiveImage
                           src={siteInfo.avatar}
@@ -333,15 +529,6 @@ export const Friends = () => {
                       </div>
                       <div className="mt-5 flex flex-wrap items-center gap-4">
                         <a
-                          href={siteConfig.friendsPage.applyUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="editorial-button-primary inline-flex items-center gap-2"
-                        >
-                          通过 GitHub 申请友链
-                          <ArrowRight size={16} />
-                        </a>
-                        <a
                           href={siteConfig.friendsPage.repoFriendsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -350,13 +537,28 @@ export const Friends = () => {
                           查看友链目录
                         </a>
                       </div>
-                      <p className="mt-4 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-                        如有友链信息修改需求，请联系{' '}
+                    </Surface>
+                  </motion.div>
+                  <motion.div
+                    initial={shouldReduceMotion ? false : { opacity: 0 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+                  >
+                    <FriendApplyForm />
+                  </motion.div>
+                  <motion.div
+                    initial={shouldReduceMotion ? false : { opacity: 0 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+                  >
+                    <Surface variant="card" className="p-4 sm:p-5">
+                      <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                        如果有修改友链信息的需求，请联系邮箱{' '}
                         <a
-                          href={siteConfig.social.email}
+                          href={`mailto:${FRIEND_EDIT_CONTACT_EMAIL}`}
                           className="font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-2 transition-colors hover:text-zinc-950 hover:decoration-zinc-500 dark:text-zinc-300 dark:decoration-zinc-700 dark:hover:text-white dark:hover:decoration-zinc-400"
                         >
-                          {siteConfig.social.rawEmail}
+                          {FRIEND_EDIT_CONTACT_EMAIL}
                         </a>
                       </p>
                     </Surface>

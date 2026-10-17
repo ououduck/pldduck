@@ -98,7 +98,6 @@ pldduck/
 │   ├── hooks/ utils/          # 自定义 Hook 与工具函数；utils 下 *.mjs 为客户端与构建脚本共享逻辑
 │   ├── ssr/routeData.tsx      # SSG 路由数据构造与客户端读取
 │   └── App.tsx / index.tsx    # 路由与渲染入口
-├── docs/                      # 内容工作流与部署文档
 ├── ai-rules/                  # 各功能模块的约束清单（改动前必读）
 ├── .pages.yml                 # PagesCMS 配置（后台编辑内容）
 └── .github/workflows/         # 部署、评论审核、友链检测、更新通知、外链扫描
@@ -166,8 +165,8 @@ pldduck/
 `FEISHU_WEBHOOK_URL`、`AKISMET_API_KEY`。Worker 名称为 `pldduck`（见 `wrangler.jsonc`）；
 `d-blog` 是旧博客迁移跳转页所用的独立 Worker，两者不可复用。
 
-平台一次性配置、其他平台所需的 SPA fallback、Service Worker 缓存策略、自动化与通知、外链扫描，
-见 [docs/deployment.md](docs/deployment.md)。
+平台一次性配置、CI 门禁、Service Worker 缓存策略、飞书通知与外链扫描的既有约束，分别记在
+`ai-rules/` 的对应模块（ci-cd.md、service-worker.md、feishu-webhook.md、broken-links.md）。
 
 ## 反馈与协作
 
@@ -181,9 +180,9 @@ pldduck/
 
 ## 文档
 
-- [内容工作流](docs/content-workflow.md)：新建文章、Markdown 增强能力、友链申请、说说、留言板、Giscus 换仓配置
-- [部署与自动化](docs/deployment.md)：双平台直传、SPA fallback、离线策略、飞书通知、外链扫描
-- [AI 开发者约束](AGENT.md) 与 [功能规则集](ai-rules/README.md)：修改任何功能前的必读项
+本仓库不设独立文档目录：约束与流程都记在 [AGENT.md](AGENT.md) 与 [ai-rules/](ai-rules/README.md) 里，
+按模块分册（文章与内容校验、评论与留言板、友链、说说、部署与各 workflow）。改任何功能前先读对应的
+那一份，改完同步它 —— 这些文件写的是既有契约与踩过的坑，不是风格建议。
 
 ## 许可
 

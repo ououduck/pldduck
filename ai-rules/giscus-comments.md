@@ -24,7 +24,9 @@ Giscus 评论区（文章评论 + 留言板）：懒加载、多来源回退链�
 ## 常见陷阱
 
 - 大陆网络下 giscus.app 可能被 DNS 污染：回退链与超时是核心体验保障；
-- 评论数快照写入 post 数据（commentCount），改动生成逻辑需同步 SSG 数据流。
+- 评论数快照写入 post 数据（commentCount），改动生成逻辑需同步 SSG 数据流；
+- **文章 ID 是对外契约**：文章评论按 `mapping=pathname` 用 `/post/<id>` 匹配线程，改 ID 等于换一条评论区，旧站收录的链接也会一起失效；
+- **换仓库/换站点**时 `comments.repo` / `comments.repoId` / `comments.categoryId` / `guestbook.discussionId` 四个值要一起换；分类（「文章评论」「留言板」）**只能在 GitHub 网页端 Discussions 里创建**，REST 与 GraphQL 都没有开放的建分类接口，不要试图用脚本代劳。
 
 ## 破例条款
 

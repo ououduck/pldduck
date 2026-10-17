@@ -1,0 +1,146 @@
+# friend-link.yml — 友链 Issue 申请的处理流水线（检测取证 + 人工标签入库 + 拒绝回复）。
+#
+# 流程（铁律见 ai-rules/friends.md 规则 3/5/6/7）：
+#   申请人开「友链申请」Issue（.github/ISSUE_TEMPLATE/friend-link-application.yml）
+#     → detect job：解析正文、静态抓取反链页面、把证据写进评论并打检测标签、推飞书「待审核」。
+#       **这个 job 在架构上就没有写仓库内容的权限，永远不改文件。**
+#   站长人工判定，二选一打标签：
+#     friend-approved → apply job：重新解析校验 → 写 friends/<slug>.json → 回读自证
+#                       → 触发 deploy.yml → 评论 + 推飞书「已收录」
+#     friend-rejected → apply job：回复固定拒绝文案 → 关闭 Issue → 推飞书「已拒绝」（不写文件）
+#
+# 为什么这么绕（机制事实，别改回去）：
+#   - GITHUB_TOKEN 的 push **不会触发任何 workflow**，所以机器人写完文件后 CI 不会跑、
+#     部署不会跑、飞书 push 通知也不会跑 → 记录校验必须在写入之前完成，
+#     部署与通知必须由本脚本自己发起（GITHUB_TOKEN 自 2022-09-08 起可调 workflow_dispatch）。
+#   - 外部申请人没有打标签的权限（GitHub 要求 triage 及以上），所以「人工标签」本身就是防刷闸门。
+#
+# 首次授予 Actions 仓库写权限（contents: write + actions: write）。护栏：
+#   1) 唯一写入触发器是站长手动打的 friend-approved（job 级 if + 脚本双重判定，且 sender.type == 'Bot' 一律跳过）；
+#   2) 写入目录硬编码 friends/，文件名只从 issue 提交者 login 派生，并在写前断言路径不可穿越；
+#   3) 一次只动一个文件（写后核对 commit.files 与回读内容）；
+#   4) Contents API 的 sha 乐观锁 + 冲突时只在「同一条记录」前提下重试一次，否则转人工；
+#   5) 站长的 unavailable 标记与「下架」请求永不被机器人改动；
+#   6) 检测 job 显式收窄回 contents: read（job 级权限只能收窄，不能突破 workflow 级）。
+#
+# 手动补跑（workflow_dispatch）：填 Issue 编号 + 选 detect/apply/reject。
+#   两个 job 都把 checkout 钉在 ref: main —— 等价于 deploy.yml 的 ref 守卫：
+#   持有写权限的 job 永远不执行别的分支带来的脚本代码。
+#   inputs 一律经 env 间接引用，不内插进 run:（ci-cd 规则 10），合法性和 mode 枚举由脚本判定。
+#
+# 一次性配置（GitHub 侧，零新增 Secret）：
+#   建 7 个 label：friend-link / friend-backlink-ok / friend-backlink-missing /
+#   friend-needs-info / friend-approved / friend-rejected / friend-added；
+#   确认 main 分支没有分支保护（有的话机器人写文件会 403，需要改走 PR）。
+name: Friend Link Check
+
+on:
+  issues:
+    # labeled 是唯一写入入口；opened/edited/reopened 只跑检测。
+    types: [opened, edited, reopened, labeled]
+  issue_comment:
+    # 申请人补一句「我改好了」即可重测（脚本里限定：作者本人或 OWNER/MEMBER/COLLABORATOR，
+    # 且正文不含机器人标记）。
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: 'Issue 编号'
+        required: true
+        type: string
+      mode:
+        description: '执行动作'
+        required: true
+        type: choice
+        default: detect
+        options:
+          - detect
+          - apply
+          - reject
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+jobs:
+  detect:
+    # 只读取证：没有 contents 写权限，任何情况下都不会改动仓库文件。
+    if: >-
+      github.event.sender.type != 'Bot' && (
+        (github.event_name == 'issues' && (github.event.action == 'opened' || github.event.action == 'edited' || github.event.action == 'reopened')) ||
+        (github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == 'friend-link') ||
+        (github.event_name == 'issue_comment' && github.event.action == 'created' && contains(github.event.issue.labels.*.name, 'friend-link')) ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'detect')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      actions: none
+    concurrency:
+      # 同一个 Issue 的多次编辑/评论串行，避免两条检测评论互相插队；不同 Issue 并行。
+      group: friend-link-detect-${{ github.event.issue.number || github.event.inputs.issue }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        # undici（lib/http.mjs 的 SSRF dispatcher）是生产依赖，需要安装。
+        run: npm ci --no-audit --no-fund
+
+      - name: Run backlink detection
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          FRIEND_MODE: ${{ github.event.inputs.mode }}
+          FRIEND_ISSUE: ${{ github.event.inputs.issue }}
+        run: node scripts/friend-link-check.mjs
+
+  apply:
+    # 唯一能写仓库文件的 job。两个全局串行组 + 人工标签前置，缺一不可。
+    if: >-
+      github.event.sender.type != 'Bot' && (
+        (github.event_name == 'issues' && github.event.action == 'labeled' && (github.event.label.name == 'friend-approved' || github.event.label.name == 'friend-rejected')) ||
+        (github.event_name == 'workflow_dispatch' && (github.event.inputs.mode == 'apply' || github.event.inputs.mode == 'reject'))
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      # 全局串行：两条 Issue 同时放行会争抢 friends/ 目录与同一个 deploy.yml。
+      group: friend-link-apply
+      cancel-in-progress: false
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Apply owner decision
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          FRIEND_MODE: ${{ github.event.inputs.mode }}
+          FRIEND_ISSUE: ${{ github.event.inputs.issue }}
+        run: node scripts/friend-link-check.mjs

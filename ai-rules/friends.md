@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-友情链接展示（正常/失联分组）与友链申请入口（两步向导：① 展示本站信息引导添加友链 → ② 跳转 GitHub Issue 申请表单 `siteConfig.friendsPage.applyUrl`）。提交后由 `.github/workflows/friend-link.yml` 静态抓取对方页面做**反链检测，结果仅作为审核参考证据**；**是否入库完全由站长打标签决定**：`friend-approved` → 机器人自己写 `friends/<slug>.json` 并触发部署，`friend-rejected` → 机器人回复拒绝文案。失联状态由站长在 Pages CMS「友链」集合手动维护（勾选「已失联」写入 `unavailable: true`）；未配置时默认视为正常。
+友情链接展示（正常/失联分组）与友链申请入口（两步向导：① 展示本站信息引导添加友链 → ② 跳转 GitHub Issue 申请表单 `siteConfig.friendsPage.applyUrl`）。提交后由 `.github/workflows/friend-link.yml` 静态抓取对方页面做**反链检测，结果仅作为审核参考证据**；**是否入库完全由站长打标签决定**：`friend-approved` → 机器人自己写 `friends/<slug>.json` 并触发部署，`friend-rejected` → 机器人回复固定拒绝文案并关闭 Issue（不写任何文件）。失联状态由站长在 Pages CMS「友链」集合手动维护（勾选「已失联」写入 `unavailable: true`）；未配置时默认视为正常。
 
 ## 关键文件
 
@@ -18,7 +18,7 @@
 
 1. **失联分组**：`friend.unavailable === true` 的友链必须归入「已失联的博客」折叠板块，不混入主列表；标记由站长在 Pages CMS 手动维护，前端只读。
 2. **申请入口 = GitHub Issue**：申请/修改友链统一跳转 `siteConfig.friendsPage.applyUrl`（指向 `friend-link-application.yml` 模板），按钮 `target="_blank" rel="noopener noreferrer"`；两步向导的步骤状态（`currentApplicationStep`）与本站信息卡（`siteInfo`）保留在组件内。**不得再引入 Tally 等外部表单**，也不得在站内自建提交表单（Issue 表单即采集面）。
-3. **自动检测仅供参考**：反链检测（`opened`/`edited`/`reopened`/申请人评论触发的 `findBacklink`）**只产出证据评论 + 标签 + 飞书「待审核」**，任何情况下都不得凭检测结果自动写文件。**`friend-approved` 标签是唯一写入触发器**；人工放行时即使检测未命中也照样入库，但评论必须写明「反链未检测到（人工放行）」并附上最后一次证据。
+3. **自动检测仅供参考**：反链检测（`opened`/`edited`/`reopened`/申请人评论触发的 `findBacklink`）**只产出证据评论 + 标签 + 飞书「待审核」**，任何情况下都不得凭检测结果自动写文件。**`friend-approved` 标签是唯一写入触发器**；人工放行时即使检测未命中也照样入库，但评论必须写明「反链未检测到（人工放行）」并附上最后一次证据。**`friend-rejected` 分支**：回复固定拒绝文案（邮箱取 `REJECT_CONTACT_EMAIL`，现与站点公开邮箱 `i@pldduck.com` 一致，有漂移测试守着）→ 关闭 Issue → 飞书「已拒绝」，不写文件、不 dispatch、不追加审核页脚（避免被读成「补打标签就能上架」）；重新申请要开新 Issue。
 4. **反链判定口径**（改动必须同步本节，不得只写在代码注释里）：
    - 只认 `<a href>` 解析出的绝对 http(s) 地址；host 必须**精确等于或为子域**于 `www.pldduck.com` / `pldduck.com`（`pldduck.com.evil.net`、`evil-pldduck.com` 不算命中）。
    - 判定前先剥离 HTML 注释（主题里注释掉的友链是最可能的假阳性来源）；`<img src>`、`rel=canonical`、`meta refresh`、JS 字符串里的链接一律不算。
@@ -42,7 +42,7 @@
 
 ## 常见陷阱
 
-- Issue 表单只有 `required` 校验（GitHub 至今未实现正则/长度/URL 校验），模板里的 `description` 只是提示 —— 真正的校验在 `friend-form-core.mjs`。改模板字段 label 必须同步 `EXPECTED_FIELDS`，漂移测试会变红。
+- Issue 表单只有 `required` 校验（GitHub 至今未实现正则/长度/URL 校验），模板里的 `description` 只是提示 —— 真正的校验在 `friend-form-core.mjs`。改模板字段 label 必须同步 `FRIEND_FIELDS`，漂移测试会变红。
 - Issue 表单的正文段序与 label 是解析契约；解析有任何异常（缺段/重复段/乱序）都判 `ambiguous` 转人工，**绝不猜测字段值**。
 - 反链检测是**静态抓取**，Vue/React 站用 JS 渲染的友链挂件看不到；申请文案必须写明「请放服务端直出的 `<a href>`」。
 - `friend.unavailable` 标记只读自 `friends/*.json`（Pages CMS 维护），前端与机器人都不得写入。

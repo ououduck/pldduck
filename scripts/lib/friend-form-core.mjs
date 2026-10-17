@@ -396,15 +396,22 @@ const FOOTER = [
 ].join('\n');
 
 /**
+ * 拒绝评论的页脚：不能带「打标签即入库」那句 —— 收到拒绝的人没有打标签的权限，
+ * 那句话对他只是误导。
+ */
+const REJECT_FOOTER = ['', '---', '', '*由 GitHub Actions 自动发布。*'].join('\n');
+
+/**
  * 组装机器人评论（统一带自循环标记与页脚）。
  * @param {object} input
  * @param {string} input.title 一级标题
  * @param {string[]} [input.paragraphs] 普通段落
  * @param {Array<[string, string][]>} [input.sections] `[小标题, [[键, 值]]` 列表
  * @param {string} [input.note] 结尾补充（已含 markdown）
+ * @param {string} [input.footer] 页脚（默认 FOOTER）
  * @returns {string}
  */
-export const renderComment = ({ title, paragraphs = [], sections = [], note = '' }) => {
+export const renderComment = ({ title, paragraphs = [], sections = [], note = '', footer = FOOTER }) => {
   const blocks = [
     FRIEND_ISSUE_MARKER,
     '',
@@ -414,7 +421,7 @@ export const renderComment = ({ title, paragraphs = [], sections = [], note = ''
     ...sections.map(([sectionTitle, rows]) => `${renderSection(sectionTitle, rows)}\n`),
   ];
   if (note) blocks.push(note, '');
-  blocks.push(FOOTER);
+  blocks.push(footer);
   return blocks.join('\n');
 };
 
@@ -460,7 +467,7 @@ export const renderDetectComment = ({ validated, filename, result, siteUrl }) =>
     paragraphs: [
       hit
         ? `已在你的页面上检测到指向本站的链接。**这只是参考证据**，站长确认后（打上 \`friend-approved\` 标签）才会写入友链页。`
-        : `这次**没有**可靠地检测到指向本站的静态链接：${result?.message ?? '检测未完成'}。`,
+        : `这次**没有**可靠地检测到指向本站的静态链接：${result?.message ?? '检测未完成'}`,
       hit
         ? ''
         : [
@@ -525,8 +532,9 @@ export const renderRejectComment = () =>
     title: '友链申请未通过',
     paragraphs: [
       `您的友链出于某些原因被 PLDDUCK 拒绝了，请联系 ${REJECT_CONTACT_EMAIL}`,
-      '本 Issue 不会写入任何友链文件；如需补充信息重新申请，请开一个新的 Issue。',
+      '本 Issue 不会写入任何友链文件，并已关闭；如需补充信息重新申请，请开一个新的 Issue。',
     ],
+    footer: REJECT_FOOTER,
   });
 
 /**

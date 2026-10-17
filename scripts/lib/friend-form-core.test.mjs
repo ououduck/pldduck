@@ -359,11 +359,14 @@ describe('评论渲染', () => {
     }
   });
 
-  it('拒绝文案是固定串 + 约定邮箱，不含任何用户输入', () => {
+  it('拒绝文案是固定串 + 站点公开邮箱，不含任何用户输入', () => {
     const body = renderRejectComment();
     expect(body).toContain('您的友链出于某些原因被 PLDDUCK 拒绝了');
     expect(body).toContain(REJECT_CONTACT_EMAIL);
     expect(body).not.toContain('阿叶');
+    // 收到拒绝的人没有打标签权限，页脚不能教他「打 friend-approved 即入库」。
+    expect(body).not.toContain('friend-approved');
+    expect(body).toContain('已关闭');
   });
 
   it('用户文本一律进行内代码：拼不出可点链接、裸露 HTML 或多行字段', () => {

@@ -44,6 +44,7 @@ on:
       - "Comment Keyword Filter"
       - "Comment Keyword Recheck"
       - "Deploy to Cloudflare Worker"
+      - "Friend Link Check"
       - "Notify Blog Post Update"
     types: [completed]
   workflow_dispatch:

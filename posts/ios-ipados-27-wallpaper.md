@@ -30,6 +30,4 @@ draft: false
 
 # 下载
 
-[OneDrive (免登录 慢)](https://1drv.ms/f/c/777bf5ca0164e4ef/IgDurBx3owy9TajOt-96AyXcASuqw3lOzS_VvhLPrJnwVps?e=2kpgCm)
-
-[移动云盘 (需登录 不限速)](https://yun.139.com/shareweb/#/w/i/2xTrMmrGS58bu)
+[PLDDUCK Download](https://dl.pldduck.com/ios-ipados-27-wallpaper.zip)

@@ -39,15 +39,30 @@
   transition: width 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* 静置态只留图标条：文字与 ↗ 外链角标撤出布局（角标是修饰行文字的，图标条里没有
-   意义），行内容居中。导航项仍是同一批 DOM 节点 —— 卸载会丢掉无障碍名与键盘可达性。
-   展开时文字随内层宽度从 overflow-x 边缘逐步擦出，比同步淡入更接近「被推开」的观感。 */
+/* 静置态只留图标条：文字与 ↗ 外链角标**淡出**而不是撤出布局 —— 两个状态里行高、图标
+   位置完全一致，展开于是只剩内层宽度向右平移这一件事。此前用 display:none 隐藏文字，
+   行高随文字出现而变，鼠标下的按钮会在展开过程中往下跳，得再挪一次鼠标才点得到。
+   导航项仍是同一批 DOM 节点（卸载会丢掉无障碍名与键盘可达性）。
+   展开判据用 :has(:focus-visible) 而不是 :focus-within：点击导航项后链接会保留焦点，
+   旧判据会把浮层一直钉在展开态（鼠标移开也不收），而 :focus-visible 只认真正的键盘聚焦。 */
+.site-sidebar-inner
+  :is(
+    .nav-item-label,
+    .nav-item-hint,
+    .nav-item-external,
+    .sidebar-nav-group-title,
+    .sidebar-brand-text,
+    .sidebar-footer
+  ) {
+  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @media (hover: hover) {
-  .site-sidebar:not(:hover):not(:focus-within) .site-sidebar-inner {
+  .site-sidebar:not(:hover):not(:has(:focus-visible)) .site-sidebar-inner {
     width: var(--sidebar-rail-width);
   }
 
-  .site-sidebar:not(:hover):not(:focus-within)
+  .site-sidebar:not(:hover):not(:has(:focus-visible))
     :is(
       .nav-item-label,
       .nav-item-hint,
@@ -56,13 +71,8 @@
       .sidebar-brand-text,
       .sidebar-footer
     ) {
-    display: none;
-  }
-
-  .site-sidebar:not(:hover):not(:focus-within) :is(.nav-item, .sidebar-brand) {
-    justify-content: center;
-    padding-left: 0;
-    padding-right: 0;
+    opacity: 0;
+    pointer-events: none;
   }
 }
 
@@ -382,7 +392,16 @@
     transition-duration: 1ms;
   }
 
-  .site-sidebar-inner {
+  .site-sidebar-inner,
+  .site-sidebar-inner
+    :is(
+      .nav-item-label,
+      .nav-item-hint,
+      .nav-item-external,
+      .sidebar-nav-group-title,
+      .sidebar-brand-text,
+      .sidebar-footer
+    ) {
     transition-duration: 1ms;
   }
 

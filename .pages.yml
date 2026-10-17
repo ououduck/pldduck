@@ -139,7 +139,7 @@ content:
       - { name: seoHomeDescription, label: 首页 SEO 描述, type: text }
       - { name: description, label: 站点描述, type: text, required: true }
       - { name: logo, label: Logo, type: string, description: '站内展示位用图，默认本地底图 /logo.png（对应 public/logo.png，600×600）；用于 JSON-LD publisher/logo 与友链页「本站信息」的 LOGO 复制文本。可填远程 URL，但友链页展示的是绝对地址' }
-      - { name: logoSmall, label: 小 Logo, type: string, description: '侧栏与顶栏的站标头像位（渲染尺寸 28px），默认本地 /logo-96.png（对应 public/logo-96.png）；不要再填 QQ 图床直链，境外与图床限流都会让页头空一块' }
+      - { name: logoSmall, label: 小 Logo, type: string, description: '侧栏与顶栏的站标头像位（渲染尺寸 28px），默认本地 /logo-96.png（对应 public/logo-96.png）' }
       - { name: seoImage, label: 分享图链接, type: string }
       - { name: footerText, label: 页脚版权文字, type: string }
       - { name: url, label: 站点 URL, type: string, required: true }

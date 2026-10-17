@@ -10,7 +10,7 @@
 
 个人站点「跑路的duck」的完整源码：全站 HTML 于构建期直出，客户端以 SPA 水合运行。
 
-**在线地址**：<https://www.pldduck.com> ｜ **联系邮箱**：<i@pldduck.com>
+**在线地址**：<https://www.pldduck.com> ｜ **联系邮箱**：<pldduck@outlook.com>
 
 </div>
 
@@ -171,10 +171,10 @@ pldduck/
 
 ## 反馈与协作
 
-本站为个人站点，内容以站长笔述为准。Issues 已开放，请按用途选择入口：
+本站为个人站点，内容以站长笔述为准。仓库关闭了空白 Issue，Issues 只保留「友链申请」这一条流程：
 
-- **交换友链**：使用「友链申请」Issue 模板（流程见上文）。
-- **其他问题**：直接开 Issue 说明现象与预期即可，或邮件联系 <i@pldduck.com>。
+- **交换友链**：在 `/friends` 页填好资料后生成 Issue 申请（流程见上文）。
+- **其他问题**：邮件联系 <pldduck@outlook.com>。
 
 改动代码前请先阅读 [AGENT.md](AGENT.md) 与 [ai-rules/](ai-rules/README.md)：其中记录的是各模块的
 既有约束与踩过的坑（构建契约、检测口径、安全边界），并非风格建议。

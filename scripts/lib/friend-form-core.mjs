@@ -35,7 +35,7 @@ export const FRIEND_FIELDS = Object.freeze([
 export const FRIEND_APPLICATION_TYPES = Object.freeze(['新增', '修改', '下架']);
 
 /** 拒绝文案的联系邮箱：用站点公开邮箱（config/site.config.json 的 social.rawEmail），不掺任何用户输入。 */
-export const REJECT_CONTACT_EMAIL = 'i@pldduck.com';
+export const REJECT_CONTACT_EMAIL = 'pldduck@outlook.com';
 
 // 长度上限导出给模板漂移测试：Issue 表单的 maxLength 必须与这里一致，
 // 否则申请人能提交到一半、却在检测评论里收到「过长」，来回改两次。

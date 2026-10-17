@@ -34,6 +34,4 @@ OPPO Sans 允许个人或企业免费使用，含商业用途，版权归 OPPO �
 
 # 字体下载
 
-[OneDrive(免登录 慢)](https://1drv.ms/f/c/777bf5ca0164e4ef/IgD-wRrXwTzITaML8i8Ol-oLAbtozq_aKC3wYT1RzOvyF0Y?e=xSIlb3)
-
-[移动云盘(需登录 不限速)](https://yun.139.com/shareweb/#/w/i/2xTrLonrhSenu)
+[PLDDUCK Download](https://dl.pldduck.com/oppo-sans-4-0.zip)

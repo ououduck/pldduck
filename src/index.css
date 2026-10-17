@@ -13,7 +13,7 @@
      展开态是浮在正文之上的浮层（不挤压布局），故不改动 --sidebar-active-width ——
      底部贴边浮层（Cookie 条等）读的正是「正文让出的宽度」。 */
   --sidebar-width: 16rem;
-  --sidebar-rail-width: 4.25rem;
+  --sidebar-rail-width: 3.75rem;
   --sidebar-active-width: var(--sidebar-rail-width);
   /* 文章标题锚点顶部偏移：唯一数据源。Layout 运行时按实测导航栏高度覆盖
      （专注阅读为 1.5rem）；JS（TOC 跳转/active 判断/hash 深链）与下方

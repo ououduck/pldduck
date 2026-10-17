@@ -37,7 +37,7 @@ const SiteNavList: React.FC<SiteNavListProps> = ({
   <div className="flex flex-col gap-4">
     {navGroups.map((group) => (
       <div key={group.label}>
-        <p className="sidebar-nav-group-title mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
+        <p className="sidebar-nav-group-title mb-1.5 truncate px-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
           {group.label}
         </p>
         <nav aria-label={`${labelPrefix}${group.label}`}>
@@ -58,7 +58,9 @@ const SiteNavList: React.FC<SiteNavListProps> = ({
               if ('path' in item) {
                 const content = (
                   <>
-                    <Icon size={16} aria-hidden="true" className="shrink-0" />
+                    <span className="sidebar-icon flex h-7 w-7 shrink-0 items-center justify-center" aria-hidden="true">
+                      <Icon size={16} />
+                    </span>
                     {label}
                     {hint}
                   </>
@@ -104,7 +106,9 @@ const SiteNavList: React.FC<SiteNavListProps> = ({
                     onClick={onExternalClick}
                     className={`${rowClass} w-full`}
                   >
-                    <Icon size={16} aria-hidden="true" className="shrink-0" />
+                    <span className="sidebar-icon flex h-7 w-7 shrink-0 items-center justify-center" aria-hidden="true">
+                      <Icon size={16} />
+                    </span>
                     {label}
                     {opensNewTab ? (
                       <ExternalLink size={11} aria-hidden="true" className="nav-item-external shrink-0 opacity-60" />
@@ -132,10 +136,10 @@ const SidebarBrand: React.FC<{ onSelectPath?: (path: string) => void; interactio
       <img
         src={assetUrl(siteConfig.logoSmall)}
         alt=""
-        width={36}
-        height={36}
+        width={28}
+        height={28}
         fetchPriority="auto"
-        className="sidebar-avatar h-9 w-9 shrink-0 rounded-full bg-white object-cover"
+        className="sidebar-avatar h-7 w-7 shrink-0 rounded-full bg-white object-cover"
       />
       <span className="sidebar-brand-text min-w-0 flex-1">
         <span className="block truncate font-serif text-base font-bold tracking-tight text-ink dark:text-white">
@@ -155,7 +159,7 @@ const SidebarBrand: React.FC<{ onSelectPath?: (path: string) => void; interactio
         onClick={() => onSelectPath('/')}
         disabled={interactionDisabled}
         aria-label={`${siteConfig.title} 首页`}
-        className="sidebar-brand flex w-full min-w-0 items-center gap-2.5 rounded-control p-1 text-left transition-colors hover:bg-zinc-100/80 disabled:cursor-not-allowed dark:hover:bg-zinc-900/80"
+        className="sidebar-brand flex w-full min-w-0 items-center gap-2.5 rounded-control py-1 pl-2 text-left transition-colors hover:bg-zinc-100/80 disabled:cursor-not-allowed dark:hover:bg-zinc-900/80"
       >
         {content}
       </button>
@@ -166,7 +170,7 @@ const SidebarBrand: React.FC<{ onSelectPath?: (path: string) => void; interactio
     <Link
       to="/"
       aria-label={`${siteConfig.title} 首页`}
-      className="sidebar-brand flex min-w-0 items-center gap-2.5 rounded-control p-1 transition-colors hover:bg-zinc-100/80 dark:hover:bg-zinc-900/80"
+      className="sidebar-brand flex min-w-0 items-center gap-2.5 rounded-control py-1 pl-2 transition-colors hover:bg-zinc-100/80 dark:hover:bg-zinc-900/80"
     >
       {content}
     </Link>
@@ -229,7 +233,7 @@ export const SiteSidebar: React.FC<{ pathname: string }> = ({ pathname }) => (
         paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))',
         paddingRight: '0.75rem',
         paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
-        paddingLeft: 'calc(0.75rem + env(safe-area-inset-left, 0px))',
+        paddingLeft: 'calc(0.5rem + env(safe-area-inset-left, 0px))',
       }}
     >
       <SiteSidebarBody pathname={pathname} labelPrefix="侧边栏" />

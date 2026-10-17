@@ -2,7 +2,8 @@
 #
 # 流程（铁律见 ai-rules/friends.md 规则 3/5/6/7）：
 #   申请人开「友链申请」Issue（.github/ISSUE_TEMPLATE/friend-link-application.yml）
-#     → detect job：解析正文、静态抓取反链页面、把证据写进评论并打检测标签、推飞书「待审核」。
+#     → detect job：解析正文 → 先验站点/头像在境外能否打开（打不开就自动驳回并关闭，这是唯一
+#       由机器人下的结论）→ 静态抓取反链页面、把证据写进评论并打检测标签、推飞书「待审核」。
 #       **这个 job 在架构上就没有写仓库内容的权限，永远不改文件。**
 #   站长人工判定，二选一打标签：
 #     friend-approved → apply job：重新解析校验 → 写 friends/<slug>.json → 回读自证
@@ -29,8 +30,8 @@
 #   inputs 一律经 env 间接引用，不内插进 run:（ci-cd 规则 10），合法性和 mode 枚举由脚本判定。
 #
 # 一次性配置（GitHub 侧，零新增 Secret）：
-#   建 7 个 label：friend-link / friend-backlink-ok / friend-backlink-missing /
-#   friend-needs-info / friend-approved / friend-rejected / friend-added；
+#   建 8 个 label：friend-link / friend-backlink-ok / friend-backlink-missing /
+#   friend-needs-info / friend-unreachable / friend-approved / friend-rejected / friend-added；
 #   确认 main 分支没有分支保护（有的话机器人写文件会 403，需要改走 PR）。
 name: Friend Link Check
 

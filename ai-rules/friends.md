@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-友情链接展示（正常/失联分组）与友链申请入口（两步向导：① 展示本站信息引导添加友链 → ② 跳转 GitHub Issue 申请表单 `siteConfig.friendsPage.applyUrl`）。提交后由 `.github/workflows/friend-link.yml` 静态抓取对方页面做**反链检测，结果仅作为审核参考证据**；**是否入库完全由站长打标签决定**：`friend-approved` → 机器人自己写 `friends/<slug>.json` 并触发部署，`friend-rejected` → 机器人回复固定拒绝文案并关闭 Issue（不写任何文件）。失联状态由站长在 Pages CMS「友链」集合手动维护（勾选「已失联」写入 `unavailable: true`）；未配置时默认视为正常。
+友情链接展示（正常/失联分组）与友链申请入口（两步向导：① 展示本站信息引导添加友链 → ② 跳转 GitHub Issue 申请表单 `siteConfig.friendsPage.applyUrl`）。提交后由 `.github/workflows/friend-link.yml` 先做**可达性探测**（站点地址与头像在境外打不开就直接自动驳回并关闭 Issue），能访问时再静态抓取对方页面做**反链检测，结果仅作为审核参考证据**；**是否入库完全由站长打标签决定**：`friend-approved` → 机器人自己写 `friends/<slug>.json` 并触发部署，`friend-rejected` → 机器人回复固定拒绝文案并关闭 Issue（不写任何文件）。失联状态由站长在 Pages CMS「友链」集合手动维护（勾选「已失联」写入 `unavailable: true`）；未配置时默认视为正常。
 
 ## 关键文件
 
@@ -18,12 +18,13 @@
 
 1. **失联分组**：`friend.unavailable === true` 的友链必须归入「已失联的博客」折叠板块，不混入主列表；标记由站长在 Pages CMS 手动维护，前端只读。
 2. **申请入口 = GitHub Issue**：申请/修改友链统一跳转 `siteConfig.friendsPage.applyUrl`（指向 `friend-link-application.yml` 模板），按钮 `target="_blank" rel="noopener noreferrer"`；两步向导的步骤状态（`currentApplicationStep`）与本站信息卡（`siteInfo`）保留在组件内。**不得再引入 Tally 等外部表单**，也不得在站内自建提交表单（Issue 表单即采集面）。
-3. **自动检测仅供参考**：反链检测（`opened`/`edited`/`reopened`/申请人评论触发的 `findBacklink`）**只产出证据评论 + 标签 + 飞书「待审核」**，任何情况下都不得凭检测结果自动写文件。**`friend-approved` 标签是唯一写入触发器**；人工放行时即使检测未命中也照样入库，但评论必须写明「反链未检测到（人工放行）」并附上最后一次证据。**`friend-rejected` 分支**：回复固定拒绝文案（邮箱取 `REJECT_CONTACT_EMAIL`，现与站点公开邮箱 `i@pldduck.com` 一致，有漂移测试守着）→ 关闭 Issue → 飞书「已拒绝」，不写文件、不 dispatch、不追加审核页脚（避免被读成「补打标签就能上架」）；重新申请要开新 Issue。
+3. **自动检测仅供参考**：反链检测（`opened`/`edited`/`reopened`/申请人评论触发的 `findBacklink`）**只产出证据评论 + 标签 + 飞书「待审核」**，任何情况下都不得凭检测结果自动写文件。**`friend-approved` 标签是唯一写入触发器**；人工放行时即使检测未命中也照样入库，但评论必须写明「反链未检测到（人工放行）」并附上最后一次证据。**唯一允许机器人自己下的结论是可达性闸门**（2026-10 用户授权）：检测前先探申报的站点地址与头像，任一在 Actions 出口（境外 IP）拿不到 2xx/3xx —— 连接超时/被拒、DNS 失败、4xx（含 403 的禁海外/反爬）、5xx —— 即回复固定话术 `UNREACHABLE_NOTICE`、打 `friend-unreachable`、**关闭 Issue**、推飞书「已驳回」，并跳过反链检测。闸门只驳回不入库；「下架」申请不受闸门约束（站点打不开正是申请人要撤链的理由）。站长不认同自动驳回时，重开 Issue 再打 `friend-approved` 即可正常入库。**`friend-rejected` 分支**：回复固定拒绝文案（邮箱取 `REJECT_CONTACT_EMAIL`，现与站点公开邮箱 `i@pldduck.com` 一致，有漂移测试守着）→ 关闭 Issue → 飞书「已拒绝」，不写文件、不 dispatch、不追加审核页脚（避免被读成「补打标签就能上架」）；重新申请要开新 Issue。
 4. **反链判定口径**（改动必须同步本节，不得只写在代码注释里）：
    - 只认 `<a href>` 解析出的绝对 http(s) 地址；host 必须**精确等于或为子域**于 `www.pldduck.com` / `pldduck.com`（`pldduck.com.evil.net`、`evil-pldduck.com` 不算命中）。
    - 判定前先剥离 HTML 注释（主题里注释掉的友链是最可能的假阳性来源）；`<img src>`、`rel=canonical`、`meta refresh`、JS 字符串里的链接一律不算。
    - 抓取后的最终落地 host ≠ 申报 host → 判 `offsite`（防「把域名 301 到 pldduck.com」骗过检测）。
    - 401/403/405/406/407/429 归 `restricted`（可达但拒绝自动化），措辞是「证据不足」而不是「没挂链」。
+   - **两个口径故意不一致，不要「顺手统一」**：同一个 403，在反链侧只说明「拿不到证据」（所以不能判他没挂链），在可达性侧则算「这里打不开」（所以自动驳回 —— 站点屏蔽海外确实没法长期合作）。判定入口分别是 `classifyReachability`（纯函数，有单测）与 `buildTransportVerdict`。
    - **假阴性便宜**（申请人可改正文重测、站长可人工放行），**假阳性只影响证据质量**（不再有自动上架），所以口径宁严不误，但任何 verdict 都不能替站长做决定。
 5. **写入护栏**（`friend-approved` 分支，全部为硬约束）：
    - 目录**硬编码 `friends/`**，不读 `siteConfig.friendsPage.repoFriendsDir`（CMS 可改的配置值不能指挥机器人往哪写；有漂移测试守着）。
@@ -45,6 +46,7 @@
 - Issue 表单只有 `required` 校验（GitHub 至今未实现正则/长度/URL 校验），模板里的 `description` 只是提示 —— 真正的校验在 `friend-form-core.mjs`。改模板字段 label 必须同步 `FRIEND_FIELDS`，漂移测试会变红。
 - Issue 表单的正文段序与 label 是解析契约；解析有任何异常（缺段/重复段/乱序）都判 `ambiguous` 转人工，**绝不猜测字段值**。
 - 反链检测是**静态抓取**，Vue/React 站用 JS 渲染的友链挂件看不到；申请文案必须写明「请放服务端直出的 `<a href>`」。
+- **可达性闸门跑在境外出口 IP 上**：开了禁海外的站点、带防盗链的头像 CDN 都可能被判打不开而自动关闭 Issue。误判的补救是让申请人重开 Issue（会立刻重测）或站长直接打 `friend-approved`；不要为了少驳回就把 403 之类改成「不算失败」—— 那等于把闸门关掉。探测只读 64 KB，别拿它当内容检测用。
 - `friend.unavailable` 标记只读自 `friends/*.json`（Pages CMS 维护），前端与机器人都不得写入。
 - 友链生效要等 `deploy.yml` 跑完（Issue 里写的站点不会立刻出现在 `/friends`）；`pagescms-config.test.mjs` 的配置漂移守卫要求 `applyUrl` 继续用既有键，**不要为友链申请新增配置键**。
 - Issue 流程已于 2026-10 经用户授权恢复（旧规则「不要恢复 Issue 流程」作废）；**不要再引 Tally**，也不要因为「以前删过 Issue」就把写文件改回人工录入。

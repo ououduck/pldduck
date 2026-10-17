@@ -7,6 +7,7 @@ import {
   extractAnchorUrls,
   findBacklink,
   buildTransportVerdict,
+  classifyReachability,
   registrableHost,
 } from './friend-backlink.mjs';
 
@@ -266,5 +267,34 @@ describe('buildTransportVerdict', () => {
       BACKLINK_VERDICTS.FETCH_ERROR,
     );
     expect(buildTransportVerdict({ status: 404 }).message).toContain('HTTP 404');
+  });
+});
+
+describe('classifyReachability', () => {
+  it('2xx 与 3xx（重定向已被逐跳跟完）算能访问', () => {
+    expect(classifyReachability({ status: 200 })).toEqual({ reachable: true, reason: 'HTTP 200' });
+    expect(classifyReachability({ status: 304 }).reachable).toBe(true);
+  });
+
+  it('连接层失败（status 0）算打不开，并带上错误摘要', () => {
+    const result = classifyReachability({ status: 0, error: 'getaddrinfo ENOTFOUND blog.test' });
+    expect(result.reachable).toBe(false);
+    expect(result.reason).toContain('ENOTFOUND');
+  });
+
+  it('403/429 这类「服务器拒绝」在可达性口径里就是打不开（与反链口径的 restricted 故意不同）', () => {
+    const result = classifyReachability({ status: 403 });
+    expect(result.reachable).toBe(false);
+    expect(result.reason).toContain('403');
+    expect(result.reason).toContain('禁海外');
+  });
+
+  it('404/500 等其余状态码算打不开并原样给出状态', () => {
+    expect(classifyReachability({ status: 404 })).toEqual({ reachable: false, reason: 'HTTP 404' });
+    expect(classifyReachability({ status: 503 })).toEqual({ reachable: false, reason: 'HTTP 503' });
+  });
+
+  it('缺参数时按最保守的「打不开」处理', () => {
+    expect(classifyReachability({}).reachable).toBe(false);
   });
 });

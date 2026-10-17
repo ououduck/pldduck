@@ -11,6 +11,8 @@ import {
   MAX_NAME_CHARS,
   MAX_URL_CHARS,
   REJECT_CONTACT_EMAIL,
+  AVATAR_UNREACHABLE_NOTICE,
+  UNREACHABLE_NOTICE,
   buildRecordJson,
   mergeRecordJson,
   normalizeFriendUrl,
@@ -21,6 +23,7 @@ import {
   renderComment,
   renderDetectComment,
   renderRejectComment,
+  renderUnreachableComment,
   suggestFilename,
   validateFriendRecord,
 } from './friend-form-core.mjs';
@@ -493,5 +496,46 @@ describe('模板与解析器的契约（漂移守卫）', () => {
 
   it('写入目录硬编码值与 CMS 配置一致', () => {
     expect(FRIENDS_DIR).toBe(siteConfig.friendsPage.repoFriendsDir);
+  });
+});
+
+describe('renderUnreachableComment（可达性闸门自动驳回）', () => {
+  const site = { url: 'https://blog.example.com', reachable: false, reason: 'HTTP 403（禁海外）' };
+  const avatar = { url: 'https://cdn.example.com/a.png', reachable: true, reason: 'HTTP 200' };
+
+  it('站点打不开时逐字给出站长指定的话术，并带自循环标记', () => {
+    const body = renderUnreachableComment({ site, avatar });
+    expect(body).toContain(UNREACHABLE_NOTICE);
+    expect(UNREACHABLE_NOTICE).toBe(
+      '你的网站经自动检测无法正常访问，如果开启了禁海外，请关闭，否则将影响后续验证和检测，不予通过。',
+    );
+    expect(body).toContain(FRIEND_ISSUE_MARKER);
+    expect(body).toContain('HTTP 403');
+    expect(body).toContain('blog.example.com');
+  });
+
+  it('只有头像打不开时不谎称网站打不开，改说头像话术', () => {
+    const body = renderUnreachableComment({
+      site: { ...site, reachable: true, reason: 'HTTP 200' },
+      avatar: { ...avatar, reachable: false, reason: '连接失败（超时）' },
+    });
+    expect(body).not.toContain(UNREACHABLE_NOTICE);
+    expect(body).toContain(AVATAR_UNREACHABLE_NOTICE);
+    expect(body).toContain('头像地址');
+  });
+
+  it('用拒绝页脚：不能出现「打上 friend-approved 即入库」那类审核提示', () => {
+    const body = renderUnreachableComment({ site, avatar });
+    expect(body).not.toContain('friend-approved` 标签即入库');
+    expect(body).toContain('重开本 Issue');
+  });
+
+  it('失败原因里的控制字符与换行被净化，不会伪造出新的评论段落', () => {
+    const body = renderUnreachableComment({
+      site: { ...site, reason: 'HTTP 500\n- 伪造：注入一行\n\r\x00evil' },
+      avatar,
+    });
+    expect(body).not.toContain('\n- 伪造：');
+    expect(body).not.toContain('\x00');
   });
 });

@@ -297,3 +297,26 @@ export const buildTransportVerdict = ({ status = 0, error = '' }) => {
     stats: { status },
   };
 };
+
+/**
+ * 可达性判定（与反链判定是两回事）：能不能拿到一次成功响应。
+ *
+ * 检测跑在 GitHub Actions 的美欧出口 IP 上，所以「国内能打开」不等于「这里能打开」——
+ * 开启禁海外的站点会连接超时或被 CDN 判 403，两种都算无法访问。
+ * 401/403 这里也判不可达（与上面 `restricted` 的口径不冲突：那边说的是
+ * 「页面可达但拒绝自动化，反链证据不足」，这里说的是「连一次正常响应都没拿到」）。
+ * @param {{status?: number, error?: string}} input HTTP 状态（连接层失败时为 0）
+ * @returns {{reachable: boolean, reason: string}}
+ */
+export const classifyReachability = ({ status = 0, error = '' }) => {
+  if (status >= 200 && status < 400) {
+    return { reachable: true, reason: `HTTP ${status}` };
+  }
+  if (status === 0) {
+    return { reachable: false, reason: String(error || '无法建立连接或超时') };
+  }
+  if (RESTRICTED_STATUS_CODES.has(status)) {
+    return { reachable: false, reason: `HTTP ${status}（服务器拒绝了这个请求：多半是禁海外 / 防火墙 / 反爬）` };
+  }
+  return { reachable: false, reason: `HTTP ${status}` };
+};

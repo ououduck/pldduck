@@ -7,6 +7,8 @@
  *
  * 铁律（见 ai-rules/friends.md 规则 3/5/6）：
  *   - 自动检测只产出证据，**只有站长的 friend-approved 标签会写文件**；
+ *     唯一的自动结论是「站点/头像在境外确认打不开」→ 自动驳回并关闭（不写文件，
+ *     站长想放过就重开 Issue 再打 friend-approved）；
  *   - GITHUB_TOKEN 的 push 不触发任何 workflow，所以记录校验必须在写入之前完成，
  *     收录通知与部署都要机器人自己发（workflow_dispatch 自 2022-09 起允许 GITHUB_TOKEN 调用）；
  *   - 写入目录硬编码 friends/，文件名只从 issue 提交者 login 派生，一次只动一个文件。
@@ -41,6 +43,7 @@ import {
   RESTRICTED_STATUS_CODES,
   buildAcceptedHosts,
   buildTransportVerdict,
+  classifyReachability,
   decodeHtmlBytes,
   findBacklink,
 } from './lib/friend-backlink.mjs';
@@ -56,6 +59,7 @@ import {
   renderBlockedComment,
   renderDetectComment,
   renderRejectComment,
+  renderUnreachableComment,
   suggestFilename,
   validateFriendRecord,
 } from './lib/friend-form-core.mjs';
@@ -88,11 +92,13 @@ const LABELS = Object.freeze({
   ok: 'friend-backlink-ok',
   missing: 'friend-backlink-missing',
   needsInfo: 'friend-needs-info',
+  unreachable: 'friend-unreachable',
   approved: 'friend-approved',
   rejected: 'friend-rejected',
   added: 'friend-added',
 });
-const DETECTION_LABELS = [LABELS.ok, LABELS.missing, LABELS.needsInfo];
+/** 互斥的结论标签：机器人自己摘放，人工标签（approved/rejected）永不触碰。 */
+const DETECTION_LABELS = [LABELS.ok, LABELS.missing, LABELS.needsInfo, LABELS.unreachable];
 
 const REQUEST_HEADERS = {
   'User-Agent':
@@ -217,8 +223,10 @@ const closeIssue = async (number) => {
 /**
  * 逐跳跟随重定向抓取一个 HTML 页面；每一跳都重新做 SSRF 校验（初始地址安全
  * 不代表跳转目标安全）。返回 { html, finalUrl, status, truncated } 或 { transport }。
+ * @param {string} url
+ * @param {{limitBytes?: number}} [options] 只要状态码时用小上限，别把整站首页读进内存
  */
-const fetchHtml = async (url) => {
+const fetchHtml = async (url, { limitBytes = MAX_RESPONSE_BYTES } = {}) => {
   let current = url;
   const dispatcher = await getSafeFetchAgent();
   for (let hops = 0; hops <= MAX_REDIRECTS; hops += 1) {
@@ -261,11 +269,31 @@ const fetchHtml = async (url) => {
       return { transport: buildTransportVerdict({ status: response.status }) };
     }
 
-    const { bytes, truncated } = await readResponseBytesLimited(response, { maxBytes: MAX_RESPONSE_BYTES });
+    const { bytes, truncated } = await readResponseBytesLimited(response, { maxBytes: limitBytes });
     const { text } = decodeHtmlBytes(bytes, response.headers.get('content-type') || '');
     return { html: text, finalUrl: current, status: response.status, truncated };
   }
   return { transport: buildTransportVerdict({ error: `重定向超过 ${MAX_REDIRECTS} 跳` }) };
+};
+
+/** 可达性探测只需要状态码，读 64 KB 足够（别把整站首页/图片拉进内存）。 */
+const PROBE_LIMIT_BYTES = 64 * 1024;
+
+/**
+ * 探测一个地址在 Actions 出口（境外）能不能打开。
+ * 与反链判定分开：这里回答的是「站点/头像存在吗」，不是「有没有挂本站的链接」。
+ * @returns {Promise<{reachable: boolean, reason: string, status: number}>}
+ */
+const probeUrl = async (url) => {
+  const fetched = await fetchHtml(url, { limitBytes: PROBE_LIMIT_BYTES });
+  if (!fetched.transport) {
+    logger.info('可达性探测结果', { url: sanitizeUrlForLogs(url), reachable: true, status: fetched.status });
+    return { reachable: true, status: fetched.status, reason: `HTTP ${fetched.status}` };
+  }
+  const status = Number(fetched.transport.stats?.status ?? 0);
+  const { reachable, reason } = classifyReachability({ status, error: fetched.transport.message });
+  logger.info('可达性探测结果', { url: sanitizeUrlForLogs(url), reachable, status });
+  return { reachable, status, reason };
 };
 
 /**
@@ -395,6 +423,35 @@ const runDetect = async (issue) => {
     await notify('friend-review', `【友链待审核】#${issue.number} ${blocked}（表单有问题）\n${issueUrl(issue.number)}`);
     logger.info('检测阶段：表单不可用，已退回', { reason: blocked });
     return;
+  }
+
+  /* 可达性闸门：站点或头像在境外根本打不开 → 自动驳回并关闭 Issue。
+     这是唯一由机器人自己下的结论（用户 2026-10 授权，见 ai-rules/friends.md 规则 3），
+     且只驳回、永远不写文件；「下架」申请不卡（人家就是要撤链，站点打不开正是理由）。 */
+  if (validated.applicationType !== '下架') {
+    const site = { url: validated.record.url, ...(await probeUrl(validated.record.url)) };
+    const avatar = { url: validated.record.avatar, ...(await probeUrl(validated.record.avatar)) };
+    if (!site.reachable || !avatar.reachable) {
+      await postComment(issue.number, renderUnreachableComment({ site, avatar }));
+      await syncDetectionLabel(issue, LABELS.unreachable);
+      await closeIssue(issue.number);
+      await notify(
+        'friend-rejected',
+        [
+          `【友链自动驳回】#${issue.number} ${validated.record.name}`,
+          `站点：${site.reachable ? '可访问' : '打不开'} — ${sanitizeLogValue(site.reason)}`,
+          `头像：${avatar.reachable ? '可访问' : '打不开'} — ${sanitizeLogValue(avatar.reason)}`,
+          `申请人：${issue.user?.login || '未知'}`,
+          issueUrl(issue.number),
+        ].join('\n'),
+      );
+      logger.info('可达性检查未通过，已自动驳回并关闭', {
+        issue: issue.number,
+        siteReachable: site.reachable,
+        avatarReachable: avatar.reachable,
+      });
+      return;
+    }
   }
 
   const detectionUrl = pickDetectionUrl(validated);

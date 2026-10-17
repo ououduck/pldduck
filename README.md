@@ -32,7 +32,7 @@ React 19 + Vite 6 + TypeScript，构建期直出全站 HTML（SSG），客户端
 | 文章 | `/posts`、`/post/:id` | Markdown 驱动，构建期校验 frontmatter、分类白名单与草稿过滤 |
 | 归档 / 标签 / 统计 | `/archive`、`/tags`、`/stats` | 由构建期站点数据派生 |
 | 说说 | `/shuoshuo`、`/shuoshuo/:id` | 朋友圈式短动态，每条独立静态页 |
-| 友链 | `/friends` | 数据为 `friends/*.json`，申请走 Issue 表单 + Actions 反链检测取证，站长打标签才入库 |
+| 友链 | `/friends` | 数据为 `friends/*.json`，申请走 Issue 表单 + 可达性/反链自动检测取证，站长打标签才入库 |
 | 留言板 | `/guestbook` | Giscus 单讨论模式，与评论共用反垃圾链路 |
 | 站内搜索 | `/search`、`Ctrl/Cmd + K` | 构建期索引 + 多维权重评分，命令面板与独立页共用 |
 | 工具 | `/cover`、`/watermark` | 封面生成器（批量 ZIP 导出）、水印工具（图片不离开浏览器） |

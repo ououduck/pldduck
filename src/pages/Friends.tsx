@@ -306,7 +306,8 @@ export const Friends = () => {
                           请将以下信息添加到你的友链页（要服务端直出的
                           <code className="mx-1 font-mono text-xs">&lt;a href&gt;</code>
                           ，JS 渲染的挂件检测不到），随后通过 GitHub Issue
-                          提交申请。机器人会自动检测反链作为审核参考，但是否收录由站长确认。
+                          提交申请。机器人会先确认站点与头像在境外可以访问（开启禁海外会被自动驳回），
+                          再检测反链作为审核参考，但是否收录由站长确认。
                         </p>
                       </div>
                       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">

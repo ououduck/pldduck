@@ -537,6 +537,39 @@ export const renderRejectComment = () =>
     footer: REJECT_FOOTER,
   });
 
+/** 站点无法访问时的固定话术（站长指定，逐字保留）。 */
+export const UNREACHABLE_NOTICE =
+  '你的网站经自动检测无法正常访问，如果开启了禁海外，请关闭，否则将影响后续验证和检测，不予通过。';
+
+/** 站点能访问、只有头像打不开时换这句（否则会误告「网站打不开」）。 */
+export const AVATAR_UNREACHABLE_NOTICE =
+  '你的网站可以正常访问，但**头像地址**经自动检测拿不到图片。请把头像换成公开可直链访问的图片地址（同样不要屏蔽海外）。';
+
+/**
+ * 可达性检查失败 → 自动驳回评论。
+ * @param {object} input
+ * @param {{url: string, reachable: boolean, reason: string}} [input.site] 站点地址检查结果
+ * @param {{url: string, reachable: boolean, reason: string}} [input.avatar] 头像地址检查结果
+ * @returns {string}
+ */
+export const renderUnreachableComment = ({ site, avatar }) => {
+  const describe = (check) => `${inlineCode(check.url)} → ${sanitizeLogValue(check.reason)}`;
+  const rows = [];
+  if (site) rows.push(['站点地址', describe(site)]);
+  if (avatar) rows.push(['头像地址', describe(avatar)]);
+  return renderComment({
+    title: '自动检测：无法访问，本次申请不予通过',
+    paragraphs: [
+      site && !site.reachable ? UNREACHABLE_NOTICE : '',
+      site && site.reachable && avatar && !avatar.reachable ? AVATAR_UNREACHABLE_NOTICE : '',
+      '检测运行在境外的 GitHub Actions 上：从你本地能打开不代表这里能打开，防火墙丢弃、连接超时、CDN 返回 403 都会被判定为无法访问。',
+    ],
+    sections: rows.length > 0 ? [['访问检查', rows]] : [],
+    note: '本 Issue 已关闭。解除屏蔽后**重开本 Issue** 会立刻重新检测；站长也随时可以人工放行（打 `friend-approved`）。',
+    footer: REJECT_FOOTER,
+  });
+};
+
 /**
  * 无法处理（解析失败/校验失败/需要人工）时的评论。
  * @param {object} input

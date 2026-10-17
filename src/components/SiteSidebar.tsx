@@ -178,16 +178,6 @@ const SidebarFooter = () => (
     <p className="truncate">
       {siteConfig.footerText} · {siteConfig.author.name}
     </p>
-    {siteConfig.beian ? (
-      <a
-        href={siteConfig.beian.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-1 inline-flex min-h-8 items-center transition-colors hover:text-ink dark:hover:text-white"
-      >
-        {siteConfig.beian.text}
-      </a>
-    ) : null}
   </div>
 );
 

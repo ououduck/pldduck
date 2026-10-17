@@ -705,16 +705,6 @@ const Footer = () => {
           <p>
             {siteConfig.footerText} · {siteConfig.author.name}
           </p>
-          {siteConfig.beian ? (
-            <a
-              href={siteConfig.beian.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center transition-colors hover:text-ink dark:hover:text-white"
-            >
-              {siteConfig.beian.text}
-            </a>
-          ) : null}
         </div>
       </div>
     </footer>

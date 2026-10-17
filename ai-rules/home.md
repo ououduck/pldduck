@@ -39,7 +39,7 @@
 
 - 头像（`q1.qlogo.cn`）不可达时在 `onError` 里切到 ui-avatars 兜底：只能在事件回调中改状态，不得在渲染期探测。
 - 首屏最大的封面图 preload 属于 `/posts`（`scripts/ssg.mjs` 里按 `page.path === 'posts'` 注入）：搬到首页会让 Chrome 报「preloaded 但未使用」，因为首页已经没有文章卡片了。
-- 页脚与备案由 `Layout` 统一渲染，首页不得重复输出。
+- 页脚由 `Layout` 统一渲染，首页不得重复输出。
 
 ## 破例条款
 

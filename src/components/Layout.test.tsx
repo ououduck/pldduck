@@ -149,7 +149,7 @@ describe('Layout', () => {
     expect(within(dialog).queryByRole('link', { name: /反馈/ })).not.toBeInTheDocument();
   });
 
-  it('渲染页脚（站点标题与备案链接）', () => {
+  it('渲染页脚（站点标题与页脚文案）', () => {
     renderLayout();
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });

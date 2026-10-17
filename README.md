@@ -111,7 +111,7 @@ pldduck/
 
 | 文件 | 内容 | PagesCMS 集合 |
 | --- | --- | --- |
-| `config/site.config.json` | 标题、描述、SEO、logo、社交、作者、备案、内容开关 | 站点配置 |
+| `config/site.config.json` | 标题、描述、SEO、logo、社交、作者、内容开关 | 站点配置 |
 | `config/portal.config.json` | 首页门户文案：标语、状态、标签、入口、链接、项目 | 首页内容 |
 | `config/comments.config.json` | Giscus 评论与留言板参数 | 评论与留言板 |
 
@@ -187,7 +187,3 @@ pldduck/
 ## 许可
 
 源代码与仓库内内容以 [MIT](./LICENSE) 许可发布。
-
-## 备案
-
-湘ICP备2025101669号

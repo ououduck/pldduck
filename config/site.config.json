@@ -11,8 +11,8 @@
   "url": "https://www.pldduck.com",
   "social": {
     "github": "https://github.com/ououduck/",
-    "email": "mailto:i@pldduck.com",
-    "rawEmail": "i@pldduck.com",
+    "email": "mailto:pldduck@outlook.com",
+    "rawEmail": "pldduck@outlook.com",
     "qq": "2472652060"
   },
   "author": {
@@ -33,9 +33,5 @@
   "content": {
     "repoUrl": "https://github.com/ououduck/pldduck",
     "defaultBranch": "main"
-  },
-  "beian": {
-    "text": "湘ICP备2025101669号",
-    "url": "https://beian.miit.gov.cn"
   }
 }

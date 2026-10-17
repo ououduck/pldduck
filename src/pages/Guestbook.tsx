@@ -2,7 +2,7 @@
  * 留言板页：基于 giscus 讨论的访客留言区。
  */
 
-import { MessageSquareText, LogIn, ShieldCheck, Lightbulb } from 'lucide-react';
+import { MessageSquareText } from 'lucide-react';
 import { siteConfig } from '@config/site.config';
 import { absoluteSiteUrl } from '@/utils/siteUrl';
 import { Seo, buildSiteSchemas } from '../components/Seo';
@@ -47,26 +47,6 @@ export const Guestbook = () => {
         </p>
         <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-5xl">留言板</h1>
       </header>
-
-      <Surface className="mb-8 p-5 sm:p-6">
-        <p className="text-base leading-7 text-zinc-600 dark:text-zinc-400 md:text-lg md:leading-8">
-          欢迎在这里留下你的足迹：闲聊、建议、问题反馈都可以。文章相关的讨论请直接在对应文章页面的评论区进行。
-        </p>
-        <ul className="mt-5 space-y-2.5 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-          <li className="flex items-start gap-2.5">
-            <LogIn size={16} className="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
-            <span>登录 GitHub 账号即可留言，无需注册新账号。</span>
-          </li>
-          <li className="flex items-start gap-2.5">
-            <ShieldCheck size={16} className="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
-            <span>友善交流，广告与垃圾内容会被 Akismet 自动清理。</span>
-          </li>
-          <li className="flex items-start gap-2.5">
-            <Lightbulb size={16} className="mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
-            <span>好的建议会认真阅读，可能成为下一篇博客的选题。</span>
-          </li>
-        </ul>
-      </Surface>
 
       {siteConfig.giscusEnabled ? (
         <GiscusComments mapping="number" term={siteConfig.guestbook.discussionId} />

@@ -49,7 +49,7 @@ export const ShuoShuo = () => {
         </p>
         <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-5xl">说说</h1>
         <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400 md:text-base">
-          这里是一块类似 PLDDUCK 朋友圈的短动态小天地，最新在前。
+          这里是一块类似 PLDDUCK 朋友圈的短动态小天地。
         </p>
       </header>
 

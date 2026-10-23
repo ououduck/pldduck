@@ -106,6 +106,11 @@ export interface SiteGuestbook {
   discussionId: number;
 }
 
+export interface SiteShuoShuo {
+  /** 承载「说说」的 GitHub Discussion 编号（公告分类下，每条评论 = 一条说说）。 */
+  discussionId: number;
+}
+
 export interface SiteFriendsPage {
   repoUrl: string;
   repoFriendsUrl: string;
@@ -143,6 +148,8 @@ export interface SiteConfig {
   giscusEnabled?: boolean;
   comments: SiteComments;
   guestbook: SiteGuestbook;
+  /** 说说数据源：giscus 内嵌锁定的公告 Discussion（来自 config/comments.config.json 的 shuoshuo 段）。 */
+  shuoshuo: SiteShuoShuo;
   friendsPage: SiteFriendsPage;
   /** 文章内容仓库（"在 GitHub 上编辑此文"/查看源文件入口使用）。 */
   content?: SiteContent;

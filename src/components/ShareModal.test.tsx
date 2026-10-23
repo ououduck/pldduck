@@ -121,24 +121,24 @@ describe('ShareModal', () => {
     });
   });
 
-  it('说说模式：autoCopied=true 显示自动复制成功，迟到结果不覆盖手动状态', async () => {
+  it('autoCopied=true：显示自动复制成功，迟到结果不覆盖手动状态', async () => {
     const user = userEvent.setup();
     const { copyTextToClipboard } = await import('@/utils/clipboard');
     const { rerender } = render(
-      <ShareModal isOpen {...baseProps} onClose={vi.fn()} autoCopied={null} contentLabel="这条说说" />,
+      <ShareModal isOpen {...baseProps} onClose={vi.fn()} autoCopied={null} contentLabel="这条内容" />,
     );
-    expect(screen.getByText('这条说说')).toBeInTheDocument();
+    expect(screen.getByText('这条内容')).toBeInTheDocument();
 
     // 打开后用户先手动复制
     await user.click(screen.getByRole('button', { name: '仅复制链接' }));
     // 迟到的 autoCopied=false（竞态）不得覆盖成功状态
-    rerender(<ShareModal isOpen {...baseProps} onClose={vi.fn()} autoCopied={false} contentLabel="这条说说" />);
+    rerender(<ShareModal isOpen {...baseProps} onClose={vi.fn()} autoCopied={false} contentLabel="这条内容" />);
     expect(screen.getByText('复制成功')).toBeInTheDocument();
     expect(copyTextToClipboard).toHaveBeenCalled();
   });
 
-  it('说说模式：autoCopied=false 且未手动复制时显示失败提示', () => {
-    render(<ShareModal isOpen {...baseProps} onClose={vi.fn()} autoCopied={false} contentLabel="这条说说" />);
+  it('autoCopied=false 且未手动复制时显示失败提示', () => {
+    render(<ShareModal isOpen {...baseProps} onClose={vi.fn()} autoCopied={false} contentLabel="这条内容" />);
     expect(screen.getByText('自动复制失败，请点击下方按钮手动复制。')).toBeInTheDocument();
   });
 

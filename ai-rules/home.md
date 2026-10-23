@@ -10,7 +10,7 @@
 
 英雄区**不再输出 `siteConfig.subtitle` 小字**：站点身份已经由全站外壳（侧边栏 + 顶栏面包屑）承担，首页只留站名与描述。
 
-**本页不出现任何文章/说说/友链的正文内容列表**，也不承载列表的筛选、排序、分页与搜索结果展示：文章列表在
+**本页不出现任何文章/说说/友链的正文内容列表**（说说页现为 giscus 内嵌，首页同样不得内嵌），也不承载列表的筛选、排序、分页与搜索结果展示：文章列表在
 `/posts`（见 `posts.md`），归档/标签/搜索分别在 `/archive`、`/tags`、`/search`。首页只给出指向它们的入口。
 站点**自身**的身份文案（自述、折腾记录、技术栈）属于本页职责，不是内容列表。
 
@@ -24,7 +24,7 @@
 
 ## 修改规则（必须遵守）
 
-1. **纯导流**：不得渲染 `PostCard`、说说摘要、友链头像等任何内容列表；需要新增栏目就加一条 `portal.entries`。搜索表单只做 `navigate('/search?q=…')`；空查询不跳转。站点身份文案（`author.bio`、`portal.identity`、`portal.stack`）是例外——它们描述本站，不是内容列表。
+1. **纯导流**：不得渲染 `PostCard`、说说 giscus 内嵌、友链头像等任何内容列表；需要新增栏目就加一条 `portal.entries`。搜索表单只做 `navigate('/search?q=…')`；空查询不跳转。站点身份文案（`author.bio`、`portal.identity`、`portal.stack`）是例外——它们描述本站，不是内容列表。
 2. **URL 状态最小化**：首页唯一合法 URL 是无参 `/`。挂载时把残留参数清掉（`replace`），`?q=` 则整串转交 `/search`（兼容旧版首页的搜索分享链接）。新增交互不得再引入查询参数。
 3. **SSG/水合确定性**：门户文案一律来自构建期内联的 `siteConfig.portal`；渲染期禁止 fetch、`Date.now()`、`Math.random()`、`window`/`document` 访问。
 4. **内容不硬编码**：站点入口/次级链接/开源项目与「关于本站」正文都来自 `siteConfig.portal`，新增图标在 `PORTAL_ICONS` 注册并保留 `Sparkles` 兜底；不得把清单抄进组件。在 `portal.config.json` 加字段必须同步在 `.pages.yml` 的 `portalConfig.fields` 声明，否则 PagesCMS 保存时会把它抹掉。

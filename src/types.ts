@@ -1,7 +1,7 @@
 /**
- * 全站共享数据类型：文章（Post/PostMetadata/PostAuthor）、友链（Friend）
- * 与说说（ShuoShuo）。数据源为构建期生成的 JSON（generated/*），
- * 客户端数据层（services/*）按本文件契约读写。
+ * 全站共享数据类型：文章（Post/PostMetadata/PostAuthor）与友链（Friend）。
+ * 数据源为构建期生成的 JSON（generated/*），客户端数据层（services/*）按本文件契约读写。
+ * 说说改由 giscus 承载（config/comments.config.json.shuoshuo.discussionId），无独立类型。
  */
 export interface PostAuthor {
   name: string;
@@ -55,13 +55,4 @@ export interface Friend {
    *  Pages CMS 里的手工勾选会被下一轮巡检覆写；未配置（缺失/false）默认视为正常，
    *  true 时在友链页归入「已失联的博客」板块。前端只读。 */
   unavailable?: boolean;
-}
-
-/** 说说（短动态）：类似朋友圈的一句话内容，正文为 Markdown，images 为可选九宫格图片。 */
-export interface ShuoShuo {
-  id: string;
-  date: string;
-  images?: string[];
-  content: string;
-  filePath: string;
 }

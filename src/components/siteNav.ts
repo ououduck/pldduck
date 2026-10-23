@@ -115,9 +115,5 @@ export const resolveNavLabel = (pathname: string): string | null => {
     }
   }
 
-  if (pathname.startsWith('/shuoshuo/')) {
-    return '说说';
-  }
-
   return null;
 };

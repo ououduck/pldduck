@@ -7,18 +7,18 @@
 ## 关键文件
 
 - `src/pages/NotFound.tsx`
-- `src/components/NotFoundState.tsx`（与文章/说说缺失页共用状态块）
+- `src/components/NotFoundState.tsx`（与文章缺失页共用状态块；说说详情页退役后不再复用于说说）
 
 ## 修改规则（必须遵守）
 
 1. **不嵌套 `<main>`**：Layout 已渲染 `<main>` 包裹路由内容，本页只能渲染 `<div>`（HTML 规范禁止 main 嵌套 main）。
 2. **noindex**：404 页必须 `Seo noindex`（SPA 内 200 响应，避免被收录）。
-3. **debugLabel**：仅在开发/缺失场景展示调试信息；文章/说说缺失页复用 NotFoundState 时保持一致文案模式。
+3. **debugLabel**：仅在开发/缺失场景展示调试信息；文章缺失页复用 NotFoundState 时保持一致文案模式。
 4. **调试路径水合一致性**：debugLabel 的路径**不得在渲染期直接读 location.pathname** —— SSG 用占位路由 /**missing** 预渲染、构建后替换为 /，客户端在真实未知路径水合时首帧直读会与 SSR 文本不一致。必须首帧输出占位符、挂载后 effect 写入真实路径。
 
 ## 常见陷阱
 
-- NotFoundState 的修改会同时影响文章缺失与说说缺失页；
+- NotFoundState 的修改会同时影响 404 页与文章缺失页；
 - 调试信息（路径/id）不得泄露敏感内容（当前仅 pathname/id，保持此范围）。
 
 ## 破例条款

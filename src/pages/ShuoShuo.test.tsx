@@ -1,25 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ShuoShuo } from './ShuoShuo';
+import { siteConfig } from '@config/site.config';
 
-vi.mock('@/services/shuoshuo', () => ({
-  getInitialShuoShuo: vi.fn(),
-}));
-vi.mock('@/components/ShuoShuoItem', () => ({
-  ShuoShuoItem: ({ item }: { item: { id: string; content: string } }) => (
-    <li data-testid={`shuoshuo-${item.id}`}>{item.content}</li>
-  ),
-}));
-vi.mock('@/components/ImageViewer', () => ({
-  ImageViewer: () => <div data-testid="mock-viewer" />,
-}));
-vi.mock('@/components/ShuoShuoShareModal', () => ({
-  ShuoShuoShareModal: () => <div data-testid="mock-share" />,
-}));
+// GiscusComments 会在视口接近时注入脚本与 iframe，测试环境不需要联网：
+// mock 成 data-testid 桩，直接暴露 props 便于断言 mapping / term。
+const giscusMock = vi.hoisted(() => ({ mapping: '', term: undefined as string | number | undefined }));
 
-import * as shuoshuoService from '@/services/shuoshuo';
+vi.mock('@/components/GiscusComments', () => ({
+  GiscusComments: ({ mapping, term }: { mapping?: string; term?: string | number }) => {
+    giscusMock.mapping = mapping ?? '';
+    giscusMock.term = term;
+    return <div data-testid="mock-giscus" />;
+  },
+}));
 
 const renderShuoShuo = (initialEntry = '/shuoshuo') =>
   render(
@@ -31,53 +26,18 @@ const renderShuoShuo = (initialEntry = '/shuoshuo') =>
   );
 
 describe('ShuoShuo', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: vi.fn((query: string) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    });
-    vi.mocked(shuoshuoService.getInitialShuoShuo).mockReturnValue([
-      { id: 'one', date: '2026-01-01', content: '今天学习了 **React** 的 Hooks', filePath: '/shuoshuo/one.md' },
-      { id: 'two', date: '2026-01-02', content: '测试 Vite 构建速度', filePath: '/shuoshuo/two.md' },
-    ]);
+  it('页面标题与介绍渲染', () => {
+    renderShuoShuo();
+    expect(screen.getByRole('heading', { level: 1, name: '说说' })).toBeInTheDocument();
   });
 
-  it('渲染全部说说', () => {
+  it('giscusEnabled=true 时按公告 discussion 编号锁定内嵌评论区', () => {
+    // 默认配置（config/comments.config.json）里 giscusEnabled 为 true；
+    // mapping 必须是 number（精确锁定，不自动建讨论），term 是 shuoshuo.discussionId。
+    expect(siteConfig.giscusEnabled).toBe(true);
     renderShuoShuo();
-    expect(screen.getByTestId('shuoshuo-one')).toBeInTheDocument();
-    expect(screen.getByTestId('shuoshuo-two')).toBeInTheDocument();
-  });
-
-  it('搜索按正文内容过滤（markdown 剥离后）', async () => {
-    const user = userEvent.setup();
-    renderShuoShuo();
-    const input = screen.getByLabelText('搜索说说内容');
-
-    await user.type(input, 'React'); // 大小写不敏感匹配 "React"（正文中的粗体标记已被剥离）。
-    expect(screen.getByTestId('shuoshuo-one')).toBeInTheDocument();
-    expect(screen.queryByTestId('shuoshuo-two')).not.toBeInTheDocument();
-  });
-
-  it('清除搜索恢复全部', async () => {
-    const user = userEvent.setup();
-    renderShuoShuo();
-    const input = screen.getByLabelText('搜索说说内容');
-
-    await user.type(input, 'Vite');
-    // 过滤是同步 useMemo（无异步等待），userEvent.type 已 flush 输入事件。
-    expect(screen.queryByTestId('shuoshuo-one')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '清除搜索' }));
-    expect(screen.getByTestId('shuoshuo-one')).toBeInTheDocument();
-    expect(screen.getByTestId('shuoshuo-two')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-giscus')).toBeInTheDocument();
+    expect(giscusMock.mapping).toBe('number');
+    expect(giscusMock.term).toBe(siteConfig.shuoshuo.discussionId);
   });
 });

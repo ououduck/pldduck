@@ -104,10 +104,10 @@ for (const file of files) {
   }
 
   // ---- Meta description ----
-  // 文章页与说说详情页的摘要由内容本身决定（短动态天然短），Google 官方说明
+  // 文章页的摘要由内容本身决定（不同文章长短不一），Google 官方说明
   // 短摘录可接受（不足时按页面正文生成摘要），仅对 <20 字的贫瘠描述告警；
-  // 其余页面按最佳实践 50-160 建议。
-  const isPostPage = relativePath.startsWith('post/') || relativePath.startsWith('shuoshuo/');
+  // 其余页面按最佳实践 50-160 建议（/shuoshuo 列表页描述由页面组件固定，走此常规口径）。
+  const isPostPage = relativePath.startsWith('post/');
   const descs = html.match(/<meta\b[^>]*name=["']description["'][^>]*>/gi) ?? [];
   if (descs.length === 0) fail(relativePath, 'description', '缺少 meta description');
   else if (descs.length > 1) fail(relativePath, 'description', `存在 ${descs.length} 个 description`);

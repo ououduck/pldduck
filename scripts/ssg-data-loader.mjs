@@ -1,5 +1,5 @@
 /**
- * SSG 数据加载：从 generated/ 读取 posts/shuoshuo 等构建期数据并做契约校验，供 ssg.mjs 渲染静态页面。
+ * SSG 数据加载：从 generated/ 读取 posts 等构建期数据并做契约校验，供 ssg.mjs 渲染静态页面。
  */
 
 import fs from 'fs';

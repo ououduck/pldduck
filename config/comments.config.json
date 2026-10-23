@@ -10,5 +10,8 @@
   },
   "guestbook": {
     "discussionId": 2
+  },
+  "shuoshuo": {
+    "discussionId": 4
   }
 }

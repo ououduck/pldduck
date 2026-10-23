@@ -21,10 +21,10 @@
 
 | 模块 | 路径 | 说明 |
 | --- | --- | --- |
-| 门户首页 | `/` | 站点简介、栏目入口、最新文章 / 说说 / 友链 |
+| 门户首页 | `/` | 站点简介、栏目入口（文章 / 说说 / 友链 等，纯导流，不渲染内容列表） |
 | 文章 | `/posts`、`/post/:id` | Markdown 驱动，构建期校验 frontmatter、分类白名单并过滤草稿 |
 | 归档 / 标签 / 统计 | `/archive`、`/tags`、`/stats` | 由构建期生成的站点数据派生 |
-| 说说 | `/shuoshuo`、`/shuoshuo/:id` | 短动态，每条生成独立静态页 |
+| 说说 | `/shuoshuo` | 公告 Discussion 每条评论 = 一条说说，Giscus 内嵌，最新在前（旧 `/shuoshuo/:id` 301 回列表页） |
 | 友情链接 | `/friends` | 可申请交换，含自动检测与人工审核流程（见「友链交换」） |
 | 留言板 | `/guestbook` | Giscus 单讨论模式，与文章评论共用同一条反垃圾链路 |
 | 站内搜索 | `/search`、`Ctrl/Cmd + K` | 构建期生成索引，命令面板与独立搜索页共用同一套多维权重评分 |
@@ -87,14 +87,14 @@ npm run audit:seo    # 单独复核全站 SEO 清单
 ```text
 pldduck/
 ├── config/                    # 站点与内容配置、tsconfig、tailwind、postcss；routes.mjs 为路由唯一数据源
-├── posts/ shuoshuo/ friends/  # 文章 Markdown、短动态 Markdown、友链 JSON（每项一个文件）
+├── posts/ friends/            # 文章 Markdown、友链 JSON（每项一个文件）；说说改由 giscus 承载，无本地目录
 ├── generated/                 # 构建产物：posts.json / posts-search.json / site-stats.json 等
 ├── public/                    # favicon、PWA 图标、sw.js、offline.html 与生成的 feed / sitemap
 ├── scripts/                   # 构建与自动化脚本，lib/ 为共享的 HTTP 安全与日志模块
 ├── src/
 │   ├── components/            # Layout、SiteSidebar、Seo、TableOfContents、ImageViewer 等
 │   ├── pages/                 # 页面组件（懒加载）；cover/、watermark/ 为各自模块集
-│   ├── services/              # posts / friends / shuoshuo / readingHistory 等数据访问
+│   ├── services/              # posts / friends / readingHistory 等数据访问（说说走 giscus 内嵌，无 service）
 │   ├── hooks/ utils/          # 自定义 Hook 与工具函数；utils 下 *.mjs 为客户端与构建脚本共享逻辑
 │   ├── ssr/routeData.tsx      # SSG 路由数据构造与客户端读取
 │   └── App.tsx / index.tsx    # 路由与渲染入口

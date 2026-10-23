@@ -22,7 +22,7 @@
 4. **构建配置**：修改 tsconfig/vite/tailwind 需全量回归（typecheck + 构建 + 测试）；启用的严格项不得擅自关闭。
 5. **路径别名**：`@/*`（src）、`@config/*`（config）语义保持，新增目录不得引入新别名。
 6. **依赖升级**：安全相关升级（如 react-router 修复 CVE）优先；major 升级需全量验证并评估迁移成本。
-7. **站标双轨**：站内展示位（侧栏/顶栏站标、首页与说说作者头像、友链页本站信息、JSON-LD
+7. **站标双轨**：站内展示位（侧栏/顶栏站标、首页作者头像、友链页本站信息、JSON-LD
    `publisher.logo`）默认用 `public/` 下的本地底图 —— `logo` = `/logo.png`（600×600），
    `logoSmall` 与 `author.avatar` = `/logo-96.png`；**不得再回到 QQ 图床直链**（`q1.qlogo.cn`
    限流或需境外网络时页头直接空一块，还多引一个第三方域名）。

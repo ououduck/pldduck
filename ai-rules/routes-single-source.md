@@ -16,7 +16,7 @@
 
 字段约定（详见文件头注释）：`path` react-router 路径；`segment` URL 首段（`''` 首页、
 `null` 通配）；`preload` 是否悬停预加载；`sw` 是否允许应用壳兜底；`ssg` 预渲染方式
-（`static` / `static-home` / `posts` / `shuoshuo` / `not-found`）；`seo` 静态页页面级
+（`static` / `static-home` / `posts` / `not-found`）；`seo` 静态页页面级
 SEO（`title` 只写前缀，站点名后缀由 `ssg.mjs` 用 `siteConfig.title` 拼接）；`sitemap`
 进入 `sitemap-pages.xml` 的 changefreq/priority。
 
@@ -32,8 +32,11 @@ SEO（`title` 只写前缀，站点名后缀由 `ssg.mjs` 用 `siteConfig.title`
 
 1. **只改这一处**：新增/删除/改名页面一律只动 `config/routes.mjs`。禁止在任何消费方
    另立一份路径表、`switch` 白名单或正则常量。
-2. **文章与说说的 URL 是对外契约**：`/post/:id`、`/shuoshuo/:id` 及其 `segment` 不得改动
-   ——旧博客域名上挂着这些地址的 301，外链与搜索收录也按此格式，改一次即全部作废。
+2. **文章的 URL 是对外契约**：`/post/:id` 及其 `segment` 不得改动——旧博客域名上挂着
+   这些地址的 301，外链与搜索收录也按此格式，改一次即全部作废。
+   旧 `/shuoshuo/:id`（说说详情）已随自建管线退役（数据源改为 giscus，无独立页面），
+   保留 `path: '/shuoshuo/:splat'` 别名路由 + `public/_redirects` 的 `301 /shuoshuo/:splat →
+/shuoshuo` 兜住历史深链，与文章 `/posts/:id → /post/:id` 是同一处理模式。
 3. **`seo.title` 只写页面名前缀**（如「归档」），站点名后缀由 `ssg.mjs` 统一拼
    `siteConfig.title`；写全会导致「A - 跑路的duck - 跑路的duck」这类重复。
 4. **首页是唯一例外**：`/` 的 title 由 `siteConfig.seoHomeTitle` 逐字覆盖，不走拼接规则。

@@ -1,5 +1,6 @@
 /**
- * 站点数据生成：解析 posts/shuoshuo/friends 内容并输出 generated/posts.json、搜索索引、sitemap、llms.txt 等全部构建期数据。
+ * 站点数据生成：解析 posts/friends 内容并输出 generated/posts.json、搜索索引、sitemap、llms.txt 等全部构建期数据。
+ * 说说改由 giscus 内嵌承载（公告 Discussion），构建期不再解析 shuoshuo/*.md。
  */
 
 import 'dotenv/config';
@@ -67,7 +68,6 @@ const __dirname = path.dirname(__filename);
 const POSTS_DIR = path.join(__dirname, '../posts');
 const IMAGE_ROOT = path.join(__dirname, '../posts-img');
 const FRIENDS_DIR = path.join(__dirname, '../friends');
-const SHUOSHUO_DIR = path.join(__dirname, '../shuoshuo');
 const OUTPUT_JSON_DIR = path.join(__dirname, '../generated');
 const PUBLIC_DIR = path.join(__dirname, '../public');
 
@@ -479,69 +479,8 @@ const buildPost = (record) => {
       };
 };
 
-// ── 说说（短动态）解析：shuoshuo/*.md，frontmatter 提供 id/date/images，正文即动态内容 ──
-// 与文章同级的质量门槛：id/date 缺失或重复直接 fail-closed，避免脏数据进入产物。
-// 提前到文章内容校验之前：文章正文里的 /shuoshuo/<id> 链接需要校验目标说说存在。
-const shuoshuoFiles = fs.existsSync(SHUOSHUO_DIR)
-  ? fs.readdirSync(SHUOSHUO_DIR).filter((file) => file.endsWith('.md'))
-  : [];
-
-const shuoshuoRecords = shuoshuoFiles.map((filename) => {
-  const filePath = path.join(SHUOSHUO_DIR, filename);
-  let data = {};
-  let content = '';
-
-  try {
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    ({ data, content } = matter(fileContent));
-  } catch (error) {
-    validationErrors.push(
-      `Invalid front matter in shuoshuo/${filename}: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-
-  const id = typeof data.id === 'string' ? data.id.trim() : '';
-  const formattedDate = formatFrontmatterDate(data.date);
-  const images = Array.isArray(data.images) ? data.images.map((value) => String(value).trim()).filter(Boolean) : [];
-
-  if (!id) {
-    validationErrors.push(`Invalid front matter in shuoshuo/${filename}: id must be a non-empty string`);
-  } else if (/\s|[\\/?#%"'<>]/.test(id) || id === '.' || id === '..') {
-    validationErrors.push(
-      `Invalid front matter in shuoshuo/${filename}: id "${id}" contains characters that are unsafe in a URL`,
-    );
-  }
-  if (!formattedDate || !validateDateString(formattedDate)) {
-    validationErrors.push(`Invalid front matter in shuoshuo/${filename}: date must use YYYY-MM-DD format`);
-  }
-
-  return {
-    filename,
-    id,
-    date: formattedDate,
-    images,
-    content: content.trim(),
-    filePath: `/shuoshuo/${filename}`,
-  };
-});
-
-const seenShuoShuoIds = new Map();
-shuoshuoRecords.forEach((record) => {
-  if (!record.id) return;
-  const previous = seenShuoShuoIds.get(record.id);
-  if (previous) {
-    validationErrors.push(
-      `Duplicate shuoshuo id "${record.id}" found in shuoshuo/${record.filename} and shuoshuo/${previous}.`,
-    );
-  } else {
-    seenShuoShuoIds.set(record.id, record.filename);
-  }
-});
-
-const shuoshuo = shuoshuoRecords
-  .filter((record) => record.id && record.date)
-  .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
-  .map(({ filename: _filename, ...record }) => record);
+// ── 说说（短动态）改由 giscus 内嵌承载（公告 Discussion 每条评论 = 一条说说），
+// 构建期不再解析 shuoshuo/*.md，产物 shuoshuo.json / per-item sitemap / llms 说说段一并退役。
 
 postRecords.forEach((record) => {
   // 草稿不参与内容级严格校验（图片 alt/本地图片文件/coverImage/站内链接与路由
@@ -555,7 +494,6 @@ postRecords.forEach((record) => {
       allPosts: allPostIndex,
       publishedPosts: publishedPostIndex,
       staticRoutes: DEFAULT_STATIC_ROUTES,
-      shuoshuoIds: new Set(shuoshuo.map((item) => item.id)),
       skipFrontMatter: true,
       lineOffset: record.contentStartLine,
     }),
@@ -681,9 +619,6 @@ const friends = friendFiles.flatMap((filename) => {
 fs.writeFileSync(path.join(OUTPUT_JSON_DIR, 'friends.json'), JSON.stringify(friends, null, 2));
 logger.step('Generated friends.json', `friends=${friends.length} sourceFiles=${friendFiles.length}`);
 
-fs.writeFileSync(path.join(OUTPUT_JSON_DIR, 'shuoshuo.json'), JSON.stringify(shuoshuo, null, 2));
-logger.step('Generated shuoshuo.json', `shuoshuo=${shuoshuo.length} sourceFiles=${shuoshuoFiles.length}`);
-
 const siteAbsoluteUrl = (route = '/') => new URL(toPublicPath(route), `${SITE_URL}/`).toString();
 
 const generateSitemap = () => {
@@ -787,28 +722,8 @@ const generateSitemap = () => {
 </urlset>`;
   fs.writeFileSync(path.join(PUBLIC_DIR, 'sitemap-images.xml'), imagesXml);
 
-  // 4. 说说 sitemap：每条说说一个独立可索引页 /shuoshuo/<id>，
-  //    lastmod 用内容日期（稳定，不随构建抖动）。图片说说仅收 URL 本身，
-  //    配图已出现在页面 <img> 与 og:image 中，Google 可据此索引。
-  const shuoshuoUrl = (item) => siteAbsoluteUrl(`/shuoshuo/${item.id}`);
-  const shuoshuoXml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  ${shuoshuo
-    .map(
-      (item) => `
-  <url>
-    <loc>${xmlEscape(shuoshuoUrl(item))}</loc>
-    <lastmod>${item.date}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>`,
-    )
-    .join('')}
-</urlset>`;
-  fs.writeFileSync(path.join(PUBLIC_DIR, 'sitemap-shuoshuo.xml'), shuoshuoXml);
-
-  // 5. sitemap index：聚合四个子 sitemap，robots.txt 指向该 index。
-  const latestShuoShuoDate = shuoshuo.length > 0 ? shuoshuo[0].date : latestPostDate;
+  // 4. sitemap index：聚合三个子 sitemap，robots.txt 指向该 index。
+  //    （说说详情页 /shuoshuo/<id> 已随自建管线退役，不再有 sitemap-shuoshuo.xml。）
   const sitemapIndexXml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
@@ -822,10 +737,6 @@ const generateSitemap = () => {
   <sitemap>
     <loc>${xmlEscape(siteAbsoluteUrl('/sitemap-images.xml'))}</loc>
     <lastmod>${latestPostDate}</lastmod>
-  </sitemap>
-  <sitemap>
-    <loc>${xmlEscape(siteAbsoluteUrl('/sitemap-shuoshuo.xml'))}</loc>
-    <lastmod>${latestShuoShuoDate}</lastmod>
   </sitemap>
 </sitemapindex>`;
   fs.writeFileSync(path.join(PUBLIC_DIR, 'sitemap-index.xml'), sitemapIndexXml);
@@ -887,10 +798,7 @@ const generateSitemap = () => {
     // Linux CI 上产出 CRLF robots.txt，风格不统一）。
   ].join('\n');
   fs.writeFileSync(path.join(PUBLIC_DIR, 'robots.txt'), robotsTxt);
-  logger.step(
-    'Generated sitemaps',
-    `pages=${staticPages.length} posts=${posts.length} shuoshuo=${shuoshuo.length} imageSitemap=1 index=1`,
-  );
+  logger.step('Generated sitemaps', `pages=${staticPages.length} posts=${posts.length} imageSitemap=1 index=1`);
 };
 
 const generateRss = () => {
@@ -919,11 +827,6 @@ const generateLlmsTxt = () => {
     (post) =>
       `- [${escapeLinkText(post.title)}](${siteAbsoluteUrl(`/post/${post.id}`)}): ${post.excerpt.replace(/\n+/g, ' ').trim()}`,
   );
-  // 说说为短动态，直接把剥离后的纯文本附在链接后，便于智能体直接读取内容。
-  const shuoshuoLines = shuoshuo.map((item) => {
-    const snippet = markdownToSearchText(item.content).slice(0, 60) || '图片/纯动态';
-    return `- [说说：${escapeLinkText(snippet)}](${siteAbsoluteUrl(`/shuoshuo/${item.id}`)}): ${snippet}`;
-  });
 
   const content = [
     `# ${SITE_TITLE}`,
@@ -947,10 +850,6 @@ const generateLlmsTxt = () => {
     '',
     ...postLines,
     '',
-    '## 说说',
-    '',
-    ...shuoshuoLines,
-    '',
     '## 全文版',
     '',
     `Full-text version: ${siteAbsoluteUrl('/llms-full.txt')}`,
@@ -958,7 +857,7 @@ const generateLlmsTxt = () => {
   ].join('\n');
 
   fs.writeFileSync(path.join(PUBLIC_DIR, 'llms.txt'), content);
-  logger.step('Generated llms.txt', `posts=${posts.length} shuoshuo=${shuoshuo.length}`);
+  logger.step('Generated llms.txt', `posts=${posts.length}`);
 };
 
 /**
@@ -1040,7 +939,6 @@ if (process.exitCode) {
   logger.summary({
     posts: posts.length,
     friends: friends.length,
-    shuoshuo: shuoshuo.length,
     outputs: countGeneratedOutputs(),
     siteUrl: SITE_URL,
     status: 'failed',
@@ -1049,7 +947,6 @@ if (process.exitCode) {
   logger.summary({
     posts: posts.length,
     friends: friends.length,
-    shuoshuo: shuoshuo.length,
     outputs: countGeneratedOutputs(),
     siteUrl: SITE_URL,
   });

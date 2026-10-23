@@ -6,11 +6,11 @@
  * 根因：原模板 `filename: "{fields.name}.json"` 会把站点名 slugify 后作为文件名，
  * 纯中文站点名（如「垃圾桶」）经 slugify(lower+strict) 得到空串，文件名退化为
  * `.json` 点文件；PagesCMS 的 getFileExtension(".json") 返回空串，与 schema 扩展名
- * "json" 不匹配，服务端在创建/读取/重命名/历史记录时统一抛该错误。posts/shuoshuo
- * 的 `{fields.id}.md` 模板存在同类隐患（id 填中文同样退化出 ".md" 点文件）。
+ * "json" 不匹配，服务端在创建/读取/重命名/历史记录时统一抛该错误。posts 的
+ * `{fields.id}.md` 模板存在同类隐患（id 填中文同样退化出 ".md" 点文件）。
  *
  * 修复：文件名/URL 标识统一由独立的 ASCII slug 字段生成（friends 的 filename、
- * posts/shuoshuo 的 id），模板固定保留扩展名，slug 字段必填且 pattern 限制为
+ * posts 的 id），模板固定保留扩展名，slug 字段必填且 pattern 限制为
  * `^[A-Za-z0-9_-]+$`。
  */
 import { describe, it, expect } from 'vitest';
@@ -28,7 +28,6 @@ const SLUG_PATTERN = '^[A-Za-z0-9_-]+$';
 const collections = [
   { name: 'friends', filenameTemplate: '{fields.filename}.json', slugField: 'filename' },
   { name: 'posts', filenameTemplate: '{fields.id}.md', slugField: 'id' },
-  { name: 'shuoshuo', filenameTemplate: '{fields.id}.md', slugField: 'id' },
 ];
 
 describe('PagesCMS 集合：filename 模板与 slug 字段约束（回归：Invalid extension ""）', () => {
@@ -73,7 +72,7 @@ describe('PagesCMS 集合：filename 模板与 slug 字段约束（回归：Inva
         expect(render('{fields.id}.md', { id: '我的文章' })).toBe('.md');
 
         // 修复后：文件名来自 slug 字段，纯中文的其他字段不影响扩展名。
-        // 注：posts/shuoshuo 的 slug 字段本身就是 id，故只注入 slug 字段与 name。
+        // 注：posts 的 slug 字段本身就是 id，故只注入 slug 字段与 name。
         const rendered = render(collection.filename, {
           [slugField]: 'my-slug',
           name: '垃圾桶',

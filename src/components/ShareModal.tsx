@@ -1,6 +1,7 @@
 /**
- * 分享弹层（文章 / 说说共用）：复制完整文案 / 仅链接、Web Share API、
- * X / Telegram / QQ 空间分享、微信二维码（uqr 懒加载）。
+ * 分享弹层（当前仅文章页使用；说说页已改为 giscus 内嵌、不再分享）：
+ * 复制完整文案 / 仅链接、Web Share API、X / Telegram / QQ 空间分享、
+ * 微信二维码（uqr 懒加载）。
  * 分享状态与意图链接逻辑在 useShareActions hook 中，本组件负责呈现。
  */
 
@@ -12,15 +13,15 @@ import { useShareActions } from '@/hooks/useShareActions';
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** 文章标题 / 说说场景传「说说 · 日期」类标题。 */
+  /** 文章标题。 */
   title: string;
-  /** 文章摘要 / 说说正文预览。 */
+  /** 文章摘要。 */
   excerpt: string;
   /** 可分享的绝对链接（canonical）。 */
   url: string;
   /** 打开弹窗前父层已自动复制链接时传入结果：true/false，未自动复制时不传。 */
   autoCopied?: boolean | null;
-  /** 卡片区标签文案（默认「当前文章」；说说传「这条说说」）。 */
+  /** 卡片区标签文案（默认「当前文章」）。 */
   contentLabel?: string;
 }
 

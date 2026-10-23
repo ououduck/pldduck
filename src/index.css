@@ -760,25 +760,6 @@
   animation: copy-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 说说定位高亮：通过 ?id= 参数定位到某条说说时，卡片短暂脉冲提示 */
-@keyframes shuoshuo-highlight-pulse {
-  0% {
-    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.3);
-    background-color: rgb(59 130 246 / 0.06);
-  }
-  60% {
-    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.3);
-    background-color: rgb(59 130 246 / 0.06);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgb(59 130 246 / 0);
-    background-color: transparent;
-  }
-}
-.shuoshuo-highlight {
-  animation: shuoshuo-highlight-pulse 2.4s ease-out 1;
-}
-
 .code-scroll {
   @apply relative overflow-x-auto touch-pan-x;
   scrollbar-width: thin;

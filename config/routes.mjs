@@ -15,10 +15,11 @@
  * - segment   URL 首段；'' 表示首页，null 表示通配（不参与任何枚举）
  * - preload   悬停时预加载该页 chunk（仅静态页适用，键须与 preload.ts 一致）
  * - sw        离线导航时允许用应用壳（首页）兜底渲染
- * - ssg       构建期预渲染方式：'static' 单页 / 'static-home' 首页 / 'posts'·'shuoshuo' 逐条 / 'not-found'
+ * - ssg       构建期预渲染方式：'static' 单页 / 'static-home' 首页 / 'posts' 逐条 / 'not-found'
  * - seo       静态页页面级 SEO；title 只写前缀，站点名后缀由 ssg.mjs 用 siteConfig.title 拼接，
  *             缺省表示该页 title/description 完全由页面组件的 Seo 输出
- * - sitemap   进入 sitemap-pages.xml 的条目（文章与说说详情由各自子 sitemap 负责）
+ * - sitemap   进入 sitemap-pages.xml 的条目（文章详情由子 sitemap 负责；说说列表页正常收录，
+ *             说说详情路由已退役为 301 跳转，不再逐条预渲染/收录）
  */
 
 /**
@@ -27,7 +28,7 @@
  * @property {string | null} segment
  * @property {boolean} [preload]
  * @property {boolean} [sw]
- * @property {'static' | 'static-home' | 'posts' | 'shuoshuo' | 'not-found'} [ssg]
+ * @property {'static' | 'static-home' | 'posts' | 'not-found'} [ssg]
  * @property {{ title?: string, description?: string, schemaType: string, schemaFromSeo?: boolean }} [seo]
  * @property {{ changefreq: string, priority: string }} [sitemap]
  */
@@ -112,10 +113,11 @@ export const ROUTES = [
     sitemap: { changefreq: 'weekly', priority: '0.6' },
   },
   {
-    path: '/shuoshuo/:id',
+    // 旧说说详情深链 /shuoshuo/<id> 已退役：301 回列表页（public/_redirects 给爬虫/外链，
+    // App.tsx 的 <Navigate replace> 兜站内导航与本地预览）。不预渲染、不进 sitemap。
+    path: '/shuoshuo/:splat',
     segment: 'shuoshuo',
     sw: true,
-    ssg: 'shuoshuo',
   },
   {
     path: '/guestbook',
@@ -191,9 +193,11 @@ export const BASE_ROUTE_MARKERS = segments.map((segment) =>
 export const PRELOADABLE_PATHS = ROUTES.filter((item) => item.preload).map((item) => item.path);
 
 /** 逐条预渲染的内容页前缀（详情页 URL 与产物目录）。 */
-export const CONTENT_PAGE_PREFIXES = ROUTES.filter((item) => item.ssg === 'posts' || item.ssg === 'shuoshuo').map(
-  (item) => ({ kind: item.ssg, urlPrefix: `/${item.segment}/`, dirPrefix: `${item.segment}/` }),
-);
+export const CONTENT_PAGE_PREFIXES = ROUTES.filter((item) => item.ssg === 'posts').map((item) => ({
+  kind: item.ssg,
+  urlPrefix: `/${item.segment}/`,
+  dirPrefix: `${item.segment}/`,
+}));
 
 /**
  * ssg.mjs 的静态页清单。path 为无前导斜杠的产物目录名；

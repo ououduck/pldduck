@@ -2,7 +2,9 @@
 
 ## 功能概述
 
-构建期生成全部站点数据：`generated/posts.json`、`generated/shuoshuo.json` 等（前端 services 消费）、sitemap（页面/图片/索引）、robots.txt、RSS/feed、llms.txt/llms-full.txt；同时校验文章 front matter 与内部链接/本地图片引用。
+构建期生成全部站点数据：`generated/posts.json`、`generated/friends.json` 等（前端 services 消费）、sitemap（页面/文章/图片/索引）、robots.txt、RSS/feed、llms.txt/llms-full.txt；同时校验文章 front matter 与内部链接/本地图片引用。
+
+> 说说改由 giscus 承载（`config/comments.config.json.shuoshuo.discussionId`），构建期不再解析 `shuoshuo/*.md`，`generated/shuoshuo.json` 与 `sitemap-shuoshuo.xml` 一并退役。
 
 ## 关键文件
 

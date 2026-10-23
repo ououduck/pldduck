@@ -21,7 +21,6 @@ const ArchivePage = lazy(pageLoaders['/archive']);
 const Stats = lazy(pageLoaders['/stats']);
 const Friends = lazy(pageLoaders['/friends']);
 const ShuoShuoPage = lazy(pageLoaders['/shuoshuo']);
-const ShuoShuoDetailPage = lazy(() => import('./pages/ShuoShuoDetail').then((m) => ({ default: m.ShuoShuoDetail })));
 const GuestbookPage = lazy(pageLoaders['/guestbook']);
 const Tags = lazy(pageLoaders['/tags']);
 const CoverGenerator = lazy(pageLoaders['/cover']);
@@ -142,7 +141,8 @@ const AppRoutes: React.FC = () => {
           <Route path="/stats" element={<Stats />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/shuoshuo" element={<ShuoShuoPage />} />
-          <Route path="/shuoshuo/:id" element={<ShuoShuoDetailPage />} />
+          {/* 旧说说详情深链 /shuoshuo/<id> 已退役，重定向回列表页；与 public/_redirects 成对。 */}
+          <Route path="/shuoshuo/:splat" element={<Navigate to="/shuoshuo" replace />} />
           <Route path="/guestbook" element={<GuestbookPage />} />
           <Route path="/cover" element={<CoverGenerator />} />
           <Route path="/watermark" element={<Watermark />} />

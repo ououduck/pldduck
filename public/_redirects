@@ -4,3 +4,8 @@
 # 文章详情段的正确写法是 /post/<id>；把列表段的复数习惯带进详情（/posts/<id>）
 # 是最常见的误写，这里用真 301 交给爬虫与外链，避免同一篇文章出现两个 URL。
 /posts/:splat  /post/:splat  301
+#
+# 说说详情 /shuoshuo/<id> 已随自建管线退役（改为 giscus 内嵌的单页列表）；
+# 旧深链（老博客域、已索引 URL）用真 301 收回列表页，避免 404。
+# src/App.tsx 里另有同义的 <Navigate replace> 兜站内导航与本地预览。
+/shuoshuo/:splat  /shuoshuo  301

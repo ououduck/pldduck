@@ -14,10 +14,9 @@ node_modules/
 # 锁文件（npm 自身格式，不参与格式化）
 package-lock.json
 
-# 内容文件（博客文章/友链/说说，非代码，不格式化）
+# 内容文件（博客文章/友链，非代码，不格式化）
 posts/
 friends/
-shuoshuo/
 
 # 仓库文档（保持原样，避免大范围 diff）
 README.md

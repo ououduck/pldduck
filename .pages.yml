@@ -128,7 +128,7 @@ content:
         type: object
         fields:
           - { name: name, label: 昵称, type: string, required: true }
-          - { name: avatar, label: 头像, type: string, description: '首页与说说的作者头像，默认本地 /logo-96.png' }
+          - { name: avatar, label: 头像, type: string, description: '首页的作者头像，默认本地 /logo-96.png' }
           - { name: role, label: 身份/角色, type: string }
           - { name: bio, label: 简介, type: text }
       - name: toc

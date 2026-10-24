@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Friends } from './Friends';
 import { siteConfig } from '@config/site.config';
+import { absoluteSiteUrl } from '@/utils/siteUrl';
 
 // 模块加载时 Friends.tsx 会调用 getInitialFriends() 捕获 initialFriends，
 // 且水合后 effect 会调用 getFriends() 替换列表——两个 mock 必须返回同一份数据。
@@ -123,6 +124,21 @@ describe('Friends', () => {
     }
 
     openSpy.mockRestore();
+  });
+
+  it('友链头像加载失败时回退到站点头像', async () => {
+    renderFriends();
+    await screen.findByText('示例博客');
+
+    const avatar = screen.getByRole('img', { name: '示例博客' });
+    expect(avatar).toHaveAttribute('src', '/a.png');
+    fireEvent.error(avatar);
+
+    // 回退站点头像（绝对地址），避免出现空头像；alt 仍是友链名。
+    expect(screen.getByRole('img', { name: '示例博客' })).toHaveAttribute(
+      'src',
+      absoluteSiteUrl(siteConfig.logo, siteConfig.url),
+    );
   });
 
   it('申请友链面板：本站信息、预填表单入口与修改邮箱卡片', async () => {

@@ -40,6 +40,11 @@ interface FriendCardProps {
  * 的 `"unavailable": true`；Pages CMS 里的手工勾选会被下一轮巡检覆写。未配置（缺失/false）视为正常。
  */
 const FriendCard = ({ friend, unavailable = false }: FriendCardProps) => {
+  // 头像缺失或加载失败时回退到站点头像，避免空头像。key 取当前头像地址：
+  // 回退瞬间重挂 ProgressiveImage，直接进新实例的加载态，跳过其内部
+  // 「图片暂时无法加载」错误框的一帧闪现。站点头像若也失败则保留 ProgressiveImage 兜底错误态。
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const avatarSrc = friend.avatar && !avatarFailed ? friend.avatar : SITE_AVATAR;
   return (
     <a
       href={friend.url}
@@ -60,8 +65,10 @@ const FriendCard = ({ friend, unavailable = false }: FriendCardProps) => {
         <div className="relative h-14 w-14 flex-shrink-0">
           <div className="h-14 w-14 overflow-hidden rounded-full border border-zinc-300 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900">
             <ProgressiveImage
-              src={friend.avatar}
+              key={avatarSrc}
+              src={avatarSrc}
               alt={friend.name}
+              onError={() => setAvatarFailed(true)}
               wrapperClassName="h-full w-full"
               className="h-full w-full object-cover object-center"
               effect="fade"
@@ -102,6 +109,9 @@ const FriendCard = ({ friend, unavailable = false }: FriendCardProps) => {
 // 构建期 SSG：friends.json 已通过 eager glob 内联，SSR 阶段即可同步渲染友链列表，
 // 客户端水合首帧与 SSR 输出一致；异步重取仅用于“重新加载”。
 const initialFriends = getInitialFriends();
+
+/** 站点头像绝对地址：友链头像缺失或加载失败时的兜底，避免出现空头像。 */
+const SITE_AVATAR = absoluteSiteUrl(siteConfig.logo, siteConfig.url);
 
 /** 已收录条目的信息修改联系邮箱：不接 Issue 流程，也不为此新增配置键。 */
 const FRIEND_EDIT_CONTACT_EMAIL = 'pldduck@outlook.com';

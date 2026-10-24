@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Sparkles, ChevronDown, Globe2 } from 'lucide-react';
+import { ArrowRight, Sparkles, ChevronDown, Globe2, Shuffle } from 'lucide-react';
 import { SearchField } from '@/components/SearchField';
 import { siteConfig } from '@config/site.config';
 import { getFriends, getInitialFriends } from '@/services/friends';
@@ -400,6 +400,16 @@ export const Friends = () => {
     [filteredFriends],
   );
 
+  // 随机池取全部可访问友链，不受搜索框内容影响：「随机前往」是逛站入口，
+  // 用户在筛选时点它也应从整站友链里抽，而不是只在当前匹配项里抽；失联站点不去。
+  const reachableFriends = useMemo(() => friends.filter((friend) => friend.unavailable !== true), [friends]);
+
+  const handleRandomGo = () => {
+    if (reachableFriends.length === 0) return;
+    const pick = reachableFriends[Math.floor(Math.random() * reachableFriends.length)];
+    window.open(pick.url, '_blank', 'noopener,noreferrer');
+  };
+
   // 友链页结构化数据：站点级 schema + CollectionPage + ItemList（枚举全部有效友链，
   // 帮助爬虫理解友链集合）+ BreadcrumbList。SSG 静态页已标记 schemaFromSeo，不重复注入。
   const friendsPageDescription =
@@ -448,10 +458,23 @@ export const Friends = () => {
       <Seo title="友链" description={friendsPageDescription} structuredData={friendsStructuredData} />
 
       <header className="mb-12 border-b border-zinc-200 pb-8 dark:border-zinc-800 md:pb-10">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
-          Friends Directory
-        </p>
-        <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-5xl">友情链接</h1>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+              Friends Directory
+            </p>
+            <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-5xl">友情链接</h1>
+          </div>
+          <button
+            type="button"
+            onClick={handleRandomGo}
+            disabled={reachableFriends.length === 0}
+            className="editorial-button-primary inline-flex items-center gap-2"
+          >
+            <Shuffle size={16} />
+            随机前往
+          </button>
+        </div>
         <p className="mt-4 max-w-2xl text-zinc-600 dark:text-zinc-400">
           这里汇集了一些优秀的技术博客和有趣的网站。如果你也想交换友链，可以在下方填好资料，一键带到 GitHub Issue。
         </p>

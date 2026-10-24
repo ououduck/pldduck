@@ -103,6 +103,28 @@ describe('Friends', () => {
     expect(screen.getByText('示例博客')).toBeInTheDocument();
   });
 
+  it('随机前往：从可访问友链中随机打开一个，绝不跳失联站点', async () => {
+    const user = userEvent.setup();
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    renderFriends();
+    await screen.findByText('示例博客');
+
+    // 多次点击覆盖随机分布：每次都必须落在可访问友链里，绝不会选中失联站点。
+    const reachableUrls = new Set(['https://example.com', 'https://dev.example.org']);
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      openSpy.mockClear();
+      await user.click(screen.getByRole('button', { name: '随机前往' }));
+      expect(openSpy).toHaveBeenCalledTimes(1);
+      const [url, target, features] = openSpy.mock.calls[0];
+      expect(reachableUrls.has(String(url))).toBe(true);
+      expect(url).not.toBe('https://gone.example.net');
+      expect(target).toBe('_blank');
+      expect(features).toBe('noopener,noreferrer');
+    }
+
+    openSpy.mockRestore();
+  });
+
   it('申请友链面板：本站信息、预填表单入口与修改邮箱卡片', async () => {
     const user = userEvent.setup();
     renderFriends();

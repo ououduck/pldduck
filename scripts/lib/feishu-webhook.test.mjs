@@ -75,6 +75,28 @@ describe('sendFeishuWebhookMessage', () => {
     ]);
   });
 
+  // 回归：评论/说说正文里的 markdown 图片 ![](https://…) 会被飞书当图片 key 解析并拒绝
+  // （ErrCode 200570 card contains invalid image keys）→ 降级为普通链接，去掉 `!` 且不被二次包裹。
+  it('downgrades markdown images to links so Feishu does not treat them as image keys', () => {
+    const payload = buildFeishuPayload(
+      '看看这张 ![](https://img.pldduck.com/a.jpg) 和 ![alt](https://img.pldduck.com/b.png)',
+      {
+        event: 'discussion_comment',
+        title: '新评论',
+      },
+    );
+    const content = payload.card.body.elements
+      .filter((element) => element.tag === 'markdown')
+      .map((element) => element.content)
+      .join('\n');
+
+    expect(content).not.toMatch(/!\[/);
+    expect(content).toContain('[图片](https://img.pldduck.com/a.jpg)');
+    expect(content).toContain('[alt](https://img.pldduck.com/b.png)');
+    // 图片链接的目标 URL 不应被裸 URL 自动链接器再次包裹成嵌套链接。
+    expect(content).not.toContain(']([https://');
+  });
+
   it('supports the text fallback format', async () => {
     process.env.FEISHU_MESSAGE_FORMAT = 'text';
     expect(buildFeishuPayload('消息', { event: 'push', title: '标题' })).toEqual({

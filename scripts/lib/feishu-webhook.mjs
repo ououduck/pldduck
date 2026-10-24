@@ -44,7 +44,13 @@ const ensureSafeLength = (text) =>
 const toCardMarkdown = (text) =>
   sanitizeText(text)
     .replace(/<b>([\s\S]*?)<\/b>/gi, '**$1**')
-    .replace(/(^|[\s(：:])((?:https?:\/\/)[^\s<>]+)(?=$|[\s<>])/g, (_match, prefix, url) => {
+    // 飞书卡片 markdown 把 `![alt](x)` 当作"图片"解析，且只认飞书上传返回的 img_key（img_v2_…）；
+    // 正文里的外部图片 URL（如说说/评论带的 ![](https://img.pldduck.com/…)）会被拒：
+    // ErrCode 200570 "card contains invalid image keys"。去掉前导 `!` 降级为普通链接，
+    // 图片地址仍可点击跳转，但不再被当成图片渲染。
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (_match, alt, url) => `[${alt || '图片'}](${url})`)
+    // 仅自动链接「裸 URL」：前导字符不含 `(`，否则会把上一步 `[图片](url)` 里 ] (…) 的目标再次包裹成嵌套链接。
+    .replace(/(^|[\s：:])((?:https?:\/\/)[^\s<>]+)(?=$|[\s<>])/g, (_match, prefix, url) => {
       const trailing = url.match(/[),.;!?]+$/)?.[0] ?? '';
       const target = trailing ? url.slice(0, -trailing.length) : url;
       return `${prefix}[${target}](${target})${trailing}`;

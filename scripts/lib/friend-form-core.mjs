@@ -28,11 +28,8 @@ export const FRIEND_FIELDS = Object.freeze([
   { label: '反链页面地址', key: 'backlinkUrl', required: false },
   { label: '头像地址', key: 'avatar', required: true },
   { label: '站点简介', key: 'description', required: true },
-  { label: '申请类型', key: 'applicationType', required: true },
   { label: '确认事项', key: 'confirmations', required: true },
 ]);
-
-export const FRIEND_APPLICATION_TYPES = Object.freeze(['新增', '修改', '下架']);
 
 /** 拒绝文案的联系邮箱：用站点公开邮箱（config/site.config.json 的 social.rawEmail），不掺任何用户输入。 */
 export const REJECT_CONTACT_EMAIL = 'pldduck@outlook.com';
@@ -208,7 +205,7 @@ export const parseFriendIssueBody = (body, fields = FRIEND_FIELDS) => {
  * @param {Record<string, string>} values parseFriendIssueBody 的 values
  * @param {object} [options]
  * @param {ReadonlySet<string>} [options.acceptedHosts] 本站域名（禁止把本站自己申请成友链）
- * @returns {{ok: boolean, errors: string[], record?: {name: string, description: string, avatar: string, url: string}, canonicalUrl?: string, backlinkUrl?: string, applicationType?: string}}
+ * @returns {{ok: boolean, errors: string[], record?: {name: string, description: string, avatar: string, url: string}, canonicalUrl?: string, backlinkUrl?: string}}
  */
 export const validateFriendRecord = (values = {}, { acceptedHosts = new Set() } = {}) => {
   const errors = [];
@@ -256,11 +253,6 @@ export const validateFriendRecord = (values = {}, { acceptedHosts = new Set() } 
     }
   }
 
-  const applicationType = cleanInline(values.applicationType);
-  if (!FRIEND_APPLICATION_TYPES.includes(applicationType)) {
-    errors.push(`申请类型只能是 ${FRIEND_APPLICATION_TYPES.join('/')}（收到「${applicationType || '空'}」）`);
-  }
-
   if (errors.length > 0) return { ok: false, errors };
 
   const url = cleanInline(values.url);
@@ -270,7 +262,6 @@ export const validateFriendRecord = (values = {}, { acceptedHosts = new Set() } 
     record: { name, description, avatar: cleanInline(values.avatar), url },
     canonicalUrl: normalizeFriendUrl(url),
     backlinkUrl,
-    applicationType,
   };
 };
 
@@ -448,14 +439,13 @@ export const renderComment = ({ title, paragraphs = [], sections = [], note = ''
   return blocks.join('\n');
 };
 
-/** 记录展示段（名称/地址/简介/头像/申请类型/文件名）。 */
-const recordRows = (record, { applicationType, backlinkUrl, filename } = {}) => [
+/** 记录展示段（名称/地址/简介/头像/文件名）。 */
+const recordRows = (record, { backlinkUrl, filename } = {}) => [
   ['站点名称', inlineCode(record.name)],
   ['站点地址', inlineCode(record.url)],
   ['反链页面', inlineCode(backlinkUrl || '未填，按站点首页检测')],
   ['站点简介', inlineCode(record.description)],
   ['头像地址', inlineCode(record.avatar)],
-  ['申请类型', inlineCode(applicationType)],
   ['拟用文件名', inlineCode(filename || '（待定）')],
 ];
 
@@ -519,19 +509,10 @@ export const renderDetectComment = ({ validated, filename, result, siteUrl }) =>
  * @param {string} input.commitSha 写入后的 commit sha
  * @param {object} [input.result] 放行时顺手重跑的检测证据（可为失败结论）
  * @param {boolean} [input.deployed] 是否已成功触发 deploy.yml
- * @param {string} [input.applicationType] 申请类型（新增/修改/下架）
  * @param {string} [input.backlinkUrl] 申报的反链页面
  * @returns {string}
  */
-export const renderApprovedComment = ({
-  record,
-  filename,
-  commitSha,
-  result,
-  deployed = true,
-  applicationType = '',
-  backlinkUrl = '',
-}) =>
+export const renderApprovedComment = ({ record, filename, commitSha, result, deployed = true, backlinkUrl = '' }) =>
   renderComment({
     title: '已收录：站长审核通过，友链文件已写入',
     paragraphs: [
@@ -544,7 +525,7 @@ export const renderApprovedComment = ({
         : '⚠️ 自动触发部署失败，请到 Actions 手动运行 `Deploy to Cloudflare Worker`。',
     ],
     sections: [
-      ['入库信息', recordRows(record, { filename, applicationType, backlinkUrl })],
+      ['入库信息', recordRows(record, { filename, backlinkUrl })],
       ['最后一次检测', detectionRows(result)],
     ],
   });

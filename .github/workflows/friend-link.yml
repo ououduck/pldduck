@@ -21,7 +21,7 @@
 #   2) 写入目录硬编码 friends/，文件名只从 issue 提交者 login 派生，并在写前断言路径不可穿越；
 #   3) 一次只动一个文件（写后核对 commit.files 与回读内容）；
 #   4) Contents API 的 sha 乐观锁 + 冲突时只在「同一条记录」前提下重试一次，否则转人工；
-#   5) 站长的 unavailable 标记与「下架」请求永不被机器人改动；
+#   5) 站长的 unavailable 标记永不被机器人改动；机器人也永不删文件（下架只在 Pages CMS 人工处理）；
 #   6) 检测 job 显式收窄回 contents: read（job 级权限只能收窄，不能突破 workflow 级）。
 #
 # 手动补跑（workflow_dispatch）：填 Issue 编号 + 选 detect/apply/reject。

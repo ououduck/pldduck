@@ -50,6 +50,7 @@ import {
 import {
   FRIEND_ISSUE_MARKER,
   FRIENDS_DIR,
+  REJECT_CONTACT_EMAIL,
   buildRecordJson,
   mergeRecordJson,
   normalizeFriendUrl,
@@ -395,31 +396,29 @@ const runDetect = async (issue) => {
 
   /* 可达性闸门：站点或头像在境外根本打不开 → 自动驳回并关闭 Issue。
      这是唯一由机器人自己下的结论（用户 2026-10 授权，见 ai-rules/friends.md 规则 3），
-     且只驳回、永远不写文件；「下架」申请不卡（人家就是要撤链，站点打不开正是理由）。 */
-  if (validated.applicationType !== '下架') {
-    const site = { url: validated.record.url, ...(await probeUrl(validated.record.url)) };
-    const avatar = { url: validated.record.avatar, ...(await probeUrl(validated.record.avatar)) };
-    if (!site.reachable || !avatar.reachable) {
-      await postComment(issue.number, renderUnreachableComment({ site, avatar }));
-      await syncDetectionLabel(issue, LABELS.unreachable);
-      await closeIssue(issue.number);
-      await notify(
-        'friend-rejected',
-        [
-          `【友链自动驳回】#${issue.number} ${validated.record.name}`,
-          `站点：${site.reachable ? '可访问' : '打不开'} — ${sanitizeLogValue(site.reason)}`,
-          `头像：${avatar.reachable ? '可访问' : '打不开'} — ${sanitizeLogValue(avatar.reason)}`,
-          `申请人：${issue.user?.login || '未知'}`,
-          issueUrl(issue.number),
-        ].join('\n'),
-      );
-      logger.info('可达性检查未通过，已自动驳回并关闭', {
-        issue: issue.number,
-        siteReachable: site.reachable,
-        avatarReachable: avatar.reachable,
-      });
-      return;
-    }
+     且只驳回、永远不写文件。 */
+  const site = { url: validated.record.url, ...(await probeUrl(validated.record.url)) };
+  const avatar = { url: validated.record.avatar, ...(await probeUrl(validated.record.avatar)) };
+  if (!site.reachable || !avatar.reachable) {
+    await postComment(issue.number, renderUnreachableComment({ site, avatar }));
+    await syncDetectionLabel(issue, LABELS.unreachable);
+    await closeIssue(issue.number);
+    await notify(
+      'friend-rejected',
+      [
+        `【友链自动驳回】#${issue.number} ${validated.record.name}`,
+        `站点：${site.reachable ? '可访问' : '打不开'} — ${sanitizeLogValue(site.reason)}`,
+        `头像：${avatar.reachable ? '可访问' : '打不开'} — ${sanitizeLogValue(avatar.reason)}`,
+        `申请人：${issue.user?.login || '未知'}`,
+        issueUrl(issue.number),
+      ].join('\n'),
+    );
+    logger.info('可达性检查未通过，已自动驳回并关闭', {
+      issue: issue.number,
+      siteReachable: site.reachable,
+      avatarReachable: avatar.reachable,
+    });
+    return;
   }
 
   const detectionUrl = pickDetectionUrl(validated);
@@ -439,7 +438,6 @@ const runDetect = async (issue) => {
       `【友链待审核】#${issue.number} ${validated.record.name}`,
       `检测结论：${verdict.verdict} — ${verdict.message}`,
       `站点：${validated.record.url}`,
-      `类型：${validated.applicationType}`,
       `申请人：${issue.user?.login || '未知'}`,
       issueUrl(issue.number),
     ]
@@ -492,68 +490,29 @@ const runApply = async (issue) => {
     return;
   }
 
-  const { record, canonicalUrl, applicationType, backlinkUrl } = validated;
+  const { record, canonicalUrl, backlinkUrl } = validated;
 
-  if (applicationType === '下架') {
+  /* 本流程只做「新增收录」：申请类型字段已于 2026-10 经用户授权从表单与模板里删除，
+     地址已收录一律退回，改信息与下架都走站长邮箱（友链页第三张卡片）。 */
+  const dir = readFriendsDir();
+  const matched = dir.byCanonicalUrl.get(canonicalUrl) ?? [];
+  if (matched.length > 0) {
     await postComment(
       issue.number,
       renderBlockedComment({
-        title: '下架由站长人工处理',
-        reasons: ['机器人不删除文件'],
-        next: '请到 Pages CMS 的「友链」集合删除对应条目；无需重新打标签。',
+        title: '该站点已在友链列表中',
+        reasons: [`已收录（filename=${matched.map((item) => item.filename).join(', ')}），无需重复申请`],
+        next: `如需修改名称/地址/简介/头像或下架，请邮件联系 ${REJECT_CONTACT_EMAIL}，无需重新打标签。`,
       }),
     );
-    await notify(
-      'friend-review',
-      `【友链需人工】#${issue.number} 申请下架，请站长在 Pages CMS 删除\n${issueUrl(issue.number)}`,
-    );
+    logger.info('重复申请，未写入', {
+      issue: issue.number,
+      existing: matched.map((item) => item.filename).join(','),
+    });
     return;
   }
 
-  const dir = readFriendsDir();
-  const matched = dir.byCanonicalUrl.get(canonicalUrl) ?? [];
-
-  if (applicationType === '新增') {
-    if (matched.length > 0) {
-      await postComment(
-        issue.number,
-        renderBlockedComment({
-          title: '该站点已在友链列表中',
-          reasons: [`已收录（filename=${matched.map((item) => item.filename).join(', ')}），无需重复新增`],
-          next: '若要更新信息，请把「申请类型」改成「修改」再重新打标签。',
-        }),
-      );
-      logger.info('重复新增，未写入', {
-        issue: issue.number,
-        existing: matched.map((item) => item.filename).join(','),
-      });
-      return;
-    }
-  } else {
-    // 修改：必须按归一化 URL 恰好命中一个现有文件，否则一律转人工（0 个可能是申请人
-    // 换了域名，多个则无法判定改哪一条）。
-    if (matched.length !== 1) {
-      await postComment(
-        issue.number,
-        renderBlockedComment({
-          title: '无法定位要修改的友链',
-          reasons:
-            matched.length === 0
-              ? ['列表里没有与申报地址相同的条目（如果这是新站点，请把申请类型改成「新增」）']
-              : [`列表里有 ${matched.length} 个条目使用该地址：${matched.map((item) => item.filename).join(', ')}`],
-          next: '请站长在 Pages CMS 里人工处理这条修改。',
-        }),
-      );
-      await notify(
-        'friend-review',
-        `【友链需人工】#${issue.number} 修改申请命中 ${matched.length} 条，未写入\n${issueUrl(issue.number)}`,
-      );
-      return;
-    }
-  }
-
-  const target = matched.length === 1 ? matched[0] : { filename, data: null };
-  const filePath = `${FRIENDS_DIR}/${target.filename}.json`;
+  const filePath = `${FRIENDS_DIR}/${filename}.json`;
   // dry-run 全程不出 GitHub API：现有内容直接读工作区里的那份（预览合并结果用）。
   const localPreview = DRY_RUN
     ? fs.existsSync(path.join(ROOT_DIR, filePath))
@@ -562,9 +521,7 @@ const runApply = async (issue) => {
     : null;
   const existing = DRY_RUN ? localPreview : await readRepoFile(filePath);
   const original = existing ? JSON.parse(existing.content) : null;
-  const json = original
-    ? mergeRecordJson(original, record, target.filename)
-    : buildRecordJson({ record, filename: target.filename });
+  const json = original ? mergeRecordJson(original, record, filename) : buildRecordJson({ record, filename });
 
   const action = original ? '更新' : '新增';
   logger.info('准备写入友链文件', { file: filePath, action });
@@ -623,11 +580,10 @@ const runApply = async (issue) => {
     issue.number,
     renderApprovedComment({
       record,
-      filename: target.filename,
+      filename,
       commitSha,
       result: verdict,
       deployed,
-      applicationType,
       backlinkUrl,
     }),
   );

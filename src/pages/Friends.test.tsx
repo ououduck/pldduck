@@ -183,12 +183,16 @@ describe('Friends', () => {
     await user.type(screen.getByLabelText('站点地址'), 'https://ayee.example.com');
     await user.type(screen.getByLabelText('头像地址'), 'https://ayee.example.com/a.png');
     await user.type(screen.getByLabelText('站点简介'), '前端与生活方式记录');
-    await user.selectOptions(screen.getByLabelText('申请类型'), '下架');
+    // 申请类型字段已删除（2026-10 用户授权）：页面只走新增收录，改信息/下架走站长邮箱。
+    expect(screen.queryByLabelText('申请类型')).toBeNull();
     await user.click(submit);
-    expect(screen.getByRole('alert')).toHaveTextContent('两项确认都要勾选');
+    expect(screen.getByRole('alert')).toHaveTextContent('3 项确认都要勾选');
     expect(openSpy).not.toHaveBeenCalled();
 
-    for (const checkbox of screen.getAllByRole('checkbox')) {
+    const checkboxes = screen.getAllByRole('checkbox');
+    expect(checkboxes).toHaveLength(3);
+    expect(screen.getByLabelText('我的网站没有开启禁海外，能正常访问')).toHaveAttribute('type', 'checkbox');
+    for (const checkbox of checkboxes) {
       await user.click(checkbox);
     }
     await user.type(screen.getByLabelText(/反链页面地址/), 'https://ayee.example.com/links');
@@ -203,9 +207,10 @@ describe('Friends', () => {
     expect(opened.searchParams.get('title')).toBe('[友链] 阿叶的小站');
     const body = opened.searchParams.get('body') ?? '';
     expect(body).toContain('### 站点名称\n\n阿叶的小站');
-    expect(body).toContain('### 申请类型\n\n下架');
+    expect(body).not.toContain('### 申请类型');
     expect(body).toContain('https://ayee.example.com/links');
     expect(body).toContain('- [X] 我已在自己的站点上添加了指向本站的链接');
+    expect(body).toContain('- [X] 我的网站没有开启禁海外，能正常访问');
 
     openSpy.mockRestore();
   });

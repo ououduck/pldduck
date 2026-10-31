@@ -20,7 +20,9 @@ body:
            打 `friend-rejected` 则拒绝并关闭本 Issue。
         4. 只认 `<a href>`：图片、RSS、`rel=canonical`、跳转页、评论区里的链接都不算。
         5. 常见挂链位置：首页页脚、友情链接/friends 单独页、关于页。
-        6. 请如实填写。名称/简介会公开展示，随时可以开新 Issue 修改；下架也需要人工处理。
+        6. 请如实填写。名称/简介会公开展示。
+        7. **本表单只用于新增收录**：已收录的条目要改名称/地址/简介/头像，或想把友链下架，
+           请邮件联系 pldduck@outlook.com，不要重复开 Issue（同一站点地址会被判「已收录」并退回）。
 
   - type: input
     id: name
@@ -72,25 +74,15 @@ body:
       required: true
       maxLength: 120
 
-  - type: dropdown
-    id: application-type
-    attributes:
-      label: 申请类型
-      description: 本次是新增、修改还是下架
-      options:
-        - 新增
-        - 修改
-        - 下架
-    validations:
-      required: true
-
   - type: checkboxes
     id: confirmations
     attributes:
       label: 确认事项
-      description: 两项都必须勾选，否则检测会被退回
+      description: 三项都必须勾选，否则检测会被退回
       options:
-        - label: 我已在自己的站点上添加了指向本站的链接，且是服务端直出的 `<a href>`
+        - label: 我已在自己的站点上添加了指向本站的链接
+          required: true
+        - label: 我的网站没有开启禁海外，能正常访问
           required: true
         - label: 我同意站点名称、简介、头像与地址在 pldduck.com 公开展示
           required: true

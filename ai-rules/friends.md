@@ -31,8 +31,8 @@
 ## 修改规则（必须遵守）
 
 1. **失联分组**：`friend.unavailable === true` 的友链必须归入「已失联的博客」折叠板块，不混入主列表；缺键视为 false。该键由 **B 道巡检**维护 —— 站长可以在 Pages CMS 勾选「已失联」作为临时处置，但下一轮巡检会按探测结论**双向覆写**（判定可达就移回上方），这是 2026-10 用户明确授权的既定行为，不是 bug。前端两条路径都只读。
-2. **申请入口 = GitHub Issue**：申请友链（面板标题「申请友链」）只有 GitHub Issue 一条路，页面**不发任何请求、不落任何数据**：`FriendApplyForm` 把资料拼成 `<repoUrl>/issues/new?...` 由 `window.open` 打开（`buildFriendIssueUrl`），并保留「改用空白 Issue 表单」链接指向 `siteConfig.friendsPage.applyUrl`（`friend-link-application.yml` 模板，`target="_blank" rel="noopener noreferrer"`）。**关键约束**：预填链接**不得带 `template=` 参数** —— 走 Issue 表单时 GitHub 会忽略 `body`，正文填不进去；因此正文要自己复刻模板渲染出的 `### <label>` 分段与 `- [X]` 勾选项，段标题/顺序/文案的一致性由 `src/utils/friendIssue.test.ts` 同时用解析器往返 + 读模板做漂移守卫。两步向导的步骤状态（`currentApplicationStep`）与本站信息卡（`siteInfo`）保留在组件内。**不得再引入 Tally 等外部表单**（2026-10 用户授权把站内资料卡定位为「预填」而非「采集」，故「不得在站内自建提交表单」按“不得另建采集面”理解）。**已收录条目的信息修改走站长邮箱**（2026-10 用户授权：面板第三张卡片固定写「如果有修改友链信息的需求，请联系邮箱 pldduck@outlook.com」，为组件内常量 `FRIEND_EDIT_CONTACT_EMAIL`，**不为它新增配置键**）；表单的「申请类型」仍保留 `修改`（机器人按归一化 URL 恰好命中一条时才更新），页面下拉只给 `新增` / `下架`。
-3. **自动检测仅供参考**：反链检测（`opened`/`edited`/`reopened`/申请人评论触发的 `findBacklink`）**只产出证据评论 + 标签 + 飞书「待审核」**，任何情况下都不得凭检测结果自动写文件。**在 A 道内，`friend-approved` 标签是唯一写入触发器**（本条不约束 B 道巡检，见规则 5 的 B 段 —— 也不要拿「检测不自动写」去回滚巡检的单键写入，两者不是一回事）；人工放行时即使检测未命中也照样入库，但评论必须写明「反链未检测到（人工放行）」并附上最后一次证据。**唯一允许机器人自己下的结论是可达性闸门**（2026-10 用户授权）：检测前先探申报的站点地址与头像，任一在 Actions 出口（境外 IP）拿不到 2xx/3xx —— 连接超时/被拒、DNS 失败、4xx（含 403 的禁海外/反爬）、5xx —— 即回复固定话术 `UNREACHABLE_NOTICE`、打 `friend-unreachable`、**关闭 Issue**、推飞书「已驳回」，并跳过反链检测。闸门只驳回不入库；「下架」申请不受闸门约束（站点打不开正是申请人要撤链的理由）。站长不认同自动驳回时，重开 Issue 再打 `friend-approved` 即可正常入库。**`friend-rejected` 分支**：回复固定拒绝文案（邮箱取 `REJECT_CONTACT_EMAIL`，现与站点公开邮箱 `pldduck@outlook.com` 一致，有漂移测试守着）→ 关闭 Issue → 飞书「已拒绝」，不写文件、不 dispatch、不追加审核页脚（避免被读成「补打标签就能上架」）；重新申请要开新 Issue。
+2. **申请入口 = GitHub Issue**：申请友链（面板标题「申请友链」）只有 GitHub Issue 一条路，页面**不发任何请求、不落任何数据**：`FriendApplyForm` 把资料拼成 `<repoUrl>/issues/new?...` 由 `window.open` 打开（`buildFriendIssueUrl`），并保留「改用空白 Issue 表单」链接指向 `siteConfig.friendsPage.applyUrl`（`friend-link-application.yml` 模板，`target="_blank" rel="noopener noreferrer"`）。**关键约束**：预填链接**不得带 `template=` 参数** —— 走 Issue 表单时 GitHub 会忽略 `body`，正文填不进去；因此正文要自己复刻模板渲染出的 `### <label>` 分段与 `- [X]` 勾选项，段标题/顺序/文案的一致性由 `src/utils/friendIssue.test.ts` 同时用解析器往返 + 读模板做漂移守卫。两步向导的步骤状态（`currentApplicationStep`）与本站信息卡（`siteInfo`）保留在组件内。**不得再引入 Tally 等外部表单**（2026-10 用户授权把站内资料卡定位为「预填」而非「采集」，故「不得在站内自建提交表单」按“不得另建采集面”理解）。**已收录条目的信息修改走站长邮箱**（2026-10 用户授权：面板第三张卡片固定写「如果有修改友链信息的需求，请联系邮箱 pldduck@outlook.com」，为组件内常量 `FRIEND_EDIT_CONTACT_EMAIL`，**不为它新增配置键**）；「申请类型」字段已于 2026-10 经用户授权从页面、预填正文与 Issue 模板整链路删除，本流程只做**新增收录**，改信息与下架一律走站长邮箱（第三张卡片是 amber 高亮块，要显眼）。
+3. **自动检测仅供参考**：反链检测（`opened`/`edited`/`reopened`/申请人评论触发的 `findBacklink`）**只产出证据评论 + 标签 + 飞书「待审核」**，任何情况下都不得凭检测结果自动写文件。**在 A 道内，`friend-approved` 标签是唯一写入触发器**（本条不约束 B 道巡检，见规则 5 的 B 段 —— 也不要拿「检测不自动写」去回滚巡检的单键写入，两者不是一回事）；人工放行时即使检测未命中也照样入库，但评论必须写明「反链未检测到（人工放行）」并附上最后一次证据。**唯一允许机器人自己下的结论是可达性闸门**（2026-10 用户授权）：检测前先探申报的站点地址与头像，任一在 Actions 出口（境外 IP）拿不到 2xx/3xx —— 连接超时/被拒、DNS 失败、4xx（含 403 的禁海外/反爬）、5xx —— 即回复固定话术 `UNREACHABLE_NOTICE`、打 `friend-unreachable`、**关闭 Issue**、推飞书「已驳回」，并跳过反链检测。闸门只驳回不入库，且**对所有申请一视同仁**（旧的「下架申请不受闸门约束」豁免已随「申请类型」字段一起删除，2026-10 用户授权）。站长不认同自动驳回时，重开 Issue 再打 `friend-approved` 即可正常入库。**`friend-rejected` 分支**：回复固定拒绝文案（邮箱取 `REJECT_CONTACT_EMAIL`，现与站点公开邮箱 `pldduck@outlook.com` 一致，有漂移测试守着）→ 关闭 Issue → 飞书「已拒绝」，不写文件、不 dispatch、不追加审核页脚（避免被读成「补打标签就能上架」）；重新申请要开新 Issue。
 4. **反链判定口径**（改动必须同步本节，不得只写在代码注释里）：
    - 只认 `<a href>` 解析出的绝对 http(s) 地址；host 必须**精确等于或为子域**于 `www.pldduck.com` / `pldduck.com`（`pldduck.com.evil.net`、`evil-pldduck.com` 不算命中）。
    - 判定前先剥离 HTML 注释（主题里注释掉的友链是最可能的假阳性来源）；`<img src>`、`rel=canonical`、`meta refresh`、JS 字符串里的链接一律不算。
@@ -45,7 +45,7 @@
    - 目录**硬编码 `friends/`**，不读 `siteConfig.friendsPage.repoFriendsDir`（CMS 可改的配置值不能指挥机器人往哪写；有漂移测试守着）。
    - 文件名只从 `issue.user.login` 派生，断言 `^[A-Za-z0-9_-]{1,64}$` 且路径归一化后不变；禁止任何来自正文的文本参与文件名。
    - 记录必须经 `validateFriendRecord`（协议限 http/https、名称≤50/简介≤120、去控制字符与零宽、host 不得是 IP 字面量或本站域名）**再写**；必须带 `filename` 键（缺了它 Pages CMS 会生成 `.json` 点文件）。
-   - 一次运行只允许改动**一个** `friends/<slug>.json`；`新增` 不得覆盖不同 url 的既有文件；`修改` 必须按归一化 URL 恰好命中一个；`下架` 永远人工（机器人不删文件）。
+   - 一次运行只允许改动**一个** `friends/<slug>.json`；本流程只做新增收录，**归一化 URL 已收录一律退回**（评论指向站长邮箱，不再按「申请类型」区分修改/下架，2026-10 用户授权删除该字段）；机器人永不删文件，下架只在 Pages CMS 人工处理。
    - A 段**永不触碰 `unavailable`**：更新时合并进原 JSON 并**原样保留**该键 —— 展示字段的写入路径没有重置失联状态的权限，失联键只有 B 段能写。
    - 用 `getContent` 取 sha 做乐观锁（409 重试一次，仍失败就评论「并发修改，请重试」，绝不覆盖）；写入前按归一化 URL（host 小写、去 www、去尾斜杠）去重，比生成器的原始串去重更严。
    - 提交后必须回读 + `JSON.parse` + 再校验。
@@ -66,7 +66,7 @@
 
 - Issue 表单只有 `required` 校验（GitHub 至今未实现正则/长度/URL 校验），模板里的 `description` 只是提示 —— 真正的校验在 `friend-form-core.mjs`。改模板字段 label 必须同步 `FRIEND_FIELDS`，漂移测试会变红。
 - Issue 表单的正文段序与 label 是解析契约；解析有任何异常（缺段/重复段/乱序）都判 `ambiguous` 转人工，**绝不猜测字段值**。
-- 反链检测是**静态抓取**，Vue/React 站用 JS 渲染的友链挂件看不到；申请文案必须写明「请放服务端直出的 `<a href>`」。
+- 反链检测是**静态抓取**，Vue/React 站用 JS 渲染的友链挂件看不到；「请放服务端直出的 `<a href>`」这句提醒写在**Issue 模板的「申请须知」**与检测评论里（页面申请卡已于 2026-10 经用户授权删掉这段重复说明，勾选项只保留「我已在自己的站点上添加了指向本站的链接」），别把它从模板里也删掉 —— 申请人绕过页面直接用模板时，那是唯一能看到口径的地方。
 - **可达性闸门跑在境外出口 IP 上**：开了禁海外的站点、带防盗链的头像 CDN 都可能被判打不开而自动关闭 Issue。误判的补救是让申请人重开 Issue（会立刻重测）或站长直接打 `friend-approved`；不要为了少驳回就把 403 之类改成「不算失败」—— 那等于把闸门关掉。探测只读 64 KB，别拿它当内容检测用。
 - `friend.unavailable` 由 B 段巡检维护：**站长在 CMS 里的手工勾选会被下一轮巡检覆写**（2026-10 授权，不是 bug）。前端只读，A 段机器人也永不写它。目前**没有「让某条永久留在失联列表」的开关** —— 想留住就只靠巡检判定维持，或临时别跑那个 workflow；别为此在记录里私加新键（生成器与 CMS 都不认）。
 - B 段按记录里的 `filename` 键定位文件，键与真实文件名不一致就判「记录不可用」跳过并告警 —— 仓库里已有实例（`friends/xeiu.json` 内写 `filename: "Xe_iu"`）。这类历史漂移要**先修数据**再谈巡检，别放宽匹配（放宽等于让一个文件去改另一个文件）。

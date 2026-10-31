@@ -14,7 +14,6 @@ export interface FriendApplicationInput {
   backlinkUrl: string;
   avatar: string;
   description: string;
-  applicationType: string;
 }
 
 /** 各字段的三级标题，须与 Issue 表单的 label 逐字一致。 */
@@ -24,13 +23,13 @@ export const FRIEND_ISSUE_SECTION_LABELS = {
   backlinkUrl: '反链页面地址',
   avatar: '头像地址',
   description: '站点简介',
-  applicationType: '申请类型',
   confirmations: '确认事项',
 } as const;
 
 /** 「确认事项」的选项文案，须与 Issue 表单的 checkbox label 逐字一致。 */
 export const FRIEND_ISSUE_CONFIRMATIONS = [
-  '我已在自己的站点上添加了指向本站的链接，且是服务端直出的 `<a href>`',
+  '我已在自己的站点上添加了指向本站的链接',
+  '我的网站没有开启禁海外，能正常访问',
   '我同意站点名称、简介、头像与地址在 pldduck.com 公开展示',
 ] as const;
 
@@ -53,7 +52,6 @@ export const buildFriendIssueBody = (input: FriendApplicationInput): string =>
     section(FRIEND_ISSUE_SECTION_LABELS.backlinkUrl, singleLine(input.backlinkUrl)),
     section(FRIEND_ISSUE_SECTION_LABELS.avatar, singleLine(input.avatar)),
     section(FRIEND_ISSUE_SECTION_LABELS.description, singleLine(input.description)),
-    section(FRIEND_ISSUE_SECTION_LABELS.applicationType, singleLine(input.applicationType)),
     `### ${FRIEND_ISSUE_SECTION_LABELS.confirmations}\n\n${FRIEND_ISSUE_CONFIRMATIONS.map((item) => `- [X] ${item}`).join('\n')}\n`,
   ].join('\n');
 

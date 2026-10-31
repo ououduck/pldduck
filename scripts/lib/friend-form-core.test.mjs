@@ -4,7 +4,6 @@ import { describe, it, expect } from 'vitest';
 import yaml from 'js-yaml';
 import {
   FRIENDS_DIR,
-  FRIEND_APPLICATION_TYPES,
   FRIEND_FIELDS,
   FRIEND_ISSUE_MARKER,
   MAX_DESCRIPTION_CHARS,
@@ -42,7 +41,6 @@ const issueBody = (overrides = {}) => {
     反链页面地址: 'https://blog.Ayeez.cn/links',
     头像地址: 'https://qiniu.ayeez.cn/avatar.jpg',
     站点简介: '记录学习历程，记录美好生活',
-    申请类型: '新增',
     确认事项: '- [X] 我已在自己的站点上添加指向本站的链接\n- [X] 我同意公开展示',
     ...overrides,
   };
@@ -60,7 +58,6 @@ describe('parseFriendIssueBody', () => {
       name: '阿叶的小站',
       url: 'https://blog.Ayeez.cn',
       backlinkUrl: 'https://blog.Ayeez.cn/links',
-      applicationType: '新增',
     });
     expect(parsed.confirmations).toHaveLength(2);
   });
@@ -210,20 +207,10 @@ describe('validateFriendRecord', () => {
     expect(pickDetectionUrl(result)).toBe('https://blog.Ayeez.cn');
   });
 
-  it('申请类型只能是新增/修改/下架', () => {
-    const result = validateFriendRecord(validValues({ 申请类型: '随便' }), { acceptedHosts: accepted });
-    expect(result.errors.join()).toContain('申请类型只能是');
-    expect(FRIEND_APPLICATION_TYPES).toEqual(['新增', '修改', '下架']);
-  });
-
   it('多个错误一次性全部返回（省得申请人来回改）', () => {
     const result = validateFriendRecord(validValues({ 站点名称: '', 站点地址: 'nope' }), { acceptedHosts: accepted });
     expect(result.ok).toBe(false);
     expect(result.errors.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it('下架申请同样通过校验（由入口脚本转人工，机器人不删文件）', () => {
-    expect(validateFriendRecord(validValues({ 申请类型: '下架' }), { acceptedHosts: accepted }).ok).toBe(true);
   });
 });
 
@@ -506,11 +493,6 @@ describe('模板与解析器的契约（漂移守卫）', () => {
   it('模板字段 label、顺序与必填性与 FRIEND_FIELDS 一致', () => {
     expect(items.map((item) => item.attributes.label)).toEqual(FRIEND_FIELDS.map((field) => field.label));
     expect(items.map(isRequired)).toEqual(FRIEND_FIELDS.map((field) => field.required));
-  });
-
-  it('申请类型选项 === FRIEND_APPLICATION_TYPES', () => {
-    const dropdown = items.find((item) => item.attributes.label === '申请类型');
-    expect(dropdown.attributes.options).toEqual([...FRIEND_APPLICATION_TYPES]);
   });
 
   it('模板 maxLength 与校验上限一致（否则申请人会被要求改两次）', () => {

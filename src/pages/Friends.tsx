@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Sparkles, ChevronDown, Globe2, Shuffle } from 'lucide-react';
+import { ArrowRight, Mail, Sparkles, ChevronDown, Globe2, Shuffle } from 'lucide-react';
 import { SearchField } from '@/components/SearchField';
 import { siteConfig } from '@config/site.config';
 import { getFriends, getInitialFriends } from '@/services/friends';
@@ -124,7 +124,6 @@ interface ApplyFormState {
   backlinkUrl: string;
   avatar: string;
   description: string;
-  applicationType: string;
 }
 
 const EMPTY_APPLY_FORM: ApplyFormState = {
@@ -133,7 +132,6 @@ const EMPTY_APPLY_FORM: ApplyFormState = {
   backlinkUrl: '',
   avatar: '',
   description: '',
-  applicationType: '新增',
 };
 
 /**
@@ -143,10 +141,10 @@ const EMPTY_APPLY_FORM: ApplyFormState = {
  */
 const FriendApplyForm = () => {
   const [form, setForm] = useState<ApplyFormState>(EMPTY_APPLY_FORM);
-  const [confirmed, setConfirmed] = useState<boolean[]>([false, false]);
+  const [confirmed, setConfirmed] = useState<boolean[]>(() => FRIEND_ISSUE_CONFIRMATIONS.map(() => false));
   const [error, setError] = useState('');
 
-  const updateField = (key: keyof ApplyFormState) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const updateField = (key: keyof ApplyFormState) => (event: ChangeEvent<HTMLInputElement>) =>
     setForm((previous) => ({ ...previous, [key]: event.target.value }));
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -167,7 +165,7 @@ const FriendApplyForm = () => {
       return;
     }
     if (confirmed.some((checked) => !checked)) {
-      setError('两项确认都要勾选');
+      setError(`${FRIEND_ISSUE_CONFIRMATIONS.length} 项确认都要勾选`);
       return;
     }
     setError('');
@@ -183,12 +181,6 @@ const FriendApplyForm = () => {
       <h3 id="friend-apply-form" className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
         填好资料，一键带到 Issue
       </h3>
-      <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-        先在本站把资料填好，点「生成 Issue 申请」会打开 GitHub 的新建 Issue 页面，正文已经写好，确认无误后提交即可。
-        挂链要用服务端直出的 <code className="font-mono text-xs">&lt;a href&gt;</code>（JS
-        渲染的挂件检测不到）；机器人会先确认站点与头像在境外可以访问（开启禁海外会被自动驳回），再检测反链作为审核参考，
-        是否收录由站长确认。
-      </p>
       <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -255,20 +247,6 @@ const FriendApplyForm = () => {
               maxLength={500}
               placeholder="https://ayee.example.com/links"
             />
-          </div>
-          <div>
-            <label className={APPLY_FIELD_CLASS} htmlFor="friend-apply-type">
-              申请类型
-            </label>
-            <select
-              id="friend-apply-type"
-              className="editorial-input"
-              value={form.applicationType}
-              onChange={updateField('applicationType')}
-            >
-              <option value="新增">新增</option>
-              <option value="下架">下架</option>
-            </select>
           </div>
         </div>
         <fieldset className="space-y-2 pt-1">
@@ -586,17 +564,18 @@ export const Friends = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={shouldReduceMotion ? undefined : { opacity: 0 }}
                   >
-                    <Surface variant="card" className="p-4 sm:p-5">
-                      <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                    <div className="flex items-start gap-3 rounded-surface border border-amber-300 bg-amber-50 p-4 sm:p-5 dark:border-amber-400/40 dark:bg-amber-950/30">
+                      <Mail size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+                      <p className="text-sm font-semibold leading-relaxed text-amber-900 dark:text-amber-100">
                         如果有修改友链信息的需求，请联系邮箱{' '}
                         <a
                           href={`mailto:${FRIEND_EDIT_CONTACT_EMAIL}`}
-                          className="font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-2 transition-colors hover:text-zinc-950 hover:decoration-zinc-500 dark:text-zinc-300 dark:decoration-zinc-700 dark:hover:text-white dark:hover:decoration-zinc-400"
+                          className="underline decoration-amber-400 decoration-2 underline-offset-2 break-words transition-colors hover:text-amber-950 hover:decoration-amber-600 dark:text-amber-50 dark:hover:text-white dark:hover:decoration-amber-200"
                         >
                           {FRIEND_EDIT_CONTACT_EMAIL}
                         </a>
                       </p>
-                    </Surface>
+                    </div>
                   </motion.div>
                 </div>
               </div>

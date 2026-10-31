@@ -14,12 +14,7 @@ import {
   buildFriendIssueUrl,
   type FriendApplicationInput,
 } from './friendIssue';
-import {
-  FRIEND_APPLICATION_TYPES,
-  FRIEND_FIELDS,
-  parseFriendIssueBody,
-  validateFriendRecord,
-} from '../../scripts/lib/friend-form-core.mjs';
+import { FRIEND_FIELDS, parseFriendIssueBody, validateFriendRecord } from '../../scripts/lib/friend-form-core.mjs';
 
 const input: FriendApplicationInput = {
   name: '阿叶的小站',
@@ -27,7 +22,6 @@ const input: FriendApplicationInput = {
   backlinkUrl: 'https://ayee.example.com/friends',
   avatar: 'https://ayee.example.com/avatar.png',
   description: '前端与生活方式记录',
-  applicationType: FRIEND_APPLICATION_TYPES[0],
 };
 
 /** 解析器是 JS 模块，返回值对 TS 只是 unknown 形状；测试里按已知结构收窄。 */
@@ -92,9 +86,10 @@ describe('友链 Issue 预填正文', () => {
     expect(parsed.unknown).toEqual([]);
   });
 
-  it('正文里的两个勾选项都被识别为已确认', () => {
+  it('正文里的三个勾选项都被识别为已确认', () => {
     const parsed = parse(buildFriendIssueBody(input));
     expect(parsed.confirmations).toEqual([...FRIEND_ISSUE_CONFIRMATIONS]);
+    expect(parsed.confirmations).toHaveLength(3);
   });
 });
 

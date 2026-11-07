@@ -24,6 +24,7 @@
 3. **`giscus.json.defaultCommentOrder` 保持 `newest`**：giscus 无 data-sort 属性，仓库根的这个键是**唯一**排序入口；改成 oldest 会让「最新在前」的产品预期失效。访客浏览器 localStorage 里的临时切换不影响其他访客。
 4. **公告分类（Announcements）**：承载说说的那条 Discussion 必须位于 Announcements 类型分类；否则任何登录 GitHub 的访客都能发评论，「只有作者能发说说」的约束即破。分类类型不可在 Discussion 之间迁移——如需要改变，只能重建一条并更新 `shuoshuo.discussionId`。
 5. **详情页契约已退役**：`/shuoshuo/:splat → /shuoshuo` 的 301 成对（`_redirects` + `App.tsx`）是外部已索引 URL 的兜底，不得单边删除；若二次改造需要新详情路由，须重新走 `config/routes.mjs` 单一真源流程并同步 `routes-consistency.test.mjs`。
+6. **编辑式页头**：删除英文大写眉题/图标；页头为 `border-b border-line`，`h1` 用 `font-serif text-4xl font-bold md:text-5xl`、文案「说说」，下面一行 `max-w-xl` 低对比介绍。giscus 内嵌区域与数据逻辑保持不动。
 
 ## 常见陷阱
 

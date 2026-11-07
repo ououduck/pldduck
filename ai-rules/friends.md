@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-友情链接展示（正常/失联分组）与友链申请入口（展开面板内三张卡片：① 本站友链信息 → ② 资料填写卡 `FriendApplyForm`，填完拼出预填正文的 GitHub 新建 Issue 链接 → ③ 信息修改联系卡）。
+友情链接展示（正常/失联分组）与友链申请入口（`border-y` 折叠面板内三个轻量分节：① 本站友链信息 → ② 资料填写 `FriendApplyForm`，填完拼出预填正文的 GitHub 新建 Issue 链接 → ③ 信息修改联系；原三张独立卡片已合并为发丝线分节）。
 
 `friends/*.json` 有**两条互不相交的写入路径**，各改各的键：
 
@@ -15,7 +15,6 @@
 
 - `src/pages/Friends.tsx`
 - `src/services/friends.ts`（getFriends/getInitialFriends）
-- `src/components/effects/useSpotlight.ts`（卡片光效）
 - `.github/ISSUE_TEMPLATE/friend-link-application.yml`（申请表单；字段 label 是解析契约，也是页面预填正文的对照物）
 - `src/utils/friendIssue.ts`（把页面资料拼成预填 Issue 正文/链接；与解析器的契约由 `friendIssue.test.ts` 的往返与漂移用例守着）
 - `.github/workflows/friend-link.yml`（检测 + 人工放行后的写入与部署）
@@ -59,8 +58,10 @@
 7. **防自循环**：`labeled` 分支要求 `sender.type != 'Bot'`；机器人评论正文嵌 `<!-- pldduck-friend-bot:v1 -->` 标记，带标记的评论一律跳过；评论重测只认 Issue 作者或 `author_association ∈ {OWNER,MEMBER,COLLABORATOR}`；机器人永不编辑 Issue 正文（否则自触发 `edited`）。
 8. **搜索过滤**：`getFriendDomain`（new URL 解析）结果必须预计算 Map 缓存（禁止每次击键对全部友链重复解析）；大小写统一用 toLowerCase（非 toLocaleLowerCase，locale 无关）。
 9. **SSG 确定性**：友链列表与失联分组首帧由 `getInitialFriends()` 渲染。
-10. **光效**：useSpotlight/SpotlightLayer 保持既有实现；卡片 hover 光效不阻塞内容可读；**pointermove 光斑跟随必须保持 rAF 单帧合并**（禁止每次移动直接 setState，卡片子树会高频重渲染）。
+10. **无卡片光效**：友链已改为编辑式发丝线条目，历史 `useSpotlight` / `SpotlightLayer` 已删除；**不得**恢复 pointermove 光斑、卡片高亮层或重卡片，交互反馈只靠 hover 文字色/下划线（见规则 12/13）。
 11. **日志与评论安全**：Issue 标题/正文/用户字段进 Actions 日志或 Issue 评论前必须过 `sanitizeLogValue`，URL 必须过 `sanitizeUrlForLogs`；拒绝文案是固定串 + 常量邮箱，不掺任何用户输入。
+12. **编辑式页头**：删除英文大写眉题；`h1` 用 `font-serif text-4xl font-bold md:text-5xl`、文案「友情链接」，描述 `max-w-2xl` 低对比文字；右侧「随机前往」是 ghost 按钮（`min-h-11`、hover `surface-muted`、无可访问友链时 `disabled`），**不得**改回实底/描边按钮或恢复英文眉题。
+13. **轻量列表与去重卡片**：主列表与「已失联的博客」都用 `grid`（1 / md:2 / lg:3 列）+ 每项 `border-t border-line`、容器 `border-b border-line` 的发丝线条目，**不得**恢复卡片边框/白底/阴影；「申请友链」与「已失联的博客」是 `border-y border-line` 折叠条 + 内部 `border-t` 分节（原三张卡片合并为轻量分节），amber 的「信息修改联系」块保留（`warning` 语义色，必须显眼）。
 
 ## 常见陷阱
 
@@ -74,6 +75,7 @@
 - **`template=` 与 `body=` 互斥**：GitHub 用 Issue 表单渲染时忽略 `body` 参数，预填正文只能走不带 template 的 `/issues/new`。代价是申请人绕过了模板的必填校验与勾选框，正文完全由页面拼 —— 拼错一段就是解析失败，`parseFriendIssueBody` 的 `ambiguous` 会退回「缺段/顺序异常」转人工，绝不会写坏文件；改动 `FRIEND_ISSUE_SECTION_LABELS` 或模板 label 都会让 `friendIssue.test.ts` 变红。
 - 友链生效要等 `deploy.yml` 跑完（Issue 里写的站点不会立刻出现在 `/friends`）；`pagescms-config.test.mjs` 的配置漂移守卫要求 `applyUrl` 继续用既有键，**不要为友链申请新增配置键**。
 - Issue 流程已于 2026-10 经用户授权恢复（旧规则「不要恢复 Issue 流程」作废）；**不要再引 Tally**，也不要因为「以前删过 Issue」就把写文件改回人工录入。
+- 恢复英文大写眉题或给友链列表加回卡片边框/白底/阴影：与编辑式定稿相反，`Friends.test` 的轻量结构断言会红；「随机前往」也别改成实底按钮。
 
 ## 破例条款
 

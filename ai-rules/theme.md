@@ -11,6 +11,7 @@ UI 重构第二阶段起，全站颜色/字体/间距/圆角/布局宽度/动效
 单一来源是 `src/index.css` 的 `:root` CSS 变量，`config/tailwind.config.js` 把它们映射成 Tailwind 语义类：
 
 - **颜色**（`html.dark` 覆盖同一组变量）：`--color-background` / `--color-surface` / `--color-surface-muted` / `--color-text` / `--color-text-secondary` / `--color-border` / `--color-accent` / `--color-success` / `--color-warning` / `--color-danger` / `--color-focus-ring`。Tailwind 侧对应 `bg-background` / `bg-surface` / `bg-surface-muted` / `text-content` / `text-content-muted` / `border-line` / `text-accent` / `text-success` 等。
+- **黑白强对比基线（2026-11 用户确认）**：浅色 `background`/`surface` = `#ffffff`、`surface-muted` = `#f4f4f5`、`text` = `#0a0a0a`、`text-secondary` = `#525252`、`border` = `#d4d4d8`、`accent`/`focus-ring` = `#0a0a0a`；深色 `background` = `#0a0a0a`、`surface` = `#111111`、`surface-muted` = `#262626`、`text` = `#fafafa`、`text-secondary` = `#a3a3a3`、`border` = `#2a2a2a`、`accent`/`focus-ring` = `#fafafa`。兼容类 `paper` = `#ffffff`、`ink` / `void` = `#0a0a0a`。`success` / `warning` / `danger` 仍保留语义色，只用于状态（成功/告警/错误/失联），不得当装饰色。
 - **字体**：`--font-sans` / `--font-serif`（中文优先系统黑体/宋体回退链）与 `config/tailwind.config.js` 的 `fontFamily.sans/serif` 必须同步维护。
 - **间距**：`--space-1`…`--space-12`（4px 基准），供 CSS 与内联样式引用；Tailwind 的间距刻度保持不变。
 - **圆角**：`--radius-sm`(4px) / `--radius-md`(8px) / `--radius-lg`(12px)，与 Tailwind 的 `micro` / `icon` / `overlay` 对齐。
@@ -47,9 +48,10 @@ UI 重构第二阶段起，全站颜色/字体/间距/圆角/布局宽度/动效
    发丝线宽度由 `.duck-loader-group` 拉伸跟随字样宽度，不写死尺寸。
    **减弱动效靠 CSS 媒体查询**（`@media (prefers-reduced-motion: reduce)` 分支：脚掌与字样静止常亮、扫线隐藏），
    不用 `useReducedMotion()` —— 它是纯样式状态，JS 开关会让组件多一个无谓的订阅。
-7. **设计 Token 是唯一视觉来源**：颜色、字体、间距、圆角、布局宽度、动效只能改 `src/index.css` 的 Token 与 `config/tailwind.config.js` 的映射；不得在组件里新写十六进制色值、魔数圆角或独立动效时长。Token 值会全站生效，调整前确认深浅两态对比度与现有视觉基线（本次重构的 Token 取的就是改造前的视觉值，换 Token 不应产生突变）。
+7. **设计 Token 是唯一视觉来源**：颜色、字体、间距、圆角、布局宽度、动效只能改 `src/index.css` 的 Token 与 `config/tailwind.config.js` 的映射；不得在组件里新写十六进制色值、魔数圆角或独立动效时长。颜色 Token 现为**黑白强对比基线**（纯白底 / 近黑字，深色反转），调整前必须全站核对浅色与深色两态（含文章正文、代码块、侧栏、顶栏、服务状态、表单、弹层）。
 8. **语义类优先**：新组件/改样式优先用 `bg-background`、`bg-surface`、`bg-surface-muted`、`text-content`、`text-content-muted`、`border-line`、`text-accent` 等语义类；既有 `paper` / `ink` / `void` 保留兼容，但不要在新代码继续扩散。需要透明度时**不要**写 `bg-surface/50` —— `var()` 颜色不支持 Tailwind 的 `/opacity` 修饰符（不会报错，只会得到非预期颜色），改用现成 Token 或新增一个 Token。
 9. **深色只覆盖颜色，且不得包 `@layer`**：`html.dark` 仅覆盖 `--color-*`，间距/圆角/动效两态共用；它必须保持**无 `@layer` 包裹** —— `:root` 的变量是无层声明，层内的 `html.dark` 会在层叠优先级上输给无层 `:root`，深色值直接失效。组件不得为语义颜色逐处补 `dark:` 复制值（Token 已两态自适应），只有非语义的特殊场景才允许局部 `dark:`。
+10. **禁止回退暖米色与蓝色强调**：全站背景/文字/边框/链接/焦点环都走黑白灰 Token；正文链接（`.post-prose a`、typography 的 `--tw-prose-links`）固定 `var(--color-accent)`，**不得**改回历史蓝色 `#0969da`，也不得把页面底色改回暖米色 `#f2f0e9`。`accent` 与正文同墨色（深色模式为白），需要区分可点击性时靠下划线/hover，而不是换彩色。`success` / `warning` / `danger` 只允许出现在状态语义（复制成功、表单错误、失联告警、状态灯等），不得用作主色或装饰。
 
 ## 常见陷阱
 
@@ -60,6 +62,8 @@ UI 重构第二阶段起，全站颜色/字体/间距/圆角/布局宽度/动效
 - 只改 `--font-sans` / `--font-serif` 而不同步 `config/tailwind.config.js` 的 `fontFamily`（或反之）：CSS 与工具类会落到两套字体链。
 - 在组件里逐处补 `dark:bg-zinc-900 dark:text-zinc-100` 复制 Token 已有语义：深色主题调整时这些硬编码会脱队；优先改 Token 或使用语义类。
 - 文章正文/阅读模式排版只改 Tailwind 工具类或 `Post.tsx` 内联样式：正文排版以 `index.css` 的 `.post-prose` / `.reading-mode-article` 为准（`prose` 插件选择器特异性更高），绕过去会出现深浅两态或两种模式各错一半。
+- 顺手把颜色改回暖米色底（`#f2f0e9`，旧 paper 值）或蓝色链接（`#0969da` / `text-blue-*`）：这会把黑白强对比基线打回旧主题，且链接色只在部分组件恢复，页面会花。
+- 用 `success` / `warning` / `danger` 做装饰色或强调色：它们只表达状态，滥用后「红色」不再等于错误、「绿色」不再等于成功，状态语义整体失效。
 
 ## 破例条款
 

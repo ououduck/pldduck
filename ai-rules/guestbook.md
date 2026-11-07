@@ -15,6 +15,7 @@
 1. **固定讨论**：留言板使用 `mapping="number"` + 固定 `discussionId`，**绝不自动创建新讨论**（number 映射语义）。
 2. **配置校验**：`discussionId` 缺失或非数字时，应回退「留言功能暂未开启」状态而非静默注入无效 giscus。
 3. **回退链**：giscus 来源（官方/自托管/同源代理）与超时重试逻辑在 GiscusComments 内，留言板不重复实现。
+4. **编辑式页头**：删除英文大写眉题/图标；页头为 `border-b border-line`，`h1` 用 `font-serif text-4xl font-bold md:text-5xl`、文案「留言板」；不新增介绍段落（保持轻页头）。giscus 内嵌区域与数据逻辑保持不动。
 
 ## 常见陷阱
 

@@ -11,9 +11,10 @@
 ## 二、项目身份与工作方式
 
 - 项目：pldduck（React 19 + Vite 6 + TypeScript 的 SSG 静态站点，客户端 SPA 水合；Node 构建脚本为 ESM .mjs）。
-  线上域名 `www.pldduck.com`，由原个人主页 Dworld 与博客 D-blog 合并而来：首页是**极简个人主页**
-  （头像、名字、`author.bio` 介绍、GitHub / 邮箱 / QQ 联系方式），不再承担门户/导流职责；
-  文章/说说/友链/留言板等功能页在同一域下的子路径，`/post/<id>` 与旧博客逐字节一致。
+  线上域名 `www.pldduck.com`，由原个人主页 Dworld 与博客 D-blog 合并而来：首页是**极简个人主页 +
+  全站搜索 + 联系方式/订阅入口**（头像、名字、`author.bio`、搜索表单、GitHub / 邮箱 / QQ / RSS /
+  更新订阅 / 项目仓库），侧栏只保留导航与工具；文章/说说/友链/留言板等功能页在同一域下的子路径，
+  `/post/<id>` 与旧博客逐字节一致。
   全站不再渲染页面底部 Footer（版权只保留在侧栏底部），侧栏顺序固定为
   导航清单 → 服务状态入口 → 版权（版权在最底）。
   旧仓库已改名 `ououduck/D-blog-old` 并封存为迁移跳转页，不再开发。
@@ -47,8 +48,8 @@
     - **缓存与超时固定**：Worker 成功结果写 Cache API 60 秒、上游 5 秒超时且**不重试**、**失败不写缓存**；前端每 60 秒轮询（仅 `siteStatusStore` 一份 timer）、8 秒超时、不重试、不做结果缓存。静态资源不得进 Worker（`run_worker_first` 只允许 `/api/*`）。
     - 改这条链路必须同步 `ai-rules/site-status.md`，并跑 `worker/index.test.mjs`、`src/services/siteStatus.test.ts`、`src/services/siteStatusStore.test.ts`、`src/components/SiteStatusBadge.test.tsx`、`src/components/WorkersLimitToast.test.tsx`。
 14. **首页与全站外壳**：
-    - 首页只呈现站主身份（头像、名字、`author.bio` 介绍、联系方式），**不得**恢复门户入口、搜索、开源项目、关于本站、技术栈、订阅卡或状态标签；`config/portal.config.json` 仍存在但首页不再消费，详见 `ai-rules/home.md`。
-    - 全站**不再渲染页面底部 Footer**（`Layout` 无 `Footer` 组件，页面中不得出现 `contentinfo`）；版权只在侧栏底部 `SidebarFooter`，顺序固定为 导航清单 → 服务状态入口 → 版权（版权在最底）；`fillHeight` 下只有中间导航清单滚动，状态入口与版权固定在底部。
+    - 首页以站主身份为主（头像、名字、`author.bio` 介绍），另含全站搜索表单与联系方式/订阅入口（GitHub / 邮箱 / QQ / RSS / 更新订阅 / 项目仓库），**不得**恢复门户入口、内容列表、开源项目、关于本站、技术栈、订阅卡或状态标签；`config/portal.config.json` 仍存在但首页不再消费，详见 `ai-rules/home.md`。
+    - 全站**不再渲染页面底部 Footer**（`Layout` 无 `Footer` 组件，页面中不得出现 `contentinfo`）；版权只在侧栏底部 `SidebarFooter`，顺序固定为 导航清单 → 服务状态入口 → 版权（版权在最底）；`fillHeight` 下只有中间导航清单滚动，状态入口与版权固定在底部。侧栏分组只有 主页 / 栏目 / 工具（「订阅与联系」已删除，联系方式与订阅入口统一在首页）。
     - **Workers 上限提示**：状态请求返回 HTTP 1027/429 时，由全站唯一 store（`src/services/siteStatusStore.ts`）触发一次顶部提示，文案逐字「今日 Workers 请求次数达到上限，部分功能受限」，3 秒自动收回，**每标签页 10 分钟最多一次**；`WorkersLimitToast` 只订阅、不请求、不缓存，不得改成逐组件轮询，也不得增加关闭按钮或持续动画。
 
 ## 四、目录约定

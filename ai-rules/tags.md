@@ -6,8 +6,8 @@
 
 ## 关键文件
 
-- `src/pages/Tags.tsx`
-- `src/utils/postRelations.ts`（buildTagList 等标签聚合）
+- `src/pages/Tags.tsx`（`buildTagList` 标签聚合、标签云与筛选）
+- `src/utils/postRelations.ts`（文章关联，供文章详情页使用；标签页不消费）
 
 ## 修改规则（必须遵守）
 
@@ -19,7 +19,7 @@
 
 ## 常见陷阱
 
-- 修改 `postRelations.ts` 的 buildTagList 会影响归档/首页的标签派生；
+- 修改 `Tags.tsx` 的 `buildTagList` 会影响标签页的标签云与文章数分级（首页已不再派生标签，不要再把它接回首页）；
 - 搜索结果与全量标签两个数据源（results vs allPosts）不要混淆。
 
 ## 破例条款

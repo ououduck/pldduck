@@ -1,45 +1,74 @@
-# 首页（Home，`/`）— AI 修改规则
+# 首页（个人主页，`/`）— AI 修改规则
 
 ## 功能概述
 
-站点门户，同时是站主的主页（原 `/about` 已并入本页）。栏目自上而下的顺序是**导流优先**：
-站名与自我介绍 + 站内搜索入口（`siteConfig.title` 作 h1、大尺寸头像 128px、助记词、状态徽标、`author.bio` 自述段）
-→ 站点入口磁贴与次级链接 → 开源项目 → 「关于本站」栏目（站点折腾记录与技术栈清单，来自 `portal.identity` / `portal.stack`）
-→ 联系方式（GitHub / 邮箱 / QQ 一键复制）→ 新文章订阅卡（`IssueSubscriptionCard`）。
-「关于本站」放在开源项目之后：它是身份说明而非入口，靠近末尾的联系方式与订阅卡更顺读。
+首页是站主的极简个人主页（原 `/about` 已并入本页），自上而下只有四块内容：头像、名字（唯一 `h1`）、
+`author.bio` 原文介绍、联系方式（GitHub / 邮箱 `mailto:` / QQ 一键复制）。除此之外不承载任何栏目、
+入口或内容列表 —— 2026-11 用户已确认「极简个人主页」方向并删除旧首页的全部导流内容。
 
-英雄区**不再输出 `siteConfig.subtitle` 小字**：站点身份已经由全站外壳（侧边栏 + 顶栏面包屑）承担，首页只留站名与描述。
+**明确禁止恢复的旧内容**：门户入口磁贴与次级链接、站内搜索入口与 `?q=` 处理、开源项目清单、
+「关于本站」与折腾记录、技术栈清单、助记词 / tagline / 状态标签、新文章订阅卡（`IssueSubscriptionCard`）、
+文章 / 说说 / 友链等任何内容列表。`config/portal.config.json` 仍存在且仍由加载器合并为
+`siteConfig.portal`（暂保留，供将来恢复或其他用途），但**首页不再消费**；不要因为它还在就恢复门户渲染。
 
-**本页不出现任何文章/说说/友链的正文内容列表**（说说页现为 giscus 内嵌，首页同样不得内嵌），也不承载列表的筛选、排序、分页与搜索结果展示：文章列表在
-`/posts`（见 `posts.md`），归档/标签/搜索分别在 `/archive`、`/tags`、`/search`。首页只给出指向它们的入口。
-站点**自身**的身份文案（自述、折腾记录、技术栈）属于本页职责，不是内容列表。
+全站页面底部不再渲染全局 Footer（`Layout` 没有 `Footer` 组件），版权只在侧栏底部；首页不得自己补页脚、
+版权或备案信息。
 
 ## 关键文件
 
 - `src/pages/Home.tsx`
-- `config/portal.config.json`（入口磁贴、次级链接、开源项目、tagline/status/tags/memory/identity/stack 全部由此驱动；构建期/运行期都合并成 `siteConfig.portal`）与 `config/site.config.ts` 的 `SitePortal` 类型
-- `config/site.config.json` 的 `author.bio`（Hero 自述段与 ProfilePage schema 的 mainEntity 共用）
-- `src/utils/preload.ts`（磁贴悬停预加载的 chunk 键）
-- `src/components/IssueSubscriptionCard.tsx`（首页末尾的订阅卡，与文章页同一组件）
+- `config/site.config.json` 的 `author.avatar` / `author.name` / `author.bio` 与 `social.github` /
+  `social.email` / `social.rawEmail` / `social.qq`
+- `src/components/Seo.tsx`（`Seo` 与 `buildSiteSchemas`，首页 SEO 与结构化数据）
+- `src/utils/clipboard.ts`、`src/hooks/useResetTimer.ts`（QQ 复制与反馈复位）
+- `src/utils/siteUrl.ts`（`assetUrl` / `absoluteSiteUrl`）
+- `src/pages/Home.test.tsx`（含「旧门户内容不得出现」的负向断言）
 
 ## 修改规则（必须遵守）
 
-1. **纯导流**：不得渲染 `PostCard`、说说 giscus 内嵌、友链头像等任何内容列表；需要新增栏目就加一条 `portal.entries`。搜索表单只做 `navigate('/search?q=…')`；空查询不跳转。站点身份文案（`author.bio`、`portal.identity`、`portal.stack`）是例外——它们描述本站，不是内容列表。
-2. **URL 状态最小化**：首页唯一合法 URL 是无参 `/`。挂载时把残留参数清掉（`replace`），`?q=` 则整串转交 `/search`（兼容旧版首页的搜索分享链接）。新增交互不得再引入查询参数。
-3. **SSG/水合确定性**：门户文案一律来自构建期内联的 `siteConfig.portal`；渲染期禁止 fetch、`Date.now()`、`Math.random()`、`window`/`document` 访问。
-4. **内容不硬编码**：站点入口/次级链接/开源项目与「关于本站」正文都来自 `siteConfig.portal`，新增图标在 `PORTAL_ICONS` 注册并保留 `Sparkles` 兜底；不得把清单抄进组件。在 `portal.config.json` 加字段必须同步在 `.pages.yml` 的 `portalConfig.fields` 声明，否则 PagesCMS 保存时会把它抹掉。
-5. **链接语义**：站内路径用 `<Link>` + `onMouseEnter={() => preloadPage(path)}`；外链用 `<a target="_blank" rel="noopener noreferrer">` 并在可访问名称里标注「外部站点」。站内/外链判定统一走 `isInternalPath`（`//` 开头的协议相对地址不算站内）。
-6. **SEO**：`<Seo title={siteConfig.title} description={siteConfig.description} />` —— `title` 必须逐字等于 `siteConfig.title`，否则 `seoHomeTitle`/`seoHomeDescription` 的首页覆盖不生效（见 `Seo.tsx`）；该覆盖只对 `/` 有效，其他页面（含 `/posts`）不得复用 `siteConfig.title` 作为标题。
-   首页额外输出 `ProfilePage` schema（站主即站点，原 `/about` 的实体随页面合并）：显式传 `structuredData` 会**替换**掉 `Seo` 的默认站点 schema，必须 `[...buildSiteSchemas(...), profilePageSchema]` 一并带上 WebSite + Organization；`buildSiteSchemas` 的入参要与 `Seo` 对首页选的文案（`seoHomeDescription` 优先）保持一致。`config/routes.mjs` 的 `/` 条目不得加 `seo.schemaType`，否则 SSG 会再注入一份，`seo-audit` 报「@type 重复」。
-7. **无障碍**：每个 `Section` 用 `aria-labelledby` 指向自身 `h2`；搜索表单 `role="search"` + `<label className="sr-only">`；复制成功通过 `role="status"` 播报；头像保留 `alt`。
-8. **动画克制**：不使用 framer-motion 入场/视差动画（首帧必须是最终可见状态，保证 LCP 与无 JS 可读）；只允许 CSS `motion-safe:` 级别的小动效。
-9. **性能**：组件内 state 仅限局部交互（搜索输入框、复制反馈），不得引发整页重渲染。
+1. **只允许四块内容**：头像、名字（唯一 `h1`）、`author.bio` 原文、联系方式。新增任何板块都属于扩大
+   首页职责，必须先获得用户明确授权并同步本文件；不得以「提高信息密度」「提升导流」为由加回旧内容。
+2. **内容来自配置、不硬编码**：名字 / 介绍 / 头像 / 联系方式全部取自 `siteConfig.author` 与
+   `siteConfig.social`；不得把个人介绍写进组件，也不得为头像加第三方兜底 —— `assetUrl(siteConfig.author.avatar)`
+   已指向站内本地 `public/logo-96.png`，第三方域名（如 ui-avatars）在大陆不可达，站内资源只有构建缺件才失败。
+3. **SSG / 水合确定性**：渲染期禁止 fetch、`Date.now()`、`Math.random()`、`window` / `document` 访问；
+   复制反馈只能出现在客户端事件之后。SSR 首帧与客户端水合首帧必须逐字一致。
+4. **联系方式语义**：GitHub 外链用 `target="_blank"` + `rel="noopener noreferrer"`，可访问名称里标注
+   「外部站点，新标签页打开」；邮箱用 `siteConfig.social.email`（`mailto:`）；QQ 只在
+   `siteConfig.social.qq` 存在时渲染，点击 `copyTextToClipboard`，成功 / 失败都通过 `role="status"` +
+   `aria-live="polite"` 播报，反馈 2 秒后由 `useResetTimer` 复位；卸载后不得再 setState
+   （`isMountedRef` 守卫），剪贴板异常必须 try/catch，不产生未处理 rejection。
+5. **SEO 保持现状**：`<Seo title={siteConfig.title} description={siteConfig.description} />` —— `title`
+   必须逐字等于 `siteConfig.title`，否则 `seoHomeTitle` / `seoHomeDescription` 的首页覆盖不生效
+   （见 `Seo.tsx`）；该覆盖只对 `/` 有效，其他页面不得复用 `siteConfig.title` 作为标题。
+   首页额外输出 `ProfilePage` schema（站主即站点，原 `/about` 的实体随页面合并）：显式传
+   `structuredData` 会**替换**掉 `Seo` 的默认站点 schema，必须
+   `[...buildSiteSchemas(...), profilePageSchema]` 一并带上 WebSite + Organization；`buildSiteSchemas`
+   的入参要与 `Seo` 对首页选的文案（`seoHomeDescription` 优先）保持一致。`config/routes.mjs` 的 `/`
+   条目不得加 `seo.schemaType`，否则 SSG 会再注入一份，`seo-audit` 报「@type 重复」。
+6. **无障碍**：头像 `alt` = `author.name`；联系方式区用 `<nav aria-label="联系方式">`；QQ 复制按钮有
+   明确的可访问名称（含号码）；复制结果用 `role="status"` 播报；标题层级只有 `h1`，不出现别的标题。
+7. **无全局 Footer**：`Layout` 不再渲染页面底部 Footer（版权只在侧栏底部），首页不得补页脚、版权或
+   备案信息，也不得在页面内输出 `contentinfo`。
+8. **动画克制**：不使用 framer-motion 入场 / 视差动画（首帧必须是最终可见状态，保证 LCP 与无 JS 可读）；
+   只允许 CSS `motion-safe:` 级别的小动效。
+9. **性能**：组件内 state 仅限 QQ 复制反馈，不得引发整页重渲染；不得重新引入 `preloadPage` 预加载、
+   搜索索引或订阅卡等旧逻辑。
 
 ## 常见陷阱
 
-- 作者头像取自 `siteConfig.author.avatar`（现为站内本地 `/logo-96.png`），渲染必须过 `assetUrl()`（子路径部署下裸相对路径会 404）。曾经的 ui-avatars 首字母兜底已删除：那是第三方域名，大陆命中不了，而站内资源只有构建缺件才会失败 —— 别为它再加一个 `onError` 状态。
-- 首屏最大的封面图 preload 属于 `/posts`（`scripts/ssg.mjs` 里按 `page.path === 'posts'` 注入）：搬到首页会让 Chrome 报「preloaded 但未使用」，因为首页已经没有文章卡片了。
-- 页脚由 `Layout` 统一渲染，首页不得重复输出。
+- 觉得「首页太素」而加回门户磁贴、搜索框、项目列表、技术栈或订阅卡：这正是被删除的内容，
+  改回即违反规则 1（只能先请求用户授权）。
+- 看到 `config/portal.config.json` 仍存在，就以为首页还该消费它：它只是历史配置，暂保留 ≠ 恢复渲染。
+- 把 `siteConfig.subtitle` / tagline / 状态标签加回英雄区：站点身份已由全站外壳（侧栏 + 顶栏）承担，
+  首页不需要再写一遍。
+- 作者头像直接用 `/logo-96.png` 裸路径：必须过 `assetUrl()`，子路径部署下否则 404。
+- 复制 QQ 用裸 `navigator.clipboard.writeText` 且不处理异常：旧浏览器 / 无权限会抛未处理 rejection，
+  必须走 `copyTextToClipboard` + try/catch，并在卸载后跳过 setState。
+- 去掉 `ProfilePage` 或只传 `profilePageSchema`：会丢掉 WebSite / Organization，SEO 审计失败。
+- 删除 `Home.test.tsx` 里「不存在门户入口 / 搜索框 / 开源项目 / 关于本站 / 订阅卡」的负向断言：
+  那些断言在守护这次精简，不是冗余测试。
+- 在 `Layout` 或首页里恢复 `<footer>`：全站已无页面底部 Footer，`Layout.test` 会断言 `contentinfo` 不存在。
 
 ## 破例条款
 

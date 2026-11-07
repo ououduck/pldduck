@@ -17,11 +17,11 @@
 ## 关于本站
 
 站点基于 React 19 + Vite 6 + TypeScript 构建，预渲染（SSG）与客户端水合并行：正文在未执行 JavaScript
-的情况下依然可读，交互能力在水合后补齐。首页是全站导流门户，其下挂载以下内容与工具：
+的情况下依然可读，交互能力在水合后补齐。首页是极简个人主页，其余内容与工具拆在同一域下的子路径：
 
 | 模块 | 路径 | 说明 |
 | --- | --- | --- |
-| 门户首页 | `/` | 站点简介、栏目入口（文章 / 说说 / 友链 等，纯导流，不渲染内容列表） |
+| 首页（个人主页） | `/` | 只呈现站主身份：头像、名字、个人介绍与联系方式（GitHub / 邮箱 / QQ 一键复制），无门户入口与内容列表 |
 | 文章 | `/posts`、`/post/:id` | Markdown 驱动，构建期校验 frontmatter、分类白名单并过滤草稿 |
 | 归档 / 标签 | `/archive`、`/tags` | 由构建期生成的站点数据派生 |
 | 说说 | `/shuoshuo` | 公告 Discussion 每条评论 = 一条说说，Giscus 内嵌，最新在前（旧 `/shuoshuo/:id` 301 回列表页） |
@@ -36,6 +36,9 @@
 图片预览、深浅色双态（经 `View Transitions` 过渡）、侧边栏图标条（鼠标移入展开为浮层）以及
 Service Worker 离线壳；同时输出 OG/Twitter Card、JSON-LD、RSS（`/feed.xml`）、Sitemap 与 `llms.txt`。
 所有动效均尊重 `prefers-reduced-motion`。
+
+全站页面不再渲染底部 Footer：版权信息只保留在侧栏底部，侧栏顺序固定为 导航清单 → 服务状态入口 →
+版权（版权在最底）。侧栏是 `fillHeight` 固定布局，只有中间的导航清单滚动，服务状态入口与版权始终可见。
 
 ## 背景与对外承诺
 
@@ -122,7 +125,7 @@ pldduck/
 | 文件 | 内容 | PagesCMS 集合 |
 | --- | --- | --- |
 | `config/site.config.json` | 标题、描述、SEO、logo、社交、作者、内容开关、服务状态页地址 | 站点配置 |
-| `config/portal.config.json` | 首页门户文案：标语、状态、标签、入口、链接、项目 | 首页内容 |
+| `config/portal.config.json` | 历史门户配置：标语、状态、标签、入口、链接、项目；首页已不再消费（暂保留） | 首页内容 |
 | `config/comments.config.json` | Giscus 评论与留言板参数 | 评论与留言板 |
 
 ### 服务状态相关配置
@@ -239,8 +242,21 @@ Worker 已开启 **Workers Observability / Workers Logs**（`wrangler.jsonc` 的
   非 2xx（含 Cloudflare 1027、429）、网络断开、请求超时一律回退 `unavailable`。
 - 前端单次请求 8 秒超时（`STATUS_REQUEST_TIMEOUT_MS`），不重试；失败不隐藏、不禁用入口，
   状态页地址始终可点（`target="_blank"` + `rel="noopener noreferrer"`）。
-- 前端每 60 秒刷新一次，标签页重新可见时补刷一次；桌面侧栏与移动抽屉同时挂载时只发一个请求
-  （in-flight 去重），不做客户端结果缓存。
+- 轮询统一由全站唯一的 `src/services/siteStatusStore.ts` 负责：订阅者立即拿到当前快照，之后每
+  60 秒刷新一次，标签页重新可见时补刷一次；桌面侧栏与移动抽屉同时挂载时只发一个请求
+  （服务层 in-flight 去重），不做客户端结果缓存；最后一个订阅者取消后清理 interval 与
+  visibility 监听，SSR/模块导入阶段不访问 `window`/`document`。
+
+### Workers 每日上限提示
+
+- 状态请求返回 HTTP **1027**（Cloudflare 平台级拦截/限流）或 **429** 时，除把侧栏入口回退为
+  「服务状态」外，还会在页面顶部弹出一次红色感叹号提示；文案固定为
+  「今日 Workers 请求次数达到上限，部分功能受限」，3 秒后自动收回、无关闭按钮。
+- 检测与节流都在 `siteStatusStore` 内完成：**同一标签页 10 分钟内最多提示一次**
+  （`sessionStorage` 记录上次提示时间，存储不可用时回退模块级时间戳）；
+  `src/components/WorkersLimitToast.tsx` 只订阅事件、不自行请求状态，挂在 `AppShell` 内，
+  因此所有页面、阅读模式与手机端都能收到提示。
+- 其他失败（500、网络断开、坏 JSON、超时等）**不会**触发该提示，避免把普通故障误报成额度用完。
 
 ### Worker 缓存与请求频率
 
@@ -291,7 +307,8 @@ Worker 已开启 **Workers Observability / Workers Logs**（`wrangler.jsonc` 的
 
 | 目标 | 命令 / 操作 |
 | --- | --- |
-| 状态链路单测 | `npx vitest run worker/index.test.mjs src/services/siteStatus.test.ts src/components/SiteStatusBadge.test.tsx` |
+| 状态链路单测 | `npx vitest run worker/index.test.mjs src/services/siteStatus.test.ts src/services/siteStatusStore.test.ts src/services/siteStatusStore.ssr.test.ts src/components/SiteStatusBadge.test.tsx src/components/WorkersLimitToast.test.tsx` |
+| 首页与外壳单测 | `npx vitest run src/pages/Home.test.tsx src/components/Layout.test.tsx` |
 | 配置与 workflow 契约 | `npx vitest run scripts/workflows-config.test.mjs scripts/pagescms-config.test.mjs` |
 | Worker 配置 / 打包校验 | `npx --yes wrangler@4.123.0 deploy --dry-run`（不实际部署） |
 | 全量门禁 | `npm run check`、`npx eslint .`、`npm test`、`npm run build`、`npm run audit:seo` |

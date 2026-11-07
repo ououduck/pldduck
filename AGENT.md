@@ -11,8 +11,11 @@
 ## 二、项目身份与工作方式
 
 - 项目：pldduck（React 19 + Vite 6 + TypeScript 的 SSG 静态站点，客户端 SPA 水合；Node 构建脚本为 ESM .mjs）。
-  线上域名 `www.pldduck.com`，由原个人主页 Dworld 与博客 D-blog 合并而来：首页是导流门户页，
+  线上域名 `www.pldduck.com`，由原个人主页 Dworld 与博客 D-blog 合并而来：首页是**极简个人主页**
+  （头像、名字、`author.bio` 介绍、GitHub / 邮箱 / QQ 联系方式），不再承担门户/导流职责；
   文章/说说/友链/留言板等功能页在同一域下的子路径，`/post/<id>` 与旧博客逐字节一致。
+  全站不再渲染页面底部 Footer（版权只保留在侧栏底部），侧栏顺序固定为
+  导航清单 → 服务状态入口 → 版权（版权在最底）。
   旧仓库已改名 `ououduck/D-blog-old` 并封存为迁移跳转页，不再开发。
 - 部署形态：GitHub Actions 构建后由 Cloudflare Workers Static Assets 直出静态产物；同一 Worker
   还承载 `worker/index.mjs`（入口）与 `worker/status.mjs`（逻辑），只处理 `GET /api/status`
@@ -40,9 +43,13 @@
 12. **HTML 结构合法**：交互元素遵循内容模型（`<button>` 内不嵌套标题等 flow content；`<ol>` 直接子元素只允许 `<li>`）；弹层关闭态必须移出可访问性树（`visibility: hidden` 或条件渲染，不能只靠 opacity/pointer-events）。
 13. **服务状态接口（Worker `/api/status`）**：
     - **Token 只进 Secret**：`BETTERSTACK_API_TOKEN` 只能通过 Cloudflare Worker Secret 设置（`npx wrangler secret put BETTERSTACK_API_TOKEN`），不得写入 `wrangler.jsonc`、`.env*`、前端构建变量、响应、日志、缓存键或任何提交物；`BETTERSTACK_STATUS_PAGE_ID` 是非敏感 Worker 变量，写 `wrangler.jsonc` 的 `vars`，本地 `wrangler dev` 用已 gitignore 的 `.dev.vars` 覆盖。
-    - **前端兜底优先**：`SiteStatusBadge` 首帧固定渲染中性「服务状态」（`unavailable`），只在客户端 effect 中请求；只有上游明确返回四种真实状态才更新，**只有 `operational` 显示绿色**。任何失败（未知值/缺字段/非 2xx、含 1027/429、超时、网络断开、坏 JSON）都回退 `unavailable`，**不得伪装成 operational**，也不得隐藏或禁用入口——它始终可点击跳转状态页。
-    - **缓存与超时固定**：Worker 成功结果写 Cache API 60 秒、上游 5 秒超时且**不重试**、**失败不写缓存**；前端 60 秒轮询、8 秒超时、不重试、不做结果缓存。静态资源不得进 Worker（`run_worker_first` 只允许 `/api/*`）。
-    - 改这条链路必须同步 `ai-rules/site-status.md`，并跑 `worker/index.test.mjs`、`src/services/siteStatus.test.ts`、`src/components/SiteStatusBadge.test.tsx`。
+    - **前端兜底优先**：`SiteStatusBadge` 首帧固定渲染中性「服务状态」（`unavailable`），只在客户端 effect 中订阅（`siteStatusStore` 统一请求）；只有上游明确返回四种真实状态才更新，**只有 `operational` 显示绿色**。任何失败（未知值/缺字段/非 2xx、含 1027/429、超时、网络断开、坏 JSON）都回退 `unavailable`，**不得伪装成 operational**，也不得隐藏或禁用入口——它始终可点击跳转状态页。
+    - **缓存与超时固定**：Worker 成功结果写 Cache API 60 秒、上游 5 秒超时且**不重试**、**失败不写缓存**；前端每 60 秒轮询（仅 `siteStatusStore` 一份 timer）、8 秒超时、不重试、不做结果缓存。静态资源不得进 Worker（`run_worker_first` 只允许 `/api/*`）。
+    - 改这条链路必须同步 `ai-rules/site-status.md`，并跑 `worker/index.test.mjs`、`src/services/siteStatus.test.ts`、`src/services/siteStatusStore.test.ts`、`src/components/SiteStatusBadge.test.tsx`、`src/components/WorkersLimitToast.test.tsx`。
+14. **首页与全站外壳**：
+    - 首页只呈现站主身份（头像、名字、`author.bio` 介绍、联系方式），**不得**恢复门户入口、搜索、开源项目、关于本站、技术栈、订阅卡或状态标签；`config/portal.config.json` 仍存在但首页不再消费，详见 `ai-rules/home.md`。
+    - 全站**不再渲染页面底部 Footer**（`Layout` 无 `Footer` 组件，页面中不得出现 `contentinfo`）；版权只在侧栏底部 `SidebarFooter`，顺序固定为 导航清单 → 服务状态入口 → 版权（版权在最底）；`fillHeight` 下只有中间导航清单滚动，状态入口与版权固定在底部。
+    - **Workers 上限提示**：状态请求返回 HTTP 1027/429 时，由全站唯一 store（`src/services/siteStatusStore.ts`）触发一次顶部提示，文案逐字「今日 Workers 请求次数达到上限，部分功能受限」，3 秒自动收回，**每标签页 10 分钟最多一次**；`WorkersLimitToast` 只订阅、不请求、不缓存，不得改成逐组件轮询，也不得增加关闭按钮或持续动画。
 
 ## 四、目录约定
 
@@ -65,7 +72,8 @@
 - [ ] 相关单测通过（全量 `npm test` 不回归）
 - [ ] 构建相关改动已 `npm run build` 验证
 - [ ] Worker / `wrangler.jsonc` 改动已用 `npx --yes wrangler@4.123.0 deploy --dry-run` 做配置校验（不实际部署）
-- [ ] 服务状态链路改动已跑 `npx vitest run worker/index.test.mjs src/services/siteStatus.test.ts src/components/SiteStatusBadge.test.tsx`
+- [ ] 服务状态链路改动已跑 `npx vitest run worker/index.test.mjs src/services/siteStatus.test.ts src/services/siteStatusStore.test.ts src/services/siteStatusStore.ssr.test.ts src/components/SiteStatusBadge.test.tsx src/components/WorkersLimitToast.test.tsx`
+- [ ] 首页 / 侧栏 / Footer 改动已跑 `npx vitest run src/pages/Home.test.tsx src/components/Layout.test.tsx`
 - [ ] 提交信息中文、粒度为一个逻辑任务、未 push
 
 ## 六、免责与授权

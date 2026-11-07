@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-站点/构建/内容配置分层：站点配置按用途拆成三份 JSON（`config/site.config.json` 站点信息、`config/portal.config.json` 首页门户、`config/comments.config.json` 评论与留言板，三者 CMS 均可编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方，因此 `siteConfig.portal` / `siteConfig.comments` / `siteConfig.guestbook` 的读取形状与拆分前一致；另有 `config/content.config.json`（分类白名单等）、部署运行配置 `wrangler.jsonc`、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。
+站点/构建/内容配置分层：站点配置按用途拆成三份 JSON（`config/site.config.json` 站点信息、`config/portal.config.json` 历史门户配置（首页已改为极简个人主页、不再消费，暂保留）、`config/comments.config.json` 评论与留言板，三者 CMS 均可编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方，因此 `siteConfig.portal` / `siteConfig.comments` / `siteConfig.guestbook` 的读取形状与拆分前一致；另有 `config/content.config.json`（分类白名单等）、部署运行配置 `wrangler.jsonc`、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。
 
 ## 关键文件
 
@@ -53,6 +53,7 @@
 - config/ 根目录（构建配置）与 src/config（已删除）勿混淆；
 - 站点配置的读者是**两份加载器**（构建侧 mjs + 运行侧 TS），两侧合并逻辑必须同步修改，否则 CI 产物与页面运行时配置不一致；
 - site.config.json 的 author/social、comments.config.json 的 comments/guestbook 等嵌套结构被多处消费，增删字段需全局检索消费方；
+- `config/portal.config.json` 仍被加载器合并、仍由 PagesCMS 管理，但**首页已不消费**（见 [home.md](home.md)）：改它不会影响首页，也不要因此恢复门户渲染；若要整体移除，需同时改加载器、`.pages.yml` 集合与 `scripts/pagescms-config.test.mjs` 的 `configCollections`；
 - `statusPageUrl` 被误当成「敏感配置」塞进 `.env` 或与 `BETTERSTACK_API_TOKEN` 写在一起：它随前端产物公开下发，放错位置会同时泄露 Token 并让状态入口失效；反之把 Token 写进 `config/site.config.json` 或 `VITE_*` 变量等于公开泄露。
 
 ## 破例条款

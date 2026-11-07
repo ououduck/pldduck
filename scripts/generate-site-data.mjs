@@ -20,7 +20,6 @@ import {
 import { extractMarkdownHeadings } from '../src/utils/headings-core.mjs';
 import { buildRssFeed } from './feed-generator.mjs';
 import { fetchCommentCounts } from './fetch-giscus-comments.mjs';
-import { buildSiteStats } from './lib/site-stats.mjs';
 import { SITEMAP_PAGES } from '../config/routes.mjs';
 
 const logger = createBuildLogger('gen:data');
@@ -157,18 +156,6 @@ const countWords = (markdown) => countReadingUnits(markdown);
 // 正文图片数量统计：外链图床图片无法在构建期读取尺寸（由前端 CSS aspect-ratio
 // 兜底）；本地 posts-img/ 路径仍被 post-content-validator 校验（文件必须存在）。
 const countImages = (markdown) => parseMarkdownImages(markdown).length;
-
-// 统计计算抽离到 scripts/lib/site-stats.mjs（纯函数、可单测）；本脚本仅负责写盘。
-const generateSiteStats = (postsWithSearch) => {
-  const siteStats = buildSiteStats(postsWithSearch);
-
-  fs.writeFileSync(path.join(OUTPUT_JSON_DIR, 'site-stats.json'), JSON.stringify(siteStats, null, 2));
-
-  logger.step(
-    'Generated site-stats.json',
-    `posts=${siteStats.totalPosts} words=${siteStats.totalWords} categories=${siteStats.totalCategories} tags=${siteStats.totalTags} images=${siteStats.totalImages}`,
-  );
-};
 
 const calculateReadTime = (markdown) => {
   const minutes = Math.max(1, Math.ceil(countReadingUnits(markdown) / 300));
@@ -535,7 +522,6 @@ const postsWithSearch = postRecords
   .filter(Boolean)
   .sort((a, b) => new Date(b.date) - new Date(a.date) || a.id.localeCompare(b.id));
 
-generateSiteStats(postsWithSearch);
 // 评论数：构建期从 GitHub GraphQL 拉取 Giscus 评论数（方案 A 快照）。
 // 无 token / API 失败 / 限速时优雅跳过（返回 null），页面侧不展示评论数，不阻塞构建。
 const commentCounts = await fetchCommentCounts({ posts: postsWithSearch });
@@ -841,7 +827,6 @@ const generateLlmsTxt = () => {
     `- [首页](${siteAbsoluteUrl('/')})`,
     `- [归档](${siteAbsoluteUrl('/archive')})`,
     `- [标签](${siteAbsoluteUrl('/tags')})`,
-    `- [统计](${siteAbsoluteUrl('/stats')})`,
     `- [友链](${siteAbsoluteUrl('/friends')})`,
     `- [说说](${siteAbsoluteUrl('/shuoshuo')})`,
     `- [RSS 订阅](${siteAbsoluteUrl('/feed.xml')})`,

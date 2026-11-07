@@ -1,6 +1,12 @@
 # Cloudflare 重定向规则（Workers Static Assets 读取本文件，随 public/ 原样拷进 dist）。
 # src/App.tsx 里另有一条同义的 /posts/:id → /post/:id 客户端兜底路由，覆盖站内 Link 与本地预览。
 #
+# 统计页 /stats 已整体下线（2026-11 用户要求删除）；旧外链与搜索收录用真 301
+# 收回首页，避免 404。站内已无任何 /stats 链接，故无需 App.tsx 客户端兜底路由。
+# 精确规则放在含 splat 的规则之前，避免 Cloudflare 建议的匹配开销。
+/stats  /  301
+/stats/*  /  301
+#
 # 文章详情段的正确写法是 /post/<id>；把列表段的复数习惯带进详情（/posts/<id>）
 # 是最常见的误写，这里用真 301 交给爬虫与外链，避免同一篇文章出现两个 URL。
 /posts/:splat  /post/:splat  301

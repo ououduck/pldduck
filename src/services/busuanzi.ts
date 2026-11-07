@@ -4,7 +4,7 @@
 // 不使用官方 <script defer src="...busuanzi.min.js"> 标签：该脚本是带
 // window.busuanziRequestSent 守卫的 IIFE，整页只会执行一次。本站为 SSG + 客户端
 // 水合的 SPA，路由切换不会重新加载页面，官方脚本因此无法为新路由上报/回填，
-// 每篇文章的阅读量与统计页的站点数都会停在「加载中」。
+// 每篇文章的阅读量都会停在「加载中」。
 // 改为在 Layout 路由变化时主动调用本函数：等价于官方脚本在每次页面加载时执行，
 // 适配 SPA 客户端导航，且每条路由只上报一次，避免双计数。
 const BUSUANZI_API_URL = 'https://cdn.busuanzi.cc/api.php';

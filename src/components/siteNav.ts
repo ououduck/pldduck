@@ -6,7 +6,6 @@
 
 import {
   Archive,
-  BarChart3,
   Bell,
   BookOpen,
   Github,
@@ -67,7 +66,6 @@ export const navGroups: NavGroup[] = [
       { key: 'shuoshuo', path: '/shuoshuo', label: '说说', hint: '朋友圈式动态', icon: MessageCircle },
       { key: 'archive', path: '/archive', label: '归档', hint: '时间归档', icon: Archive },
       { key: 'tags', path: '/tags', label: '标签', hint: '主题筛选', icon: Tag },
-      { key: 'stats', path: '/stats', label: '统计', hint: '站点数据', icon: BarChart3 },
       { key: 'friends', path: '/friends', label: '友链', hint: '友情链接', icon: Users },
       { key: 'guestbook', path: '/guestbook', label: '留言', hint: '留言互动', icon: MessageSquareText },
       {

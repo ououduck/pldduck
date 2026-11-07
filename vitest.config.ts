@@ -32,7 +32,9 @@ export default defineConfig({
     // （Vitest 4 已移除 environmentMatchGlobs，per-file docblock 是受支持的环境切换方式）。
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
+    // worker/ 为 Cloudflare Worker（纯 ESM .mjs）单测，同样在 node 环境下跑；
+    // 不纳入 coverage.include（覆盖率门槛按 src/scripts 既有口径维护）。
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs', 'worker/**/*.test.mjs'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

@@ -26,8 +26,8 @@ describe('preloadPage', () => {
       configurable: true,
     });
     // preloadedPaths 为模块级 Set，各用例使用不同路径避免互相影响
-    const spy = vi.spyOn(pageLoaders, '/stats');
-    preloadPage('/stats');
+    const spy = vi.spyOn(pageLoaders, '/cover');
+    preloadPage('/cover');
     expect(spy).not.toHaveBeenCalled();
   });
 

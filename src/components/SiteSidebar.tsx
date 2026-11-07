@@ -10,6 +10,7 @@ import { assetUrl } from '@/utils/siteUrl';
 import { siteConfig } from '@config/site.config';
 import { preloadPage } from '@/utils/preload';
 import { isNavItemActive, navGroups } from './siteNav';
+import { SiteStatusBadge } from './SiteStatusBadge';
 
 const ACTIVE_ROW_CLASS = 'bg-zinc-900 text-paper dark:bg-zinc-100 dark:text-zinc-900';
 const IDLE_ROW_CLASS =
@@ -187,12 +188,18 @@ const SidebarFooter = () => (
 
 export interface SiteSidebarBodyProps extends SiteNavListProps {
   onClose?: () => void;
+  /**
+   * 撑满容器高度：导航清单在中间独立滚动，站点页脚与服务状态入口固定在底部 ——
+   * 导航清单再长也不会把状态入口推到视口外（900px 高的笔电 / 手机抽屉上，
+   * 状态入口都应无需滚动整个侧栏就能看到）。桌面侧栏与移动抽屉都开启。
+   */
+  fillHeight?: boolean;
 }
 
-/** 侧栏与抽屉共用的内容体：品牌头 → 导航清单 → 站点页脚。 */
-export const SiteSidebarBody: React.FC<SiteSidebarBodyProps> = ({ onClose, ...navProps }) => (
-  <div className="flex min-w-0 flex-col">
-    <div className="flex items-center gap-1">
+/** 侧栏与抽屉共用的内容体：品牌头 → 导航清单 → 站点页脚 → 服务状态入口。 */
+export const SiteSidebarBody: React.FC<SiteSidebarBodyProps> = ({ onClose, fillHeight = false, ...navProps }) => (
+  <div className={`flex min-w-0 flex-col ${fillHeight ? 'h-full min-h-0' : ''}`}>
+    <div className="flex shrink-0 items-center gap-1">
       <div className="min-w-0 flex-1">
         <SidebarBrand onSelectPath={navProps.onSelectPath} interactionDisabled={navProps.interactionDisabled} />
       </div>
@@ -208,11 +215,21 @@ export const SiteSidebarBody: React.FC<SiteSidebarBodyProps> = ({ onClose, ...na
       ) : null}
     </div>
 
-    <div className="mt-4">
+    <div className={`mt-4 ${fillHeight ? 'min-h-0 flex-1 overflow-y-auto no-scrollbar' : ''}`}>
       <SiteNavList {...navProps} />
     </div>
 
-    <SidebarFooter />
+    <div className="shrink-0">
+      <SidebarFooter />
+
+      {/* 服务状态入口：始终渲染（API 失败也保留中性兜底），放在最底部 */}
+      <div className="mt-3">
+        <SiteStatusBadge
+          onExternalClick={navProps.onExternalClick}
+          interactionDisabled={navProps.interactionDisabled}
+        />
+      </div>
+    </div>
   </div>
 );
 
@@ -237,7 +254,7 @@ export const SiteSidebar: React.FC<{ pathname: string }> = ({ pathname }) => (
         paddingLeft: 'calc(0.5rem + env(safe-area-inset-left, 0px))',
       }}
     >
-      <SiteSidebarBody pathname={pathname} labelPrefix="侧边栏" />
+      <SiteSidebarBody pathname={pathname} labelPrefix="侧边栏" fillHeight />
     </div>
   </aside>
 );

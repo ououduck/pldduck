@@ -12,7 +12,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Archive,
   ArrowUpRight,
-  BarChart3,
   BookOpen,
   Check,
   ChevronRight,
@@ -44,7 +43,6 @@ const PORTAL_ICONS: Record<string, LucideIcon> = {
   shuoshuo: MessageSquare,
   friends: Link2,
   search: Search,
-  stats: BarChart3,
   guestbook: PenLine,
   cover: Palette,
   watermark: Stamp,

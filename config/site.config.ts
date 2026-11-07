@@ -141,6 +141,13 @@ export interface SiteConfig {
   seoImage: string;
   footerText: string;
   url: string;
+  /**
+   * 服务状态页地址（Better Stack 自定义状态页）：侧栏底部「服务状态」入口的跳转目标。
+   * 只接受 https 绝对地址，非法时前端回退到按站点域名约定的默认值；
+   * 构建期可用 VITE_BETTERSTACK_STATUS_PAGE_URL 覆盖本项。
+   * 这是公开配置项，**禁止**在此写入任何 API Token（Token 只存在于 Worker Secret）。
+   */
+  statusPageUrl?: string;
   social: SiteSocial;
   author: SiteAuthor;
   toc?: SiteToc;

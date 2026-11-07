@@ -112,6 +112,10 @@ content:
       - { name: seoImage, label: 分享图链接, type: string }
       - { name: footerText, label: 页脚版权文字, type: string }
       - { name: url, label: 站点 URL, type: string, required: true }
+      - name: statusPageUrl
+        label: 服务状态页地址
+        description: 'Better Stack 自定义状态页的 HTTPS 地址（如 https://status.pldduck.com），作为侧栏底部「服务状态」入口的跳转目标；构建期可用 VITE_BETTERSTACK_STATUS_PAGE_URL 覆盖。公开配置项，禁止在此填写任何 API Token'
+        type: string
       - name: social
         label: 社交链接
         type: object
@@ -183,7 +187,7 @@ content:
           - { name: url, label: 地址（站内以 / 开头，外链写完整 URL）, type: string, required: true }
           - name: icon
             label: 图标名
-            description: posts / archive / shuoshuo / friends / search / stats / guestbook / cover / watermark，未识别时回退到 Sparkles
+            description: posts / archive / shuoshuo / friends / search / guestbook / cover / watermark，未识别时回退到 Sparkles
             type: string
           - { name: note, label: 右下角备注, type: string }
       - name: links

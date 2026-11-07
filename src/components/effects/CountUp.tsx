@@ -44,8 +44,8 @@ const getDecimalPlaces = (num: number): number => {
 export const CountUp: React.FC<CountUpProps> = ({ to, from = 0, delay = 0, duration = 1.8, className, separator }) => {
   const ref = useRef<HTMLSpanElement | null>(null);
   const reducedMotion = useReducedMotion();
-  // NaN/非法数字防御：与统计页 formatValue 的「—」占位口径一致（渲染占位符
-  // 而非 0，避免把"数据异常"误读成"零"）；非法值不进入 spring 计算。
+  // NaN/非法数字防御：渲染「—」占位符而非 0，避免把"数据异常"误读成"零"；
+  // 非法值不进入 spring 计算。
   const isTargetValid = Number.isFinite(to);
   const safeTo = isTargetValid ? to : 0;
   const safeFrom = Number.isFinite(from) ? from : 0;

@@ -17,6 +17,15 @@ vi.mock('@/services/busuanzi', () => ({
   pingBusuanzi: vi.fn(),
   fillBusuanziSpans: vi.fn(),
 }));
+// 侧栏底部服务状态入口：请求挂起（不 resolve），避免 jsdom 里相对 URL fetch 失败
+// 造成卸载后异步 setState/act 警告；文案与链接属性由 SiteStatusBadge.test.tsx 覆盖。
+vi.mock('@/services/siteStatus', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/siteStatus')>();
+  return {
+    ...actual,
+    getSiteStatus: vi.fn(() => new Promise<never>(() => {})),
+  };
+});
 
 // 路由探针：MemoryRouter 不更新 window.location，断言跳转必须经
 // useLocation 读取（否则「跳转到搜索页」的断言恒真、无回归保护）。
@@ -117,6 +126,16 @@ describe('Layout', () => {
     const link = within(sidebar()).getByRole('link', { name: /^邮件/ });
     expect(link.getAttribute('href')).toMatch(/^mailto:/);
     expect(link).not.toHaveAttribute('target');
+  });
+
+  it('侧栏最底部常驻服务状态入口（外链 Better Stack 状态页）', () => {
+    renderLayout();
+    const link = within(sidebar()).getByRole('link', { name: /服务状态/ });
+    expect(link).toHaveAttribute('href', 'https://status.pldduck.com');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    // API 未返回时保持中性兜底文案，不隐藏入口。
+    expect(link).toHaveAttribute('data-status', 'unavailable');
   });
 
   it('移动端抽屉同样含「开往」入口', async () => {

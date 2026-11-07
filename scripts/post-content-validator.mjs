@@ -13,7 +13,6 @@ const DEFAULT_STATIC_ROUTES = new Set([
   '/posts',
   '/archive',
   '/tags',
-  '/stats',
   '/friends',
   '/shuoshuo',
   '/guestbook',

@@ -43,7 +43,7 @@ describe('CountUp', () => {
     expect(screen.getByText('0')).toBeInTheDocument();
   });
 
-  it('NaN 目标值防御：渲染占位符 —（与统计页 formatValue 口径一致）', () => {
+  it('NaN 目标值防御：渲染占位符 —（不把异常值显示为 0）', () => {
     render(<CountUp to={Number.NaN} />);
     expect(screen.getByText('—')).toBeInTheDocument();
     expect(screen.queryByText('NaN')).not.toBeInTheDocument();

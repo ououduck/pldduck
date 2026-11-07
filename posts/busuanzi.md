@@ -24,6 +24,4 @@ draft: false
 ![不蒜子首页截图](https://img.pldduck.com/20260812212236934.png)  
 
 # D-blog 的不蒜子统计
-你可以通过一下两个方式查看 D-blog 的不蒜子统计
-- [D-blog 统计页](/stats "D-blog 统计页")
-- [不蒜子统计页](https://www.busuanzi.cc/count.php?search=www.pldduck.com "不蒜子统计页")
+你可以通过[不蒜子统计页](https://www.busuanzi.cc/count.php?search=www.pldduck.com "不蒜子统计页")查看 D-blog 的不蒜子统计

@@ -1,23 +1,14 @@
 {
   "tagline": "一只游手好闲的鸭子",
   "status": "在线更新中",
-  "tags": [
-    "跑路啦"
-  ],
+  "tags": ["跑路啦"],
   "memory": {
     "label": "助记词",
     "prompt": "教你一句话记住本网站",
     "detail": "跑路的(pld)duck(duck)"
   },
   "identity": "热衷于探索前端 Web 技术，喜欢构建极致性能和优秀交互的用户界面，目前正致力于开源项目的贡献与个人产品的打磨。",
-  "stack": [
-    "React",
-    "TypeScript",
-    "Tailwind CSS",
-    "Vite",
-    "Node.js",
-    "Framer Motion"
-  ],
+  "stack": ["React", "TypeScript", "Tailwind CSS", "Vite", "Node.js", "Framer Motion"],
   "entries": [
     {
       "title": "博客文章",
@@ -53,11 +44,6 @@
       "title": "站内搜索",
       "url": "/search",
       "icon": "search"
-    },
-    {
-      "title": "站点统计",
-      "url": "/stats",
-      "icon": "stats"
     },
     {
       "title": "留言板",

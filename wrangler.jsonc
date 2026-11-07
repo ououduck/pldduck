@@ -1,9 +1,25 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pldduck",
-  "compatibility_date": "2026-09-01",
+  // 与 deploy.yml 固定的 wrangler 4.123.0（其内置 workerd 支持到 2026-08-18）保持一致：
+  // 兼容日期高于本地 workerd 时 `wrangler dev` 会拒绝启动。当前 Worker 只用标准
+  // fetch/Response/Cache API，不依赖 2026-08-18 之后的运行时行为；升级 wrangler 时
+  // 再同步上调本日期。
+  "compatibility_date": "2026-08-18",
+  // Worker 入口：只处理 /api/status（同源服务状态代理），静态资源仍由 Static Assets 直接服务。
+  // 本文件只放非敏感配置；BETTERSTACK_API_TOKEN 必须用 Cloudflare Secret 设置：
+  //   npx wrangler secret put BETTERSTACK_API_TOKEN
+  "main": "./worker/index.mjs",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "404-page"
-  }
+    "not_found_handling": "404-page",
+    // 只有 /api/* 请求会先进入 Worker；HTML/静态资源不经过 Worker（避免浪费请求与破坏缓存）。
+    "run_worker_first": ["/api/*"],
+  },
+  "vars": {
+    // Better Stack Status Page 页面 ID（非敏感）。留空时 /api/status 返回
+    // { success: false, status: "unavailable" }，不会伪造状态；部署前填真实 ID。
+    // 本地 wrangler dev 请在 .dev.vars（已 gitignore）中覆盖，勿提交真实值。
+    "BETTERSTACK_STATUS_PAGE_ID": "",
+  },
 }

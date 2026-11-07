@@ -17,7 +17,7 @@ const CORE_ASSET_PATHS = [
 /* ROUTES:BEGIN —— 本块由 scripts/lib/sw-version.mjs 在构建期从 config/routes.mjs 注入，请勿手改 */
 const SPA_ROUTE_PATTERNS = [
   /^\/$/,
-  /^\/(?:post|posts|archive|tags|stats|friends|shuoshuo|guestbook|cover|watermark|search)(?:\/|$)/,
+  /^\/(?:post|posts|archive|tags|friends|shuoshuo|guestbook|cover|watermark|search)(?:\/|$)/,
 ];
 /* ROUTES:END */
 
@@ -127,6 +127,13 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // 服务状态 API 必须实时请求：Service Worker 既不缓存也不兜底。
+  // 网络中断时交给前端状态组件显示中性「服务状态」，绝不能把上一次成功的
+  // operational 缓存当作当前状态（那会把故障伪装成正常）。
+  if (getScopedPath(url).startsWith('/api/')) {
     return;
   }
 

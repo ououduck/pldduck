@@ -24,6 +24,12 @@ generated/
 .env
 .env.*
 !.env.example
+# wrangler dev 的本地变量（可含 BETTERSTACK_API_TOKEN 等 Worker Secret），禁止提交
+.dev.vars
+.dev.vars.*
+# wrangler dev / deploy --dry-run 的本地状态与临时产物
+.wrangler/
+.wrangler-dry-run/
 
 # DSH Harness 会话扫描产物（与 .prettierignore / eslint 保持一致）
 .dsh-*.cjs

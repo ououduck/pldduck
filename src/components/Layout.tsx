@@ -670,7 +670,7 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            <div className="mobile-nav-scroll px-3 pt-3 no-scrollbar">
+            <div className="mobile-nav-scroll px-3 pb-3 pt-3 no-scrollbar">
               <SiteSidebarBody
                 pathname={location.pathname}
                 onSelectPath={handleMobileNavItemSelect}
@@ -678,6 +678,7 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
                 interactionDisabled={isMobileNavAnimating}
                 labelPrefix="移动端"
                 onClose={() => requestCloseMobileNav()}
+                fillHeight
               />
             </div>
           </motion.aside>

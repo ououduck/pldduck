@@ -18,7 +18,6 @@ import { SsgRouteContext, readSsgRouteData } from './ssr/routeData';
 const Post = lazy(() => import('./pages/Post').then((m) => ({ default: m.Post })));
 const PostsPage = lazy(pageLoaders['/posts']);
 const ArchivePage = lazy(pageLoaders['/archive']);
-const Stats = lazy(pageLoaders['/stats']);
 const Friends = lazy(pageLoaders['/friends']);
 const ShuoShuoPage = lazy(pageLoaders['/shuoshuo']);
 const GuestbookPage = lazy(pageLoaders['/guestbook']);
@@ -138,7 +137,6 @@ const AppRoutes: React.FC = () => {
           <Route path="/posts/:id" element={<PostRedirect />} />
           <Route path="/archive" element={<ArchivePage />} />
           <Route path="/tags" element={<Tags />} />
-          <Route path="/stats" element={<Stats />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/shuoshuo" element={<ShuoShuoPage />} />
           {/* 旧说说详情深链 /shuoshuo/<id> 已退役，重定向回列表页；与 public/_redirects 成对。 */}

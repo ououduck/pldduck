@@ -18,8 +18,8 @@
   },
   "vars": {
     // Better Stack Status Page 页面 ID（非敏感）。留空时 /api/status 返回
-    // { success: false, status: "unavailable" }，不会伪造状态；部署前填真实 ID。
-    // 本地 wrangler dev 请在 .dev.vars（已 gitignore）中覆盖，勿提交真实值。
-    "BETTERSTACK_STATUS_PAGE_ID": "",
+    // { success: false, status: "unavailable" }，不会伪造状态。
+    // 本地 wrangler dev 如需覆盖，请在 .dev.vars（已 gitignore）中配置。
+    "BETTERSTACK_STATUS_PAGE_ID": "270705",
   },
 }

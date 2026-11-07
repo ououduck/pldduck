@@ -6,7 +6,7 @@
 
 - **展示链路**：`SiteStatusBadge`（桌面侧栏与移动抽屉底部共用）→ `src/services/siteStatus.ts`（同源请求）→ `worker/index.mjs`（入口）→ `worker/status.mjs`（逻辑）→ Better Stack Status Page API。
 - **展示五态**：四种上游真实状态（`operational` / `degraded` / `downtime` / `maintenance`）+ 前后端共同的兜底值 `unavailable`（文案固定「服务状态」）。五种状态各有一套文案与图标颜色，只有 `operational` 是绿色。
-- **状态页地址**：`siteConfig.statusPageUrl`（`config/site.config.json`，公开配置），构建期可用 `VITE_BETTERSTACK_STATUS_PAGE_URL` 覆盖；只接受 https 绝对地址。项目当前配置的默认值是 `https://status.pldduck.com`，**需按实际 Better Stack 自定义域替换**；仓库不保证该域名已验证可访问。
+- **状态页地址**：`siteConfig.statusPageUrl`（`config/site.config.json`，公开配置），构建期可用 `VITE_BETTERSTACK_STATUS_PAGE_URL` 覆盖；只接受 https 绝对地址。当前配置为站长提供的实际自定义域 `https://status.pldduck.com`；网络可达性未在仓库内做自动化验证。
 
 > 本功能没有独立页面路由，也不进 `config/routes.mjs`：状态入口是侧栏上的常驻外链，跳转到 Better Stack 托管的状态页。
 
@@ -29,7 +29,7 @@
 2. **只有 `operational` 显示绿色**：其余四种展示态各有语义色（degraded 琥珀、downtime 红、maintenance 天蓝、unavailable 中性灰），`unavailable` 既不是「正常」也不是「故障」，**不得**给它绿色、对勾或「正常」类文案。
 3. **严格解析上游结果**：只有 `success === true` 且 `status` 属于四种真实状态才更新展示；未知值、字段缺失、非 JSON、坏 JSON、非 2xx（含平台 1027 与 429）、网络断开、请求超时，**一律回退 `unavailable`**，不得抛错、不得显示为正常、不得隐藏入口。Worker 侧 Token/状态页 ID 缺失属于「未配置」，同样直接返回 `unavailable` 且不发上游请求。
 4. **入口始终可点击**：状态入口整块是 `<a>`，`target="_blank"` + `rel="noopener noreferrer"`，`aria-label` 说明状态与「在新窗口打开 Better Stack 状态页」；失败、超时、API 被拦截时都必须保留「服务状态」文案与可点击跳转。移动抽屉动画期间的 `interactionDisabled` 只阻止本次跳转（`aria-disabled` + `preventDefault`），**不得**卸载或永久禁用入口。
-5. **状态页 URL 独立配置且只接受 https**：取值顺序固定为 `VITE_BETTERSTACK_STATUS_PAGE_URL` → `siteConfig.statusPageUrl` → 站点域名约定默认值；非法值（`http:`、`javascript:`、无协议、空串）一律忽略并回退，**不得**把非法地址写进 `href`。默认域名只是占位约定，**不得**在文档或代码注释里声称已验证真实状态页可访问。
+5. **状态页 URL 独立配置且只接受 https**：取值顺序固定为 `VITE_BETTERSTACK_STATUS_PAGE_URL` → `siteConfig.statusPageUrl` → 站点域名约定默认值；非法值（`http:`、`javascript:`、无协议、空串）一律忽略并回退，**不得**把非法地址写进 `href`。当前 `statusPageUrl` 是站长提供的实际自定义域 `https://status.pldduck.com`；**不得**改回 Better Stack 默认子域，也不要在未做网络可达性验证时声称「已验证可访问」。
 6. **Token 不下发浏览器、不进日志**：`BETTERSTACK_API_TOKEN` 只放 Cloudflare Worker Secret（`npx wrangler secret put BETTERSTACK_API_TOKEN`），**禁止**出现在前端代码、`VITE_*` 变量、`config/*.json`、`wrangler.jsonc`、`.env.example` 真实值、响应体、日志、缓存键或任何提交物中。Worker 日志只允许记录通用信息（HTTP 状态码 / 错误名），不得输出 Token、`Authorization` 请求头或上游响应体。发往 Better Stack 的请求必须 `redirect: 'error'`：Token 只允许发往固定 API 源，绝不能因 3xx 跟随到其他源。
 7. **Worker 缓存与上游行为固定**：`GET /api/status` 成功结果写入 Cache API **60 秒**（`STATUS_CACHE_TTL_SECONDS`），按 `status_page_id` 分键；上游 Better Stack 请求 **5 秒超时**（`STATUS_UPSTREAM_TIMEOUT_MS`）且**只尝试一次、不重试**；失败结果**绝不写缓存**（不得把故障缓存成后续的成功态）。Worker 对外响应 `Cache-Control: no-store`，另加 `X-Content-Type-Options: nosniff`；**不得**放开 CORS、**不得**下发 Token。缓存键固定为同源 `/api/status?status_page_id=<id>`（只含状态页 ID，不得塞 Token 等敏感信息）；Cache API 的 `match` 不保证按 `max-age` 自动过期，60 秒 TTL 由缓存副本里的内部时间戳判定，改缓存实现**不得只依赖响应头**。
 8. **前端刷新与并发固定**：客户端每 **60 秒**刷新一次（与 Worker 缓存对齐），标签页重新可见时补刷一次；同一时刻桌面侧栏与移动抽屉的请求必须合并（模块级 in-flight 去重），请求完成即清空，**不得**做结果缓存（否则轮询会一直拿到旧值）。单次请求 **8 秒**超时；失败不重试。
@@ -55,7 +55,7 @@
 - 把状态入口并入 `siteNav.ts` 的 `navGroups`：那是按路由/外链分组的导航清单，状态入口不是路由页，混入会污染激活判定与顶栏页名解析。
 - 改 `wrangler.jsonc` 时顺手把 `run_worker_first` 改成 `true`：静态资源也进 Worker，白耗请求额度，平台限流时整站跟着不可用。
 - 忘记在 `.pages.yml` 的 `siteConfig` 集合声明 `statusPageUrl`：CMS 保存配置会静默丢掉该键（`scripts/pagescms-config.test.mjs` 有漂移守卫）。
-- 默认状态页域名 `https://status.pldduck.com` 只是项目当前配置的占位自定义域：上线前必须替换为实际 Better Stack 自定义域，文档不得写「已验证可访问」。
+- 状态页域名 `https://status.pldduck.com` 是站长提供的实际自定义域：不得改回 Better Stack 默认子域；也不要在未做网络可达性验证时声称「已验证可访问」。
 - 删掉并发去重或把共享请求改成随组件 abort：桌面侧栏与移动抽屉同时挂载时会出现重复请求 / 互相取消。
 - 在 `worker/index.mjs` 里导出常量/普通函数（例如把 `STATUS_PATH`、`handleRequest` 写在入口文件）：
   Workers ESM 入口只接受 `export default { fetch }`（以及 Durable Object 类），其余具名导出会在

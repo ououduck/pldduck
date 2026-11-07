@@ -38,9 +38,9 @@
    要同时预期全站直出 HTML（首页、静态页与全部文章详情页）的 title 变化，`npm run audit:seo` 是门禁。
 9. **`statusPageUrl` 与状态页三处配置分离**：站点配置里的 `statusPageUrl`（`config/site.config.json`，
    PagesCMS「站点配置」集合）只是**公开**的 Better Stack 自定义状态页地址，必须与 Worker 的凭据分开：
-   - 前端跳转地址：`statusPageUrl`（当前默认 `https://status.pldduck.com`，**需按实际 Better Stack
-     自定义域替换**）；构建期可用公开变量 `VITE_BETTERSTACK_STATUS_PAGE_URL` 覆盖，两者都只接受
-     https 绝对地址，非法值由前端统一回退（见 [site-status.md](site-status.md)）。
+   - 前端跳转地址：`statusPageUrl`（当前为站长提供的实际自定义域
+     `https://status.pldduck.com`）；构建期可用公开变量 `VITE_BETTERSTACK_STATUS_PAGE_URL` 覆盖，
+     两者都只接受 https 绝对地址，非法值由前端统一回退（见 [site-status.md](site-status.md)）。
    - Worker 变量：`BETTERSTACK_STATUS_PAGE_ID` 写在 `wrangler.jsonc` 的 `vars`（非敏感），留空时
      接口返回 unavailable；本地 `wrangler dev` 用已 gitignore 的 `.dev.vars` 覆盖。
    - Worker Secret：`BETTERSTACK_API_TOKEN` **只能**通过 `npx wrangler secret put` 设置，禁止写入

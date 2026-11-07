@@ -134,8 +134,8 @@ pldduck/
 | `BETTERSTACK_STATUS_PAGE_ID` | `wrangler.jsonc` 的 `vars` | Worker 运行时非敏感变量；本地在 `.dev.vars` 覆盖 |
 | `BETTERSTACK_API_TOKEN` | Cloudflare Worker Secret | 仅 Worker 可读；用 `npx wrangler secret put` 设置，绝不进仓库/前端产物 |
 
-`statusPageUrl` 当前填的是项目默认自定义域 `https://status.pldduck.com`，**需按实际 Better Stack
-自定义域替换**；本仓库不保证该域名已验证可访问。
+`statusPageUrl` 当前配置为站长提供的实际 Better Stack 自定义状态页地址
+`https://status.pldduck.com`。
 
 另有 `config/content.config.json`（`postCategories` 分类白名单）与 `config/routes.mjs`（路由清单，
 预加载 / SSG / sitemap / 离线兜底全部由此派生）。
@@ -213,8 +213,8 @@ wrangler 版本固定为 `4.123.0`（浮动 tag 会让部署行为不可复现�
 ## 服务状态与兜底
 
 侧栏（桌面左栏与移动抽屉底部）常驻「服务状态」入口，没有独立路由：整块外链到 Better Stack
-自定义状态页，状态值来自同源 `GET /api/status`。`statusPageUrl` 当前是项目默认自定义域
-`https://status.pldduck.com`，**需按实际 Better Stack 自定义域替换**；本仓库不保证该域名已验证可访问。
+自定义状态页，状态值来自同源 `GET /api/status`。`statusPageUrl` 当前配置为站长提供的实际自定义域
+`https://status.pldduck.com`。
 
 ### 状态与文案
 

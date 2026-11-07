@@ -1,174 +1,179 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { renderToString } from 'react-dom/server';
+import { HelmetProvider } from 'react-helmet-async';
+import { MemoryRouter } from 'react-router-dom';
 import { Home } from './Home';
 import { siteConfig } from '@config/site.config';
+import { copyTextToClipboard } from '@/utils/clipboard';
+import { assetUrl } from '@/utils/siteUrl';
 
-// 路由探针：MemoryRouter 不更新 window.location，跳转结果只能通过 useLocation 读取。
-let probeLocation = '';
-const LocationProbe = () => {
-  const location = useLocation();
-  probeLocation = `${location.pathname}${location.search}`;
-  return null;
-};
+vi.mock('@/utils/clipboard', () => ({ copyTextToClipboard: vi.fn() }));
 
-// 数据层与剪贴板用 stub 替代：门户页只应依赖站点配置，mock 掉取数函数后
-// 任何「文章/说说/友链正文」的意外泄漏都会直接变成取数调用缺失的报错。
-const fixtures = vi.hoisted(() => ({
-  posts: [
-    {
-      id: 'alpha',
-      title: '文章甲',
-      excerpt: '甲的摘要',
-      date: '2026-01-01',
-      tags: ['React'],
-      category: '教程',
-      filePath: 'posts/alpha.md',
-      readTime: '3 分钟',
-    },
-  ],
-}));
+const mockedCopyTextToClipboard = vi.mocked(copyTextToClipboard);
 
-vi.mock('@/services/posts', () => ({ getInitialPosts: () => fixtures.posts }));
-vi.mock('@/utils/clipboard', () => ({ copyTextToClipboard: vi.fn(async () => true) }));
-
-const renderHome = (initialEntry = '/') =>
+const renderHome = () =>
   render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <>
-              <Home />
-              <LocationProbe />
-            </>
-          }
-        />
-        <Route
-          path="/search"
-          element={
-            <>
-              <div>搜索结果页</div>
-              <LocationProbe />
-            </>
-          }
-        />
-      </Routes>
-    </MemoryRouter>,
+    <HelmetProvider>
+      <MemoryRouter initialEntries={['/']}>
+        <Home />
+      </MemoryRouter>
+    </HelmetProvider>,
   );
+
+/** 门户配置里的全部可见文案：首页任何一个出现在 DOM 里都说明门户内容死灰复燃。 */
+const collectPortalCopy = (): string[] => {
+  const portal = siteConfig.portal ?? {};
+  return [
+    portal.tagline,
+    portal.status,
+    ...(portal.tags ?? []),
+    portal.memory?.label,
+    portal.memory?.prompt,
+    portal.memory?.detail,
+    portal.identity,
+    ...(portal.stack ?? []),
+    ...(portal.entries ?? []).flatMap((entry) => [entry.title, entry.description, entry.note]),
+    ...(portal.links ?? []).map((link) => link.title),
+    ...(portal.projects ?? []).flatMap((project) => [project.title, project.description, project.tag]),
+  ].filter((value): value is string => Boolean(value));
+};
 
 describe('Home', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    probeLocation = '';
-    // jsdom 不实现 matchMedia：useReducedMotion / useMediaQuery 等依赖媒体查询。
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: vi.fn((query: string) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
+    mockedCopyTextToClipboard.mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    // 清空 Helmet 写入的 head 标签，避免跨用例污染。
+    document.head.querySelectorAll('[data-rh="true"]').forEach((element) => element.remove());
+  });
+
+  it('首帧渲染站主身份：头像、名字（h1）与作者介绍原文', () => {
+    renderHome();
+
+    expect(screen.getByRole('heading', { level: 1, name: siteConfig.author.name })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: siteConfig.author.name })).toHaveAttribute(
+      'src',
+      assetUrl(siteConfig.author.avatar),
+    );
+    expect(screen.getByText(siteConfig.author.bio)).toBeInTheDocument();
+  });
+
+  it('只保留 GitHub 与邮箱两个链接：外链新标签 + rel 保护，邮箱走 mailto', () => {
+    renderHome();
+
+    const githubLink = screen.getByRole('link', { name: /GitHub/ });
+    expect(githubLink).toHaveAttribute('href', siteConfig.social.github);
+    expect(githubLink).toHaveAttribute('target', '_blank');
+    expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer');
+
+    const mailLink = screen.getByRole('link', { name: siteConfig.social.rawEmail });
+    expect(mailLink).toHaveAttribute('href', siteConfig.social.email);
+    expect(mailLink).not.toHaveAttribute('target');
+
+    // 页面里只有这两个链接：不存在任何门户入口、文章、搜索或订阅入口。
+    expect(screen.getAllByRole('link')).toHaveLength(2);
+  });
+
+  it('复制 QQ 号成功后给出状态播报', async () => {
+    const user = userEvent.setup();
+    renderHome();
+
+    const status = screen.getByRole('status');
+    expect(status).toHaveAttribute('aria-live', 'polite');
+
+    await user.click(screen.getByRole('button', { name: `复制 QQ 号 ${siteConfig.social.qq}` }));
+
+    expect(mockedCopyTextToClipboard).toHaveBeenCalledWith(siteConfig.social.qq);
+    await waitFor(() => expect(status).toHaveTextContent('QQ 号已复制到剪贴板'));
+  });
+
+  it('复制失败时如实反馈，不伪装成功', async () => {
+    const user = userEvent.setup();
+    mockedCopyTextToClipboard.mockResolvedValueOnce(false);
+    renderHome();
+
+    await user.click(screen.getByRole('button', { name: `复制 QQ 号 ${siteConfig.social.qq}` }));
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('复制失败，请手动复制 QQ 号'));
+    expect(screen.getByRole('status')).not.toHaveTextContent('已复制');
+  });
+
+  it('剪贴板抛错时同样按失败反馈，不产生未处理异常', async () => {
+    const user = userEvent.setup();
+    mockedCopyTextToClipboard.mockRejectedValueOnce(new Error('clipboard denied'));
+    renderHome();
+
+    await user.click(screen.getByRole('button', { name: `复制 QQ 号 ${siteConfig.social.qq}` }));
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('复制失败，请手动复制 QQ 号'));
+  });
+
+  it('不再渲染任何门户内容：无站点入口、搜索、开源项目、关于本站与订阅卡', () => {
+    const { container } = renderHome();
+
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('search')).not.toBeInTheDocument();
+    expect(container.querySelector('form')).toBeNull();
+    expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('article')).toHaveLength(0);
+
+    ['站点入口', '开源项目', '关于本站', '订阅新文章提醒', '站内搜索'].forEach((text) => {
+      expect(screen.queryByText(text)).not.toBeInTheDocument();
+    });
+
+    collectPortalCopy().forEach((text) => {
+      expect(screen.queryByText(text)).not.toBeInTheDocument();
+    });
+
+    // 所有链接都指向站外联系方式，没有任何站内文章/栏目路径。
+    screen.getAllByRole('link').forEach((link) => {
+      const href = link.getAttribute('href') ?? '';
+      expect(href.startsWith('/')).toBe(false);
     });
   });
 
-  it('渲染站名与自我介绍（首帧即最终可见状态，无入场动画）', () => {
-    renderHome();
-    expect(screen.getByRole('heading', { level: 1, name: siteConfig.title })).toBeInTheDocument();
-    expect(screen.getByText(siteConfig.description)).toBeInTheDocument();
+  it('SSR 首帧确定：连续两次服务端渲染输出完全一致', () => {
+    const renderMarkup = () =>
+      renderToString(
+        <HelmetProvider>
+          <MemoryRouter initialEntries={['/']}>
+            <Home />
+          </MemoryRouter>
+        </HelmetProvider>,
+      );
+
+    const first = renderMarkup();
+    const second = renderMarkup();
+
+    expect(first).toBe(second);
+    expect(first).toContain(siteConfig.author.name);
+    expect(first).toContain(siteConfig.author.bio);
   });
 
-  it('纯导流：不出现任何文章/说说/友链正文，也不链向具体文章', () => {
-    const { container } = renderHome();
-    expect(screen.queryAllByRole('article')).toHaveLength(0);
-    expect(screen.queryByText('文章甲')).not.toBeInTheDocument();
-    expect(screen.queryAllByRole('link', { name: /^阅读文章：/ })).toHaveLength(0);
-    // 站外出口由开源项目行承担：外链必须新标签打开且带 rel 保护。
-    expect(container.querySelectorAll('a[target="_blank"][rel~="noopener"]').length).toBeGreaterThan(0);
-  });
-
-  it('站内搜索提交后跳转到 /search 并带上 q 参数', async () => {
-    const user = userEvent.setup();
-    renderHome();
-
-    await user.type(screen.getByRole('searchbox', { name: '站内搜索' }), 'react hooks');
-    await user.click(screen.getByRole('button', { name: '搜索' }));
-
-    await waitFor(() => expect(probeLocation).toBe('/search?q=react%20hooks'));
-  });
-
-  it('空查询不跳转', async () => {
-    const user = userEvent.setup();
+  it('保留首页 SEO 标题与 WebSite / Organization / ProfilePage 结构化数据', () => {
     renderHome();
 
-    await user.click(screen.getByRole('button', { name: '搜索' }));
-    expect(probeLocation).toBe('/');
-  });
+    expect(document.title).toBe(siteConfig.seoHomeTitle || siteConfig.title);
 
-  it('残留的筛选/分页参数被清除，首页只保留无参 URL', async () => {
-    renderHome('/?category=%E6%95%99%E7%A8%8B&sort=oldest&page=2');
-    await waitFor(() => expect(probeLocation).toBe('/'));
-  });
-
-  it('旧版首页的 ?q= 分享链接转交搜索页处理', async () => {
-    renderHome('/?q=react');
-    await waitFor(() => expect(probeLocation).toBe('/search?q=react'));
-  });
-
-  it('站点入口磁贴按配置渲染，开源项目外链保留 target 与 rel', () => {
-    renderHome();
-    const internalEntry = siteConfig.portal?.entries?.find((entry) => entry.url.startsWith('/'));
-    expect(internalEntry).toBeDefined();
-
-    expect(screen.getByRole('link', { name: `前往 ${internalEntry!.title}` })).toHaveAttribute(
-      'href',
-      internalEntry!.url,
+    const script = Array.from(document.querySelectorAll('script[type="application/ld+json"]')).find((element) =>
+      element.textContent?.includes('ProfilePage'),
     );
+    expect(script).toBeTruthy();
 
-    // 门户清单里已无站外条目，站外语义由开源项目行承担。
-    const project = siteConfig.portal?.projects?.find((item) => !item.url.startsWith('/'));
-    expect(project).toBeDefined();
+    const parsed = JSON.parse(script?.textContent ?? '[]') as Array<Record<string, unknown>>;
+    const schemas = Array.isArray(parsed) ? parsed : [parsed];
+    const types = schemas.map((schema) => schema['@type']);
+    expect(types).toEqual(expect.arrayContaining(['WebSite', 'Organization', 'ProfilePage']));
 
-    const externalLink = screen.getByRole('link', { name: new RegExp(project!.title) });
-    expect(externalLink).toHaveAttribute('href', project!.url);
-    expect(externalLink).toHaveAttribute('target', '_blank');
-    expect(externalLink).toHaveAttribute('rel', 'noopener noreferrer');
-  });
-
-  it('首页承载站点身份文案：站主自述、「关于本站」正文与技术栈清单', () => {
-    renderHome();
-    expect(screen.getByText(siteConfig.author.bio)).toBeInTheDocument();
-
-    const identity = siteConfig.portal?.identity;
-    const stack = siteConfig.portal?.stack ?? [];
-    expect(identity).toBeTruthy();
-    expect(stack.length).toBeGreaterThan(0);
-
-    const about = screen.getByRole('heading', { level: 2, name: '关于本站' }).closest('section');
-    expect(about).not.toBeNull();
-    expect(within(about!).getByText(identity!)).toBeInTheDocument();
-    stack.forEach((item) => expect(within(about!).getByText(item)).toBeInTheDocument());
-  });
-
-  it('原关于页的订阅引导卡落在首页末尾', () => {
-    renderHome();
-    expect(screen.getByRole('heading', { level: 2, name: '订阅新文章提醒' })).toBeInTheDocument();
-  });
-
-  it('复制 QQ 号成功后给出播报', async () => {
-    const { copyTextToClipboard } = await import('@/utils/clipboard');
-    const user = userEvent.setup();
-    renderHome();
-
-    await user.click(screen.getByRole('button', { name: /复制 QQ 号/ }));
-    expect(copyTextToClipboard).toHaveBeenCalledWith(siteConfig.social.qq);
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('QQ 号已复制到剪贴板'));
+    const profilePage = schemas.find((schema) => schema['@type'] === 'ProfilePage');
+    expect(profilePage?.mainEntity).toMatchObject({
+      '@type': 'Person',
+      name: siteConfig.author.name,
+      description: siteConfig.author.bio,
+    });
   });
 });

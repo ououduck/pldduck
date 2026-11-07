@@ -189,14 +189,14 @@ const SidebarFooter = () => (
 export interface SiteSidebarBodyProps extends SiteNavListProps {
   onClose?: () => void;
   /**
-   * 撑满容器高度：导航清单在中间独立滚动，站点页脚与服务状态入口固定在底部 ——
-   * 导航清单再长也不会把状态入口推到视口外（900px 高的笔电 / 手机抽屉上，
+   * 撑满容器高度：导航清单在中间独立滚动，服务状态入口与站点页脚固定在底部 ——
+   * 导航清单再长也不会把状态入口/版权推到视口外（900px 高的笔电 / 手机抽屉上，
    * 状态入口都应无需滚动整个侧栏就能看到）。桌面侧栏与移动抽屉都开启。
    */
   fillHeight?: boolean;
 }
 
-/** 侧栏与抽屉共用的内容体：品牌头 → 导航清单 → 站点页脚 → 服务状态入口。 */
+/** 侧栏与抽屉共用的内容体：品牌头 → 导航清单 → 服务状态入口 → 站点页脚（版权在最底）。 */
 export const SiteSidebarBody: React.FC<SiteSidebarBodyProps> = ({ onClose, fillHeight = false, ...navProps }) => (
   <div className={`flex min-w-0 flex-col ${fillHeight ? 'h-full min-h-0' : ''}`}>
     <div className="flex shrink-0 items-center gap-1">
@@ -219,16 +219,18 @@ export const SiteSidebarBody: React.FC<SiteSidebarBodyProps> = ({ onClose, fillH
       <SiteNavList {...navProps} />
     </div>
 
+    {/* 底部固定块：服务状态入口在前、版权在后（分隔线属于页脚自身，收起态随页脚一起淡出）。
+        块内各段间距总和与「版权在上、状态在下」时一致，fillHeight 下导航清单可用高度不变。 */}
     <div className="shrink-0">
-      <SidebarFooter />
-
-      {/* 服务状态入口：始终渲染（API 失败也保留中性兜底），放在最底部 */}
+      {/* 服务状态入口：始终渲染（API 失败也保留中性兜底），位于版权之上 */}
       <div className="mt-3">
         <SiteStatusBadge
           onExternalClick={navProps.onExternalClick}
           interactionDisabled={navProps.interactionDisabled}
         />
       </div>
+
+      <SidebarFooter />
     </div>
   </div>
 );

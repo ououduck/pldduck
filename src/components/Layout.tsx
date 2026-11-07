@@ -1,12 +1,12 @@
 /**
  * 全站布局壳：侧边导航（桌面图标条 + hover 展开浮层，移动端左滑抽屉、任意页右滑呼出）、
- * 细顶栏、页脚、背景纹理与路由内容容器；提供页面级快捷键与不蒜子统计上报。
+ * 细顶栏、背景纹理与路由内容容器；提供页面级快捷键与不蒜子统计上报。
+ * 页面底部不再有全站 Footer（版权只保留在侧栏底部），正文即页面内容的终点。
  */
 
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { siteConfig } from '@config/site.config';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { pingBusuanzi } from '@/services/busuanzi';
 
 import { SiteSidebar, SiteSidebarBody } from './SiteSidebar';
@@ -688,30 +688,6 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
   );
 };
 
-const Footer = () => {
-  return (
-    <footer className="site-footer mt-8 hidden border-t border-zinc-200/90 dark:border-zinc-800/90 md:mt-12 lg:block">
-      <div className="mx-auto max-w-7xl px-3 py-8 sm:px-6 md:py-10">
-        <div className="max-w-xl">
-          <Link
-            to="/"
-            className="font-serif text-lg font-bold tracking-tight text-ink transition-colors hover:text-zinc-600 dark:text-white dark:hover:text-zinc-300"
-          >
-            {siteConfig.title}
-          </Link>
-          <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{siteConfig.description}</p>
-        </div>
-
-        <div className="mt-7 flex flex-col gap-2 border-t border-zinc-200/70 pt-5 text-xs text-zinc-600 dark:border-zinc-800/70 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            {siteConfig.footerText} · {siteConfig.author.name}
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
-};
-
 const Background = () => {
   return <div className="pointer-events-none fixed inset-0 z-[-1] overflow-hidden bg-paper dark:bg-void" />;
 };
@@ -828,8 +804,8 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       )}
       {/* 桌面左栏：lg 以上常驻为图标条，鼠标移入/键盘聚焦时展开为浮层（纯 CSS 驱动） */}
       {!isReadingMode && <SiteSidebar pathname={location.pathname} />}
-      {/* 内容列：细顶栏（sticky）→ 正文 → 页脚。顶栏不再是 fixed，因此正文不再
-          需要「导航高度 + safe-area」的顶部内边距补偿。 */}
+      {/* 内容列：细顶栏（sticky）→ 正文（页面底部无全站 Footer，版权只在侧栏底部）。
+          顶栏不再是 fixed，因此正文不需要「导航高度 + safe-area」的顶部内边距补偿。 */}
       <div className="flex min-w-0 flex-1 flex-col">
         {!isReadingMode && <Navbar onSearchNavigate={openPalette} />}
         <main
@@ -867,7 +843,6 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
             <BackToTop />
           </Suspense>
         )}
-        {!isReadingMode && <Footer />}
       </div>
       {/* 命令面板：条件挂载保证 chunk 懒加载（首次 Ctrl/Cmd+K 或点搜索按钮才拉取） */}
       {isPaletteOpen && (

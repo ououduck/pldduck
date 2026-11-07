@@ -3,18 +3,15 @@
  *
  * 首帧固定渲染中性「服务状态」（unavailable），拿到真实四态后才更新 —— SSR/SSG 与
  * 客户端水合首帧因此逐字一致，绿色勾选也绝不可能在收到 operational 之前出现。
+ * 60s 轮询与「页面重新可见补刷」由全局 siteStatusStore 统一负责（与 Workers 上限
+ * 提示共享同一份状态与同一条请求），组件只订阅、不自己起 timer。
  * 任何 API 失败都不隐藏、不禁用这个入口：它始终可点击跳转状态页（见 ai-rules/site-status.md）。
  */
 
 import React, { useEffect, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
-import {
-  getSiteStatus,
-  resolveStatusPageUrl,
-  SITE_STATUS_META,
-  STATUS_REFRESH_INTERVAL_MS,
-  type SiteStatusValue,
-} from '@/services/siteStatus';
+import { resolveStatusPageUrl, SITE_STATUS_META, type SiteStatusValue } from '@/services/siteStatus';
+import { subscribeSiteStatus } from '@/services/siteStatusStore';
 
 export interface SiteStatusBadgeProps {
   /** 外链点击后通知宿主（移动抽屉借此收起面板），与导航外链项同一语义。 */
@@ -32,49 +29,12 @@ export const SiteStatusBadge: React.FC<SiteStatusBadgeProps> = ({ onExternalClic
   const [status, setStatus] = useState<SiteStatusValue>('unavailable');
 
   useEffect(() => {
-    let disposed = false;
-    let latestRequestId = 0;
-    const controller = new AbortController();
-
-    const refresh = () => {
-      const requestId = ++latestRequestId;
-      void getSiteStatus(controller.signal)
-        .then((result) => {
-          // 竞态保护：轮询与「页面重新可见」可能同时发起，只有最新一次能落库；
-          // 卸载后（disposed 或 controller 已 abort）迟到的结果不得 setState。
-          if (disposed || requestId !== latestRequestId) {
-            return;
-          }
-          setStatus(result.status);
-        })
-        .catch(() => {
-          // getSiteStatus 契约上不会 reject；这里仍兜住，保证失败时回到中性入口。
-          if (disposed || requestId !== latestRequestId) {
-            return;
-          }
-          setStatus('unavailable');
-        });
-    };
-
-    refresh();
-
-    // 60s 轮询：与 Worker 侧 60s 缓存对齐。
-    const interval = window.setInterval(refresh, STATUS_REFRESH_INTERVAL_MS);
-    // 后台标签页的定时器会被浏览器节流/冻结：回到前台时补一次，不等下一拍。
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refresh();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      disposed = true;
-      window.clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      // 取消本次等待（共享请求仍留给另一个挂载点），卸载后不再 setState。
-      controller.abort();
-    };
+    // store 统一负责首轮请求、60s 轮询、页面重新可见补刷与并发去重；
+    // 订阅时立即回调当前快照，组件只把最新状态落到本地 state。
+    // 卸载（取消订阅）时若没有其他订阅者，store 会清理 interval 与 visibility 监听。
+    return subscribeSiteStatus((result) => {
+      setStatus(result.status);
+    });
   }, []);
 
   const meta = SITE_STATUS_META[status];

@@ -17,15 +17,14 @@ vi.mock('@/services/busuanzi', () => ({
   pingBusuanzi: vi.fn(),
   fillBusuanziSpans: vi.fn(),
 }));
-// 侧栏底部服务状态入口：请求挂起（不 resolve），避免 jsdom 里相对 URL fetch 失败
-// 造成卸载后异步 setState/act 警告；文案与链接属性由 SiteStatusBadge.test.tsx 覆盖。
-vi.mock('@/services/siteStatus', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/services/siteStatus')>();
-  return {
-    ...actual,
-    getSiteStatus: vi.fn(() => new Promise<never>(() => {})),
-  };
-});
+// 服务状态轮询已收敛到全局 store：侧栏状态入口与 Workers 上限提示都只订阅
+// siteStatusStore，mock 掉订阅接口即可避免 jsdom 里发起真实请求。
+// 状态文案/图标与弹窗行为的断言分别由 SiteStatusBadge.test.tsx /
+// WorkersLimitToast.test.tsx 覆盖。
+vi.mock('@/services/siteStatusStore', () => ({
+  subscribeSiteStatus: vi.fn(() => () => {}),
+  subscribeWorkersLimit: vi.fn(() => () => {}),
+}));
 
 // 路由探针：MemoryRouter 不更新 window.location，断言跳转必须经
 // useLocation 读取（否则「跳转到搜索页」的断言恒真、无回归保护）。
@@ -168,9 +167,18 @@ describe('Layout', () => {
     expect(within(dialog).queryByRole('link', { name: /反馈/ })).not.toBeInTheDocument();
   });
 
-  it('渲染页脚（站点标题与页脚文案）', () => {
+  it('不再渲染全局页脚：版权只保留在侧栏底部，正文区没有 contentinfo', () => {
     renderLayout();
-    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
+  });
+
+  it('侧栏底部顺序：服务状态入口在版权信息之上（版权在最底）', () => {
+    renderLayout();
+    const rail = sidebar();
+    const statusLink = within(rail).getByRole('link', { name: /服务状态/ });
+    // 侧栏版权行（「©… · 作者」）仍在，且排在服务状态入口之后。
+    const copyright = within(rail).getByText(/©/);
+    expect(statusLink.compareDocumentPosition(copyright) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('桌面侧栏不再有折叠按钮：静置图标条 + hover/聚焦展开全由 CSS 驱动', () => {

@@ -13,6 +13,7 @@ import { getRouterBasename } from './utils/siteUrl';
 import { OfflineStatus } from './components/OfflineStatus';
 import { LoadingStatus } from './components/ContentStatus';
 import { ServiceWorkerUpdatePrompt } from './components/ServiceWorkerUpdatePrompt';
+import { WorkersLimitToast } from './components/WorkersLimitToast';
 import { SsgRouteContext, readSsgRouteData } from './ssr/routeData';
 
 const Post = lazy(() => import('./pages/Post').then((m) => ({ default: m.Post })));
@@ -167,6 +168,9 @@ const AppShell: React.FC = () => {
       <AppRoutes />
       <OfflineStatus />
       <ServiceWorkerUpdatePrompt />
+      {/* Workers 每日上限提示：挂在 AppShell 内、与路由同级，所有页面（含阅读模式、
+          手机端）共用同一份全局状态轮询，见 siteStatusStore。 */}
+      <WorkersLimitToast />
       {showCookieNotice && (
         <Suspense fallback={null}>
           <CookieNotice />

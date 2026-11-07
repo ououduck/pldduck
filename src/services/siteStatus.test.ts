@@ -126,16 +126,29 @@ describe('getSiteStatus — 任何失败都回退 unavailable 且不抛错', () 
 
   it.each([
     [500, '上游 500'],
-    [429, '限流 429'],
-    [1027, '平台拦截 1027'],
     [403, '禁止访问 403'],
-  ])('HTTP %s（%s）→ unavailable 且不解析响应体', async (status) => {
+    [404, '接口不存在 404'],
+  ])('HTTP %s（%s）→ unavailable，且不带 workersLimit（不误报额度上限）', async (status) => {
     const json = vi.fn(async () => ({ success: true, status: 'operational' }));
     const fetchMock = createFetchMock();
     fetchMock.mockResolvedValue({ ok: false, status, json } as unknown as Response);
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(getSiteStatus()).resolves.toEqual({ status: 'unavailable' });
+    expect(json).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [1027, 'Cloudflare 每日请求上限 1027'],
+    [429, '限流 429'],
+  ])('HTTP %s（%s）→ unavailable + workersLimit: true', async (status) => {
+    const json = vi.fn(async () => ({ success: true, status: 'operational' }));
+    const fetchMock = createFetchMock();
+    fetchMock.mockResolvedValue({ ok: false, status, json } as unknown as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getSiteStatus()).resolves.toEqual({ status: 'unavailable', workersLimit: true });
+    // 非 2xx 响应体不得解析：平台错误页通常不是 JSON，也不该被当成状态来源。
     expect(json).not.toHaveBeenCalled();
   });
 
@@ -197,6 +210,18 @@ describe('getSiteStatus — 并发去重与取消', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(first).toEqual({ status: 'degraded' });
     expect(second).toEqual({ status: 'degraded' });
+  });
+
+  it('并发调用共享同一个 workersLimit 结果（全局提示与侧栏只看到一次上限）', async () => {
+    const fetchMock = createFetchMock();
+    fetchMock.mockResolvedValue({ ok: false, status: 1027 } as unknown as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const [first, second] = await Promise.all([getSiteStatus(), getSiteStatus()]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(first).toEqual({ status: 'unavailable', workersLimit: true });
+    expect(second).toEqual({ status: 'unavailable', workersLimit: true });
   });
 
   it('请求结束后清空 in-flight：下一轮轮询重新请求（不吃旧缓存）', async () => {

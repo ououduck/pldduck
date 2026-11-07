@@ -6,6 +6,8 @@
  * - 只在客户端 effect 中调用；SSR/首帧不请求，组件首帧固定 unavailable，保证 SSG 水合一致；
  * - 任何异常（HTTP 1027/429/非 2xx、非 JSON、字段缺失、未知值、超时、网络断开）
  *   都不得抛出，统一返回 { status: 'unavailable' }，组件据此仍渲染可点击的兜底入口；
+ * - HTTP 1027/429 额外带 workersLimit 标记（Workers 每日请求上限），由全局 store
+ *   决定是否提示；展示状态仍为 unavailable，不影响入口行为；
  * - 并发去重：桌面侧栏与移动抽屉可能同时挂载，同一时刻只发一个请求，完成即清空
  *   （不做长缓存，避免 60s 轮询拿到旧值）。
  */
@@ -24,6 +26,13 @@ export interface SiteStatusResult {
   status: SiteStatusValue;
   /** 上游状态页最后更新时间（ISO 字符串）；兜底或上游未给时缺省。 */
   updatedAt?: string;
+  /**
+   * 本次失败是否由 Workers 达到每日请求上限（平台返回 HTTP 1027/429）引起。
+   * 只在 `!response.ok` 且状态码恰为 1027/429 时为 true —— 其他失败（网络断开、
+   * 坏 JSON、500、上游 unavailable）不得置位，否则会误报“额度用完”。
+   * 展示层仍按 unavailable 兜底，这个标记只用于全局一次性提示。
+   */
+  workersLimit?: boolean;
 }
 
 /** 同源状态接口路径（Worker 只放行 GET /api/status）。 */
@@ -132,6 +141,12 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const isLiveStatus = (value: unknown): value is SiteStatusLiveValue =>
   typeof value === 'string' && LIVE_STATUS_VALUES.has(value);
 
+/**
+ * 判定「Workers 每日请求上限」：Cloudflare 平台在 Worker 额度耗尽时返回非标准
+ * HTTP 1027，部分链路（含 Worker 自身的速率限制）返回 429。仅这两个状态码算数。
+ */
+const isWorkersLimitStatus = (status: number): boolean => status === 1027 || status === 429;
+
 /** 统一兜底结果（每次返回新对象，调用方改写也影响不到下一次）。 */
 const unavailableStatusResult = (): SiteStatusResult => ({ status: 'unavailable' });
 
@@ -166,7 +181,11 @@ const fetchSiteStatus = async (): Promise<SiteStatusResult> => {
 
     if (!response.ok) {
       // 1027（平台级拦截/限流）、429 等非 2xx：一律中性兜底，不向访客暴露细节。
-      return unavailableStatusResult();
+      // 其中 1027/429 额外标记 workersLimit，供全局提示判定「每日额度用完」；
+      // 其他非 2xx（500/403/…）不得置位，避免把普通故障误报成额度上限。
+      return isWorkersLimitStatus(response.status)
+        ? { status: 'unavailable', workersLimit: true }
+        : unavailableStatusResult();
     }
 
     let payload: unknown;

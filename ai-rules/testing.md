@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-Vitest 测试体系：98 个测试文件 / 1067 个用例；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
+Vitest 测试体系：98 个测试文件 / 1068 个用例；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
 
 ## 关键文件
 

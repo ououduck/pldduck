@@ -143,6 +143,8 @@ describe('/api/status', () => {
         expect(upstreamInit.headers.Authorization).toBe(`Bearer ${TOKEN}`);
         expect(upstreamInit.headers.Accept).toBe('application/json');
         expect(upstreamInit.signal).toBeInstanceOf(AbortSignal);
+        // Workers 不支持 redirect: 'error'（构造即抛 TypeError），必须用 manual。
+        expect(upstreamInit.redirect).toBe('manual');
 
         // 成功结果通过 ctx.waitUntil 写入缓存，缓存副本带 public max-age=60 与内部时间戳。
         expect(waitUntil).toHaveBeenCalledTimes(1);
@@ -356,6 +358,20 @@ describe('/api/status', () => {
       await expectUnavailableResponse(await handleRequest(createRequest(), createEnv(), ctx));
       await flush();
       expect(cache.entries.size).toBe(0);
+    });
+
+    it('上游 3xx 不跟随重定向并回退 unavailable（redirect manual）', async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(new Response(null, { status: 302, headers: { Location: 'https://evil.example/steal' } }));
+      vi.stubGlobal('fetch', fetchMock);
+      const { ctx, flush } = createContext();
+
+      await expectUnavailableResponse(await handleRequest(createRequest(), createEnv(), ctx));
+      await flush();
+      expect(cache.entries.size).toBe(0);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls[0][1].redirect).toBe('manual');
     });
 
     it('上游返回非 JSON 回退 unavailable', async () => {

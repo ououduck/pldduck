@@ -213,9 +213,11 @@ const fetchStatusFromUpstream = async ({ token, pageId }) => {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
       },
-      // Token 只允许发往固定的 Better Stack API：拒绝跟随任何重定向，
-      // 避免被 3xx 带到别的源后把 Bearer Token 一起带过去。
-      redirect: 'error',
+      // Token 只允许发往固定的 Better Stack API：不跟随重定向，避免被 3xx 带到
+      // 别的源后把 Bearer Token 一起带过去。Workers 不实现 Fetch 标准的 `error`
+      // 模式（传 redirect: 'error' 会在构造请求时抛 TypeError），所以用 manual，
+      // 由下面的 `!upstreamResponse.ok` 把 3xx 一并判为失败。
+      redirect: 'manual',
       signal: controller.signal,
     });
     if (!upstreamResponse.ok) {

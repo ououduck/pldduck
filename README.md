@@ -40,6 +40,10 @@ Service Worker 离线壳；同时输出 OG/Twitter Card、JSON-LD、RSS（`/feed
 全站页面不再渲染底部 Footer：版权信息只保留在侧栏底部，侧栏顺序固定为 导航清单 → 服务状态入口 →
 版权（版权在最底）。侧栏是 `fillHeight` 固定布局，只有中间的导航清单滚动，服务状态入口与版权始终可见。
 
+视觉上全站使用语义设计 Token（`src/index.css` 的 CSS 变量 + `config/tailwind.config.js` 的映射，
+覆盖颜色、字体、间距、圆角与动效；深色只覆盖颜色变量），文章列表采用轻量「封面 + 文字」条目
+而非重卡片，分类是文字 tab、排序收成一个切换按钮。
+
 ## 背景与对外承诺
 
 本仓库由原先分开的两个站点合并而来：个人主页 **Dworld**（`www.pldduck.com`）与静态博客 **D-blog**

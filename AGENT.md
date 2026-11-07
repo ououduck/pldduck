@@ -17,6 +17,8 @@
   `/post/<id>` 与旧博客逐字节一致。
   全站不再渲染页面底部 Footer（版权只保留在侧栏底部），侧栏顺序固定为
   导航清单 → 服务状态入口 → 版权（版权在最底）。
+  全站**深色唯一**：模板固定 `<html class="dark">`，无 ThemeToggle/主题启动脚本/localStorage 主题；
+  侧栏「标签」「站内搜索」导航项已分别并入文章列表与顶栏/命令面板。
   旧仓库已改名 `ououduck/D-blog-old` 并封存为迁移跳转页，不再开发。
 - 部署形态：GitHub Actions 构建后由 Cloudflare Workers Static Assets 直出静态产物；同一 Worker
   还承载 `worker/index.mjs`（入口）与 `worker/status.mjs`（逻辑），只处理 `GET /api/status`
@@ -31,7 +33,7 @@
 ## 三、技术硬性约束（全仓库通用）
 
 1. **SSG/水合确定性**：任何组件在渲染期不得依赖当前时钟、随机值或客户端专属 API（`Date.now()`、`Math.random()`、`window`/`document` 等）；日期类 UI 必须锚定数据字段（如 `date`/`updatedAt`），渲染期访问客户端 API 需 useEffect 守卫。
-2. **UI/主题/功能不变**：除用户明确要求的改动外，不得改变页面 UI、主题样式与既有功能行为。
+2. **UI/主题/功能不变**：除用户明确要求的改动外，不得改变页面 UI、主题样式与既有功能行为。全站**深色唯一**（模板固定 `<html class="dark">`，无 ThemeToggle/主题启动脚本/`localStorage.theme`/系统偏好检测），不得恢复浅色模式、主题切换按钮或 `dblog:toggle-theme` 命令；颜色只走 `src/index.css` 的深色 Token。
 3. **错误处理**：网络/存储/解析类操作必须有 try/catch 兜底；「失败」必须如实反馈（返回 null/false 或抛错），禁止静默假装成功。
 4. **竞态防护**：异步操作（加载、导出、复制、搜索）必须处理竞态（generation/requestId/cancelled/mountedRef 等既有模式），卸载后不 setState。
 5. **资源清理**：事件监听器、定时器、IntersectionObserver/ResizeObserver、订阅必须成对清理。
@@ -49,7 +51,7 @@
     - 改这条链路必须同步 `ai-rules/site-status.md`，并跑 `worker/index.test.mjs`、`src/services/siteStatus.test.ts`、`src/services/siteStatusStore.test.ts`、`src/components/SiteStatusBadge.test.tsx`、`src/components/WorkersLimitToast.test.tsx`。
 14. **首页与全站外壳**：
     - 首页以站主身份为主（头像、名字、`author.bio` 介绍），另含全站搜索表单与联系方式/订阅入口（GitHub / 邮箱 / QQ / RSS / 更新订阅 / 项目仓库），**不得**恢复门户入口、内容列表、开源项目、关于本站、技术栈、订阅卡或状态标签；`config/portal.config.json` 仍存在但首页不再消费，详见 `ai-rules/home.md`。
-    - 全站**不再渲染页面底部 Footer**（`Layout` 无 `Footer` 组件，页面中不得出现 `contentinfo`）；版权只在侧栏底部 `SidebarFooter`，顺序固定为 导航清单 → 服务状态入口 → 版权（版权在最底）；`fillHeight` 下只有中间导航清单滚动，状态入口与版权固定在底部。侧栏分组只有 主页 / 栏目 / 工具（「订阅与联系」已删除，联系方式与订阅入口统一在首页）。
+    - 全站**不再渲染页面底部 Footer**（`Layout` 无 `Footer` 组件，页面中不得出现 `contentinfo`）；版权只在侧栏底部 `SidebarFooter`，顺序固定为 导航清单 → 服务状态入口 → 版权（版权在最底）；`fillHeight` 下只有中间导航清单滚动，状态入口与版权固定在底部。侧栏分组只有 主页 / 栏目 / 工具（「订阅与联系」已删除，联系方式与订阅入口统一在首页；「标签」「站内搜索」导航项也已删除，标签筛选在文章列表、搜索在顶栏/命令面板）。
     - **Workers 上限提示**：状态请求返回 HTTP 1027/429 时，由全站唯一 store（`src/services/siteStatusStore.ts`）触发一次顶部提示，文案逐字「今日 Workers 请求次数达到上限，部分功能受限」，3 秒自动收回，**每标签页 10 分钟最多一次**；`WorkersLimitToast` 只订阅、不请求、不缓存，不得改成逐组件轮询，也不得增加关闭按钮或持续动画。
 
 ## 四、目录约定

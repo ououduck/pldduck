@@ -2,13 +2,13 @@
 
 ## 功能概述
 
-全站外壳：左侧侧边导航（lg 及以上常驻为图标条，鼠标移入/键盘聚焦时展开为浮层；以下换成左侧抽屉，支持任意页面右滑呼出）、吸顶细顶栏（汉堡按钮 + 当前页名 + 搜索 + 主题切换）、主题切换按钮（支持 dblog:toggle-theme 自定义事件供命令面板调用）、移动端抽屉左右滑动手势、返回顶部、侧栏底部服务状态外链入口与版权（全站页面不再渲染底部 Footer）、Cookie 提示条、Service Worker 更新提示、命令面板（Ctrl/Cmd+K 与搜索按钮）、错误边界与 View Transitions 页面切换。侧栏分组只剩「主页 / 栏目 / 工具」，**「订阅与联系」分组已删除**；联系方式与订阅入口统一放在首页（`/`）。
+全站外壳：左侧侧边导航（lg 及以上常驻为图标条，鼠标移入/键盘聚焦时展开为浮层；以下换成左侧抽屉，支持任意页面右滑呼出）、吸顶细顶栏（汉堡按钮 + 当前页名 + 搜索）、移动端抽屉左右滑动手势、返回顶部、侧栏底部服务状态外链入口与版权（全站页面不再渲染底部 Footer）、Cookie 提示条、Service Worker 更新提示、命令面板（Ctrl/Cmd+K 与搜索按钮）、错误边界与 View Transitions 页面切换。全站深色唯一，**没有主题切换按钮/ThemeToggle**；侧栏分组只剩「主页 / 栏目 / 工具」，**「订阅与联系」与「标签」「站内搜索」导航项均已删除**；联系方式与订阅入口统一放在首页（`/`），标签筛选在文章列表页（`/posts?tag=`）。
 
 ## 关键文件
 
 - `src/components/Layout.tsx`（外壳与移动抽屉状态机）
 - `src/components/siteNav.ts`（**导航清单唯一来源**：分组、图标、路径/外链、激活判定、顶栏页名解析）
-- `src/components/{SiteSidebar,SiteTopBar,ThemeToggle}.tsx`（侧栏体/顶栏/主题按钮）
+- `src/components/{SiteSidebar,SiteTopBar}.tsx`（侧栏体/顶栏）
 - `src/App.tsx`（路由 + 错误边界 + View Transitions）
 - `index.html`（主题防闪烁引导脚本；侧栏展开态是纯 CSS 状态，不再需要引导脚本）
 - `src/components/{BackToTop, OfflineStatus, ServiceWorkerUpdatePrompt, CookieNotice}.tsx`
@@ -21,9 +21,9 @@
 1. **弹层栈语义**：useModalOverlay 的 openOverlayStack/scrollLockCount 是全局共享状态（多层弹层叠加时只第一个锁滚动、最后一个恢复）；hasOpenOverlay 用于页面快捷键守卫 —— 全部不得破坏。
 2. **View Transitions**：页面切换必须 try/catch 回退（已有活动 transition 时同步抛 InvalidStateError）；水合首帧 `hasViewTransition=false`。
 3. **移动抽屉手势**：抽屉从左侧滑入，关闭手势为**向左滑**（`deltaX` 阈值 + 速度判定），面板自身 `scrollLeft<=1` 才允许起手；touchmove 非 passive 监听与成对释放 —— 保持既有行为。（轴向由底部面板改为左侧面板，依据用户授权破例。）**打开手势**为任意页面右滑：只在 window 的 passive touchstart/touchend 上做一次判定（横向位移压过纵向 ×1.6、位移 ≥72px 或甩动 ≥40px 且速度 >0.12px/ms），命中后走既有 `openMobileNav`；**不得改成逐帧拖拽预览**（四态状态机 + 双 rAF 起步 + 固定时长卸载经不起 transform 逐帧改写），也不得在 `innerWidth >= 1024`（Tailwind lg，抽屉 lg:hidden 的分界）时触发。**让位优先级（用户明确要求「优先保证文字框和菜单栏」，即内容手势赢、抽屉让路）**：起点落在以下任一处即放弃呼出 —— ① 计算 `touch-action` 含 `none`/`pan-x`/`pan-left`/`pan-right` 的元素及其祖先（`.code-scroll` 声明 `pan-x`，Mermaid 放大态、图片查看器、封面画布声明 `none`）；② 真正溢出的 `overflow-x: auto|scroll` 祖先；③ `input`/`textarea`/`select`/`contenteditable`；④ 双指（touchstart 需 `touches.length === 1`，途中第二指落下由 touchmove 记 `multiTouch`，抬手即放弃 —— 捏合缩放的第一指也会横移数百像素）；⑤ 抬手时选区非折叠且与按下时不同（这次拖的是文字）。所有判据**只读不 preventDefault**、监听保持 passive，因此原生的选字/横滚/缩放不受影响，抽屉也仍能在正文上呼出。**配套 CSS 不可删**：`@media (hover: none) and (max-width: 1023.98px) { html { overscroll-behavior-x: none } }` —— 浏览器的「横向 overscroll = 后退」手势与它抢同一段触摸，不关掉时真机上右滑会被合成器吃掉（页面收不到 touchend，抽屉不弹反倒回退一页），实测由 CDP 原生触摸验证过。
-4. **导航清单唯一来源**：新增/删除页面入口只改 `src/components/siteNav.ts`，桌面侧栏与移动抽屉共用同一份模型；不得在组件里另立第二份清单。`resolveNavLabel` 决定顶栏页名与 `aria-current`。当前分组固定为 **主页 / 栏目 / 工具**；「订阅与联系」分组（邮件 / GitHub / RSS / 更新订阅）已于 2026-11 经用户确认删除，联系方式与订阅入口统一在首页，**不得**在侧栏恢复该分组或在分组里塞外链入口。
+4. **导航清单唯一来源**：新增/删除页面入口只改 `src/components/siteNav.ts`，桌面侧栏与移动抽屉共用同一份模型；不得在组件里另立第二份清单。`resolveNavLabel` 决定顶栏页名与 `aria-current`。当前分组固定为 **主页 / 栏目 / 工具**（栏目：文章、说说、归档、友链、留言、开往；工具：封面生成器、水印工具）；「订阅与联系」分组与「标签」「站内搜索」导航项已分别迁到首页/文章列表页并删除，**不得**恢复这些入口或在侧栏新增外链分组。
 5. **侧栏展开态**：无折叠按钮、无 localStorage、无引导脚本 —— 静置态是图标条，展开完全由 CSS 的 `@media (hover: hover)` + `.site-sidebar:not(:hover):not(:has(:focus-visible))` 驱动（SSG 首帧即确定，无水合差异）。**判据不得用 `:focus-within`**：点击导航项后链接会保留焦点，`:focus-within` 会把浮层一直钉在展开态（鼠标移开也不收），`:focus-visible` 只认真正的键盘聚焦。布局约束：外层 `.site-sidebar` 恒占 `--sidebar-active-width`（= `--sidebar-rail-width`，正文按此让位），内层 `.site-sidebar-inner` 绝对定位、宽度在 `--sidebar-rail-width` 与 `--sidebar-width` 之间过渡，展开时作为**浮层盖在正文之上**，不得改为参与布局（否则正文每帧横向抖动）。`hover: none` 的设备没有鼠标移入这条路，`--sidebar-active-width` 直接取展开宽度常驻全展开（去掉按钮后这是唯一的展开手段）。标签/角标/页脚在静置态用 `opacity: 0` + `pointer-events: none` 淡出，**不得改用 `display:none`，也不得卸载 DOM**：撤出布局会让行高与图标位置在两个状态之间变化，展开时鼠标底下的按钮会跟着往下跳，得再挪一次鼠标才点得到（无障碍名与键盘可达性同理）。同时不得给静置态加 `justify-content: center` 之类的重排（图标横移同样是「不平滑」的来源）。**淡出只是必要条件，不是充分条件**：任何会随宽度变化而换行的文本都得与标签同机制加 `truncate`（`.sidebar-nav-group-title` 曾漏掉；已删除的「订阅与联系」分组旧值 `tracking-[0.2em]` 曾在图标条里挤成 3 行、展开后回到 1 行，整组连同页脚在展开时上移约 30px —— 横向平移之外的纵向位移都是这么来的，现行分组标题为 11px / `tracking-[0.12em]` 且仍须保留 `truncate`；导航行本身两态恒 44px（28px 图标槽 + `py-2`）不会跳）。图标居中靠几何而不是靠状态相关的对齐：图标必须放在固定尺寸的 `.sidebar-icon` 槽（28px）里，与头像同轴，满足 `--sidebar-rail-width = 2 ×（内层 padding-left + 行 padding-left + 半槽）`（现值 60 = 2×(8+8+14)）；头像同用 28px（`.sidebar-brand` 的 `pl-2` 让头像左沿落在 16，与图标槽同列）。**头像不得使用 36px**：图标条的内容盒只有 44px（60 − 1px 右边框 − padding-left 8 − padding-right 7），36px 头像会被 `img{max-width:100%}` 压成椭圆且中心偏移 —— 这正是「收起态图标不居中」的实测成因。居中的第三个变量是**行高亮块**：`.nav-item` / `.sidebar-brand` 的背景铺满内容盒，只有 `paddingRight = paddingLeft − 1px`（扣掉右边框占的 1px）时高亮块才以 30 为中心（8..52），与图标同轴；右内边距一旦大于左内边距（曾用 12px），高亮块中心退到 27.5，图标在它里面就看着偏右 —— 用户报的「图标不居中」是这一处，不是图标本身偏了。`paddingLeft`/`paddingRight` 与槽宽是这套居中公式的三个变量，改任意一个都要重新验算中心。**不得**改用静置态 `justify-content:center` 或清 padding 来做居中（那会在两态间产生横移）。内层需 `z-sidebar`(60) 抬到顶栏与 `main` 之上，又低于 `z-popover`。
-6. **监听器清理**：window/document 监听、计时器必须成对清理（含主题切换计时器）。
+6. **监听器清理**：window/document 监听、计时器必须成对清理（含阅读控制台 hover 意图计时器）。
 7. **Cookie 提示**：「同意」永久持久化（localStorage）、「关闭」会话级（sessionStorage）语义保持。
 8. **返回顶部**：隐藏时同步 visibility/tabIndex 并主动 blur 焦点。
 9. **SSG 确定性**：主题/网络状态先渲染默认态再在 effect 中纠正；侧栏展开态是纯 CSS 状态（不读存储、无需引导脚本）；getServiceWorkerState 只读模块变量。
@@ -33,9 +33,9 @@
 
 12. **侧栏底部顺序固定：服务状态入口在版权之上**：`SiteSidebarBody` 在导航清单之后先渲染 `SiteStatusBadge`、再渲染 `SidebarFooter`（桌面侧栏与移动抽屉共用同一份内容体）。服务状态入口复用既有导航行的 `nav-item` / `nav-item-label` / `sidebar-icon` 类与既有「静置态 `opacity: 0` + `pointer-events: none`」淡出机制（**不得**改用 `display:none` 或卸载 DOM），首帧固定中性兜底「服务状态」，API 失败也不隐藏、不禁用，始终可点击跳转公开状态页。**不得**把它并入 `siteNav.ts` 的 `navGroups`（它是外链入口而非路由页，混入会污染激活判定与顶栏页名解析），**不得**为它新增折叠按钮、localStorage 或旁路展开逻辑；移动抽屉内必须沿用 `onExternalClick` / `interactionDisabled` 语义，不破坏关闭动画与右滑呼出/左滑关闭手势。**布局上必须用 `fillHeight` 让内容体撑满容器**：品牌头、状态入口与版权固定，只有中间导航清单 `overflow-y: auto` 滚动（移动抽屉同样开启，`mobile-nav-scroll` 保留底部内边距）—— 900px 高的笔电与手机上，导航清单再长也不能把状态入口或版权推到视口外；**不得**退回「整个侧栏一起滚动」的旧结构，也**不得**把版权挪回页面底部。详细约束见 [服务状态组件](site-status.md)。
 
-13. **顶栏视觉轻量化**：保留 `.site-navbar` 类名与高度量级（`min-h-14 sm:min-h-16`）—— `--article-heading-offset` 由 Layout 实测该元素高度得出，文章目录/胶囊导航/工具栏都依赖这个偏移；**不得**删类名或改高度而不复核这些消费方。页名是轻量文字（13px `font-medium`、`text-content-muted`），**不得**加 `uppercase` / 大字距 / 大字重（中文加字距只会显碎）。搜索与主题切换是 ghost 按钮（`topbar-ghost-button` / `topbar-theme-button > button`，44×44 点击区、透明底、hover `surface-muted`），外观由 `src/index.css` 的 `.site-navbar` 规则统一；背景 `bg-surface`、边框 `border-line`、文字走 Token，**不得**在组件里再写一套 `dark:` 边框/底色。
+13. **顶栏视觉轻量化**：保留 `.site-navbar` 类名与高度量级（`min-h-14 sm:min-h-16`）—— `--article-heading-offset` 由 Layout 实测该元素高度得出，文章目录/胶囊导航/工具栏都依赖这个偏移；**不得**删类名或改高度而不复核这些消费方。页名是轻量文字（13px `font-medium`、`text-content-muted`），**不得**加 `uppercase` / 大字距 / 大字重（中文加字距只会显碎）。搜索是 ghost 按钮（`topbar-ghost-button`，44×44 点击区、透明底、hover `surface-muted`），外观由 `src/index.css` 的 `.site-navbar` 规则统一；**没有主题切换按钮**（全站深色唯一），背景 `bg-surface`、边框 `border-line`、文字走 Token，**不得**在组件里再写一套 `dark:` 边框/底色。
 
-14. **侧栏 Token 配色**：激活行固定 `bg-content text-background`（浅色墨底浅字、深色自动反转）；静态文字色与 hover 底由 `src/index.css` 的 `.nav-item` Token 规则统一（桌面侧栏、移动抽屉、侧栏底部服务状态入口四处一致），**不得**在 `SiteSidebar` 里用 `dark:` 逐处覆盖。分组标题 11px / `tracking-[0.12em]`；导航图标 `strokeWidth={1.75}`（28px 图标槽不变）。**不得**改动 rail 宽度、展开/收起机制、`fillHeight` 固定布局与底部顺序（导航 → 服务状态入口 → 版权）；改配色只改设计 Token 或 `.nav-item` 全局规则。
+14. **侧栏 Token 配色**：激活行固定 `bg-content text-background`（近白底 + 近黑字，仅一套深色 Token）；静态文字色与 hover 底由 `src/index.css` 的 `.nav-item` Token 规则统一（桌面侧栏、移动抽屉、侧栏底部服务状态入口四处一致），**不得**在 `SiteSidebar` 里用 `dark:` 逐处覆盖。分组标题 11px / `tracking-[0.12em]`；导航图标 `strokeWidth={1.75}`（28px 图标槽不变）。**不得**改动 rail 宽度、展开/收起机制、`fillHeight` 固定布局与底部顺序（导航 → 服务状态入口 → 版权）；改配色只改设计 Token 或 `.nav-item` 全局规则。
 
 ## 常见陷阱
 
@@ -49,7 +49,9 @@
 - 侧栏底部状态入口是「常驻外链」，不是导航项：改动时别改它的行高/图标槽（28px）与 `nav-item-label` 类，否则收起态文字不随既有淡出机制消失、展开时行高跳动；也别让它参与 `isNavItemActive` / `resolveNavLabel` 的判定。
 - 全局 Footer 已删除：不要在 `Layout.tsx` 里恢复 `<footer>` / `Footer` 组件或页面级版权，`Layout.test` 断言全局 `contentinfo` 不存在；版权只在侧栏底部，顺序固定为 状态入口 → 版权。把顺序反过来（版权在状态入口之上）同样算回归。
 - 改顶栏高度量级（`min-h-14 sm:min-h-16`）却没复核 `--article-heading-offset`：文章目录跳转/激活判定/原生锚点会整体偏掉，`site-navbar` 类名本身也不能删。
-- 把 ghost 按钮改成带边框/实底按钮，或在 `ThemeToggle`、`SiteTopBar` 里再写一套 `dark:` 外观：`.site-navbar .topbar-ghost-button` 的 Token 规则会与组件类打架，两套颜色在不同主题下轮流赢。
+- 把 ghost 按钮改成带边框/实底按钮，或在 `SiteTopBar` 里再写一套 `dark:` 外观：`.site-navbar .topbar-ghost-button` 的 Token 规则会与组件类打架，两套颜色轮流赢。
+- 恢复 ThemeToggle / 主题切换命令 / `dblog:toggle-theme`：全站深色唯一，`<html class="dark">` 由模板固定，恢复主题入口会重新引入浅色分支与首帧闪烁。
+- 在命令面板恢复「主题切换」或「标签页」入口：主题已深色唯一、标签页已退役，相关命令已删除；命令面板只保留搜索/快速导航/常用操作。
 - 在 `SiteSidebar` 的激活行上补 `dark:bg-zinc-100 dark:text-zinc-900`：`bg-content text-background` 已随 Token 反转，重复写会在下次改 Token 时脱队。
 - 把分组标题改回更宽字距/更大字号，或删掉 `truncate`：图标条收起态更易换行，展开时整组连同页脚纵向跳（规则 5 的实测成因）。
 - 在 `siteNav.ts` 恢复「订阅与联系」分组或往侧栏加邮件/GitHub/RSS/更新订阅外链：这些入口已统一迁到首页联系方式区，恢复会让侧栏回到「导航 + 外链」混排、并污染 `resolveNavLabel` 的页名解析（外链没有页名语义）。

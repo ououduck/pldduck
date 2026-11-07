@@ -2,7 +2,10 @@
 
 ## 功能概述
 
-首页 = 极简个人主页 + 全站搜索 + 联系方式/订阅入口（原 `/about` 已并入本页）。自上而下固定为：头像、名字（唯一 `h1`）、`author.bio` 原文、全站搜索表单（回车或「搜索」按钮 → `/search?q=`）、联系方式区（GitHub / 邮箱 `mailto:` / QQ 一键复制 / RSS 订阅 / 更新订阅 / 项目仓库）。仍**不**承载门户入口、文章/说说/友链等内容列表、技术栈、关于本站、状态标签或订阅卡。
+首页 = 极简个人主页 + 全站搜索 + 联系方式/订阅入口（原 `/about` 已并入本页）。自上而下固定为：Hero 面板内的头像、名字（唯一 `h1`）、`author.bio` 原文、全站搜索表单（pill 输入 + 「搜索」按钮，回车/提交 → `/search?q=`）、联系方式区（GitHub / 邮箱 `mailto:` / QQ 一键复制 / RSS 订阅 / 更新订阅 / 项目仓库）。仍**不**承载门户入口、文章/说说/友链等内容列表、技术栈、关于本站、状态标签或订阅卡。
+
+视觉：Hero 是 `home-hero` 的 surface 大色块 + 低对比径向光（`home-hero-glow`），内容用 CSS staggered reveal
+按 avatar → title → bio → search → contact 的顺序入场；`prefers-reduced-motion` 下直接可见。
 
 2026-11 用户确认把侧栏「订阅与联系」分组整体迁到首页：侧栏只保留导航与工具，首页承担全站搜索与联系/订阅入口；不要因为旧规则写过「首页不得有搜索」就把它删掉或搬回侧栏。
 
@@ -14,6 +17,7 @@
 ## 关键文件
 
 - `src/pages/Home.tsx`
+- `src/index.css`（`.home-hero` / `.home-hero-glow` / `.home-reveal` 的 Hero 与 staggered reveal，含 reduced-motion 分支）
 - `config/site.config.json` 的 `author.avatar` / `author.name` / `author.bio` 与 `social.github` /
   `social.email` / `social.rawEmail` / `social.qq`
 - `src/components/IssueSubscriptionCard.tsx`（只取导出的 `ISSUE_SUBSCRIPTION_URL` 常量做「更新订阅」外链，**不渲染卡片**）
@@ -41,15 +45,18 @@
 6. **无障碍**：头像 `alt` = `author.name`；搜索表单用 `role="search"` + `<label className="sr-only">`（`htmlFor` 指向输入框 id），输入框有可访问名称；联系方式区用 `<nav aria-label="联系方式">`；QQ 复制按钮有明确的可访问名称（含号码）；复制结果用 `role="status"` 播报；标题层级只有 `h1`，不出现别的标题。
 7. **无全局 Footer**：`Layout` 不再渲染页面底部 Footer（版权只在侧栏底部），首页不得补页脚、版权或
    备案信息，也不得在页面内输出 `contentinfo`。
-8. **动画克制**：不使用 framer-motion 入场 / 视差动画（首帧必须是最终可见状态，保证 LCP 与无 JS 可读）；
-   只允许 CSS `motion-safe:` 级别的小动效。
+8. **Hero 与入场动效**：Hero 是 `home-hero` surface 大色块 + `home-hero-glow` 低对比径向光；内容用 CSS `.home-reveal` + `data-home-reveal` 按 `--home-reveal-delay` 依次入场（avatar → title → bio → search → contact）。**不得**改用 framer-motion / JS 控制显隐或延迟挂载；`@media (prefers-reduced-motion: reduce)` 下必须 `animation: none` 直接可见；动画不得让 LCP 元素长期不可见、不得引发布局位移，也不得在 SSR 首帧输出 `opacity: 0` 的内联样式。
 9. **性能**：组件内 state 仅限搜索输入与 QQ 复制反馈，不得引发整页重渲染；不得重新引入 `preloadPage` 预加载、文章搜索索引、搜索建议/结果预览或订阅卡等旧逻辑。
-10. **全站搜索行为**：表单提交时 `trim()` 查询——空查询跳 `/search`，非空跳 `/search?q=<encodeURIComponent>`；首页**只**做跳转，不请求索引、不渲染结果、不打开命令面板、不处理 `?q=` URL 参数（搜索体验在 `/search`，见 [搜索](search.md)）。搜索输入只做受控输入，不参与首帧渲染、不做防抖/联想（那是搜索页的职责）。
+10. **全站搜索行为**：表单提交时 `trim()` 查询——空查询跳 `/search`，非空跳 `/search?q=<encodeURIComponent>`；首页**只**做跳转，不请求索引、不渲染结果、不打开命令面板、不处理 `?q=` URL 参数（搜索体验在 `/search`，见 [搜索](search.md)）。搜索输入是 pill 容器内的受控输入（`bg-surface-muted`），只做受控输入，不参与首帧渲染、不做防抖/联想（那是搜索页的职责）。
 
 ## 常见陷阱
 
 - 觉得「首页太素」而加回门户磁贴、项目列表、技术栈或订阅卡：这正是被删除的内容，
   改回即违反规则 1（只能先请求用户授权）。
+- 把 Hero reveal 改成 framer-motion/JS 延迟挂载，或删掉 `prefers-reduced-motion` 分支：
+  无 JS/弱动效用户会看到空白或错落入场；动画必须纯 CSS 且尊重 reduced-motion。
+- 恢复浅色/主题切换（ThemeToggle、localStorage.theme、`dblog:toggle-theme`）：全站已深色唯一，
+  恢复会把首页 Hero 的 surface 色块与 Token 打回两套来源（见 [主题系统](theme.md)）。
 - 把首页搜索做成「输入即出结果」的内嵌搜索、搜索建议或命令面板：首页只负责跳到 `/search?q=`，
   搜索评分/防抖/结果列表都在 `/search`（见 [搜索](search.md)）；首页内嵌结果会让 SSG 首帧与
   `?q=` 直访语义混乱。

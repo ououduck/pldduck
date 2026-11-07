@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-Vitest 测试体系：92 个测试文件 / 700+ 用例；jsdom（src）与 node（scripts）双环境；@testing-library/react；覆盖率门槛。
+Vitest 测试体系：98 个测试文件 / 1067 个用例；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
 
 ## 关键文件
 
@@ -13,7 +13,7 @@ Vitest 测试体系：92 个测试文件 / 700+ 用例；jsdom（src）与 node�
 ## 修改规则（必须遵守）
 
 1. **断言必须真实**：禁止恒真断言（如 MemoryRouter 下断言 window.location、jsdom 下断言 URL 不变）——用 useSearchParams 探针 / dispatchEvent 返回值 / 行为断言替代。
-2. **环境声明**：scripts 的 node 测试文件头必须 `// @vitest-environment node`（Vitest 4 无 environmentMatchGlobs）。
+2. **环境声明**：scripts 与 worker 的 node 测试文件头必须 `// @vitest-environment node`（Vitest 4 无 environmentMatchGlobs）。
 3. **mock 纪律**：vi.mock 工厂内引用模块级常量必须用 `vi.hoisted`（TDZ）；mock 后必须恢复（afterEach vi.restoreAllMocks / unstubAllGlobals）；页面测试用固定非空数据集（空数据让行为零覆盖）。
 4. **回归覆盖**：修复 bug 必须补对应回归测试（含失败分支：存储不可用、加载失败、竞态、边界输入）。
 5. **覆盖率门槛**：thresholds（stmts/lines/funcs 50、branches 45）防下滑，本地 test:coverage 必须保持全绿。
@@ -23,7 +23,7 @@ Vitest 测试体系：92 个测试文件 / 700+ 用例；jsdom（src）与 node�
 ## 常见陷阱
 
 - jsdom 无 canvas/IntersectionObserver/matchMedia：按既有 stub 模式处理，不视为问题；
-- 修改测试基建（setup/vitest 配置）需全量回归（92 文件）；
+- 修改测试基建（setup/vitest 配置）需全量回归（98 文件）；
 - 模块级缓存（如 busuanzi 的 lastResponse、routeData 的单例）会跨用例共享：
   测试「无缓存」前提必须用 vi.resetModules 隔离或改为验证真实行为；
 - 等待动画/异步完成禁用裸 setTimeout（Layout 的 600ms sleep、SlideModal 的

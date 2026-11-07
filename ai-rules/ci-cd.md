@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署到 Cloudflare Worker）、feishu-webhook、comment 三件套、akismet、notify-post-update、check-broken-links、friend-link（友链反链检测 + 人工放行后写文件并触发部署）、friend-availability-audit（每日友链失联巡检，双向同步 `unavailable`）；PagesCMS 动作按钮（.pages.yml）。
+GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署到 Cloudflare Worker：Workers Static Assets + 小型 Worker 运行时，仅 `GET /api/status` 同源代理 Better Stack）、feishu-webhook、comment 三件套、akismet、notify-post-update、check-broken-links、friend-link（友链反链检测 + 人工放行后写文件并触发部署）、friend-availability-audit（每日友链失联巡检，双向同步 `unavailable`）；PagesCMS 动作按钮（.pages.yml）。
 
 ## 关键文件
 
@@ -39,6 +39,16 @@ GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署�
     - 两道共同：文件名不由正文派生、单次只改一个文件、sha 乐观锁、只扩 permissions 的声明范围。
       job 级 permissions 只能收窄不能扩权，故 workflow 级必须声明到实际最大值
       （后人「优化」成 read 会静默失去写入能力）。
+13. **部署形态固定为 Worker + Static Assets**：`wrangler.jsonc` 必须保持 `main: ./worker/index.mjs`、
+    `assets.directory: ./dist`，且 `assets.run_worker_first` 只匹配 `/api/*` —— 静态资源继续由 Static
+    Assets 直出（不消耗 Worker 请求、平台额度耗尽时页面仍可用），**不得**改成 `true` 或把全站路由进
+    Worker。入口 `worker/index.mjs` 只能 `export default { fetch }`，业务逻辑与可测试具名导出放
+    `worker/status.mjs`（具名导出写进入口会让 Workers 启动失败）。凭据与变量分离：
+    `BETTERSTACK_API_TOKEN` 只能是 Cloudflare Worker Secret（一次性执行
+    `npx wrangler secret put BETTERSTACK_API_TOKEN`，**不是 GitHub Secret**，CI 不读取也不需要）；
+    `BETTERSTACK_STATUS_PAGE_ID` 写 `wrangler.jsonc` 的 `vars`（非敏感）。wrangler 精确版本固定为
+    `4.123.0`（见 `deploy.yml`，不得改成浮动 tag）；`compatibility_date` 必须与固定版本内置 workerd
+    支持上限对齐（当前 `2026-08-18`），否则本地 `wrangler dev` 无法启动，升级 wrangler 时一并评估。
 
 ## 常见陷阱
 
@@ -47,6 +57,11 @@ GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署�
 - **GITHUB_TOKEN 的 push 不触发任何 workflow**（GitHub 防自循环）：机器人提交文件后 `ci.yml`
   与 `push: main` 的通知都不会跑，所以校验必须在写入前完成、通知必须由写入方自己发；
   但 `workflow_dispatch` 可以被 GITHUB_TOKEN 调用（需 `actions: write`，2022-09 起官方支持）。
+- 部署目标别再退回「只配静态资产」：当前是 Worker + Static Assets，`worker/index.mjs`
+  只处理 `/api/*`；`run_worker_first` 一旦放宽，静态资源会开始消耗 Worker 请求额度，平台限流
+  （1027）时整站受影响。状态接口失败时由前端兜底为中性「服务状态」，不得把它当作部署失败。
+- `BETTERSTACK_API_TOKEN` 不是 GitHub Secret：写进仓库 Secrets 不会被 Worker 读取（Worker 只读
+  自身 Secret），而 `npx wrangler secret put` 设置的 Worker Secret 也不需要进 CI。
 
 ## 破例条款
 

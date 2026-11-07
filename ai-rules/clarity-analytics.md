@@ -18,7 +18,6 @@ Microsoft Clarity（项目 ID：`yk9n836sio`）通过 `index.html` 中的官方�
 3. **同步审计**：修改脚本 URL、项目 ID或注入形态时，同步更新 `scripts/audit-build.mjs`。
 4. **CSP 同步**：更新 `public/_headers` 的 CSP，`script-src` 放行 `https://www.clarity.ms`，`connect-src` 放行 Clarity 上报域名。
 5. **不混改统计**：不蒜子仅负责文章阅读量，改动 Clarity 时不得牵动 `src/services/busuanzi.ts`。
-6. **统计页不设入口**：`src/pages/Stats.tsx` 不展示 Clarity 外部卡片或控制台链接。
 
 ## 破例条款
 

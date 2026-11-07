@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-站点/构建/内容配置分层：站点配置按用途拆成三份 JSON（`config/site.config.json` 站点信息、`config/portal.config.json` 首页门户、`config/comments.config.json` 评论与留言板，三者 CMS 均可编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方，因此 `siteConfig.portal` / `siteConfig.comments` / `siteConfig.guestbook` 的读取形状与拆分前一致；另有 `config/content.config.json`（分类白名单等）、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。
+站点/构建/内容配置分层：站点配置按用途拆成三份 JSON（`config/site.config.json` 站点信息、`config/portal.config.json` 首页门户、`config/comments.config.json` 评论与留言板，三者 CMS 均可编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方，因此 `siteConfig.portal` / `siteConfig.comments` / `siteConfig.guestbook` 的读取形状与拆分前一致；另有 `config/content.config.json`（分类白名单等）、部署运行配置 `wrangler.jsonc`、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。
 
 ## 关键文件
 
@@ -12,6 +12,7 @@
 - `config/content.config.json`
 - `config/tsconfig.json` / `tailwind.config.js` / `postcss.config.js`
 - `vite.config.ts` / `vite.ssr.config.ts` / `vitest.config.ts`
+- `wrangler.jsonc`（Worker 入口、Static Assets、`vars.BETTERSTACK_STATUS_PAGE_ID`）
 - `.env.example`（环境变量文档）
 
 ## 修改规则（必须遵守）
@@ -34,13 +35,25 @@
 8. **标题拼接**：`siteConfig.title` 是全站标题后缀（「页面名 | 站点名」，分隔符固定为竖线）；
    只有首页用 `siteConfig.seoHomeTitle` 逐字覆盖，不参与拼接。JSON-LD 的 `name` 与 SSG
    直出的 `<title>` 必须走同一格式（`scripts/ssg.mjs` / 各页 structuredData）。改站点名或分隔符
-   要同时预期 37 个直出 HTML 的 title 变化，`npm run audit:seo` 是门禁。
+   要同时预期全站直出 HTML（首页、静态页与全部文章详情页）的 title 变化，`npm run audit:seo` 是门禁。
+9. **`statusPageUrl` 与状态页三处配置分离**：站点配置里的 `statusPageUrl`（`config/site.config.json`，
+   PagesCMS「站点配置」集合）只是**公开**的 Better Stack 自定义状态页地址，必须与 Worker 的凭据分开：
+   - 前端跳转地址：`statusPageUrl`（当前默认 `https://status.pldduck.com`，**需按实际 Better Stack
+     自定义域替换**）；构建期可用公开变量 `VITE_BETTERSTACK_STATUS_PAGE_URL` 覆盖，两者都只接受
+     https 绝对地址，非法值由前端统一回退（见 [site-status.md](site-status.md)）。
+   - Worker 变量：`BETTERSTACK_STATUS_PAGE_ID` 写在 `wrangler.jsonc` 的 `vars`（非敏感），留空时
+     接口返回 unavailable；本地 `wrangler dev` 用已 gitignore 的 `.dev.vars` 覆盖。
+   - Worker Secret：`BETTERSTACK_API_TOKEN` **只能**通过 `npx wrangler secret put` 设置，禁止写入
+     `site.config.json`、`.env*`、`VITE_*` 变量、`wrangler.jsonc` 或任何提交物。
+     `.pages.yml` 的 `siteConfig` 集合必须声明 `statusPageUrl` 字段（缺字段时 CMS 保存会静默丢键，
+     `scripts/pagescms-config.test.mjs` 会红）；这三个位置的关系必须与 `.env.example` 的说明保持一致。
 
 ## 常见陷阱
 
 - config/ 根目录（构建配置）与 src/config（已删除）勿混淆；
 - 站点配置的读者是**两份加载器**（构建侧 mjs + 运行侧 TS），两侧合并逻辑必须同步修改，否则 CI 产物与页面运行时配置不一致；
-- site.config.json 的 author/social、comments.config.json 的 comments/guestbook 等嵌套结构被多处消费，增删字段需全局检索消费方。
+- site.config.json 的 author/social、comments.config.json 的 comments/guestbook 等嵌套结构被多处消费，增删字段需全局检索消费方；
+- `statusPageUrl` 被误当成「敏感配置」塞进 `.env` 或与 `BETTERSTACK_API_TOKEN` 写在一起：它随前端产物公开下发，放错位置会同时泄露 Token 并让状态入口失效；反之把 Token 写进 `config/site.config.json` 或 `VITE_*` 变量等于公开泄露。
 
 ## 破例条款
 

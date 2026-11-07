@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-全站外壳：左侧侧边导航（lg 及以上常驻为图标条，鼠标移入/键盘聚焦时展开为浮层；以下换成左侧抽屉，支持任意页面右滑呼出）、吸顶细顶栏（汉堡按钮 + 当前页名 + 搜索 + 主题切换）、主题切换按钮（支持 dblog:toggle-theme 自定义事件供命令面板调用）、移动端抽屉左右滑动手势、返回顶部、页脚、Cookie 提示条、Service Worker 更新提示、命令面板（Ctrl/Cmd+K 与搜索按钮）、错误边界与 View Transitions 页面切换。
+全站外壳：左侧侧边导航（lg 及以上常驻为图标条，鼠标移入/键盘聚焦时展开为浮层；以下换成左侧抽屉，支持任意页面右滑呼出）、吸顶细顶栏（汉堡按钮 + 当前页名 + 搜索 + 主题切换）、主题切换按钮（支持 dblog:toggle-theme 自定义事件供命令面板调用）、移动端抽屉左右滑动手势、返回顶部、页脚、侧栏底部服务状态外链入口、Cookie 提示条、Service Worker 更新提示、命令面板（Ctrl/Cmd+K 与搜索按钮）、错误边界与 View Transitions 页面切换。
 
 ## 关键文件
 
@@ -31,6 +31,8 @@
 
 11. **不显示备案号**：页脚与侧栏页脚只输出 `footerText · author.name`，不再有备案入口（2026-10 用户决定「不用显示备案号了」）。`siteConfig.beian` 类型、`SiteBeian` 接口、`.pages.yml` 的「备案信息」字段组与两处渲染代码已整体删除，**不要恢复成条件渲染或再加回配置键** —— 此前它先是必填导致 CMS 删块后全站渲染崩掉，再是可选变成一处没人看的死配置。备案号本身记在这里：湘ICP备2025101669号。
 
+12. **侧栏底部服务状态入口**：`SiteSidebarBody` 在 `SidebarFooter` 之后固定渲染 `SiteStatusBadge`（桌面侧栏与移动抽屉共用同一份内容体）。它复用既有导航行的 `nav-item` / `nav-item-label` / `sidebar-icon` 类与既有「静置态 `opacity: 0` + `pointer-events: none`」淡出机制（**不得**改用 `display:none` 或卸载 DOM），首帧固定中性兜底「服务状态」，API 失败也不隐藏、不禁用，始终可点击跳转公开状态页。**不得**把它并入 `siteNav.ts` 的 `navGroups`（它是外链入口而非路由页，混入会污染激活判定与顶栏页名解析），**不得**为它新增折叠按钮、localStorage 或旁路展开逻辑；移动抽屉内必须沿用 `onExternalClick` / `interactionDisabled` 语义，不破坏关闭动画与右滑呼出/左滑关闭手势。**布局上必须用 `fillHeight` 让内容体撑满容器**：品牌头、页脚与状态入口固定，只有中间导航清单 `overflow-y: auto` 滚动（移动抽屉同样开启，`mobile-nav-scroll` 保留底部内边距）—— 900px 高的笔电与手机上，导航清单再长也不能把状态入口推到视口外；**不得**退回「整个侧栏一起滚动」的旧结构。详细约束见 [服务状态组件](site-status.md)。
+
 ## 常见陷阱
 
 - 修改 Layout 的动画时序会影响 Layout.test（真实计时器等待）；
@@ -39,7 +41,8 @@
 - 导航项路径必须存在于 `config/routes.mjs`，否则预加载与离线兜底会漏配；
 - 顶栏必须保留 `.site-navbar` 类名：`--article-heading-offset` 由它测量，文章目录/胶囊导航/工具栏依赖该偏移；
 - 底部贴边浮层（Cookie 条等）在 lg 需用 `lg:left-[var(--sidebar-active-width)]` 让开侧栏；该变量恒等于**图标条宽度**，hover 展开是浮层、不改它 —— 别把它改成 `--sidebar-width`，否则正文与浮层会一起被推走；
-- z-index 体系（z-nav/z-sidebar/z-modal/z-floating 等）由 tailwind 配置定义，改动需全局评估遮挡关系。侧栏浮层用 `z-sidebar`(60)：高于 `z-nav`(50) 与 `main`（relative 且 DOM 靠后，同层会被它盖住），低于 `z-popover`(70) 及以后。
+- z-index 体系（z-nav/z-sidebar/z-modal/z-floating 等）由 tailwind 配置定义，改动需全局评估遮挡关系。侧栏浮层用 `z-sidebar`(60)：高于 `z-nav`(50) 与 `main`（relative 且 DOM 靠后，同层会被它盖住），低于 `z-popover`(70) 及以后；
+- 侧栏底部状态入口是「常驻外链」，不是导航项：改动时别改它的行高/图标槽（28px）与 `nav-item-label` 类，否则收起态文字不随既有淡出机制消失、展开时行高跳动；也别让它参与 `isNavItemActive` / `resolveNavLabel` 的判定。
 
 ## 破例条款
 

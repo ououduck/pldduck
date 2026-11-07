@@ -14,6 +14,11 @@
   线上域名 `www.pldduck.com`，由原个人主页 Dworld 与博客 D-blog 合并而来：首页是导流门户页，
   文章/说说/友链/留言板等功能页在同一域下的子路径，`/post/<id>` 与旧博客逐字节一致。
   旧仓库已改名 `ououduck/D-blog-old` 并封存为迁移跳转页，不再开发。
+- 部署形态：GitHub Actions 构建后由 Cloudflare Workers Static Assets 直出静态产物；同一 Worker
+  还承载 `worker/index.mjs`（入口）与 `worker/status.mjs`（逻辑），只处理 `GET /api/status`
+  （同源代理 Better Stack 状态页）。入口模块只能 `export default { fetch }`，不得导出常量/普通
+  函数（Workers 会当成 handler 并拒绝启动）。静态资源不经过 Worker（`wrangler.jsonc` 的
+  `assets.run_worker_first` 仅匹配 `/api/*`）。
 - 沟通语言：与用户使用**中文**交流；git 提交信息使用**中文**。
 - 每完成一个小任务提交一次 git，**只 commit 不 push**（除非用户明确要求推送）。
 - 提交前必须通过：`npm run typecheck`、`eslint`、相关单测；涉及构建逻辑的改动需 `npm run build` 验证。
@@ -33,10 +38,18 @@
 10. **测试**：修复 bug 必须补回归测试；新增逻辑补充单测；测试断言必须有真实行为验证（不得恒真）。
 11. **入口守卫**：Node 脚本（scripts/*.mjs）的 main() 只在作为主模块直接运行时执行（`import.meta.url === pathToFileURL(process.argv[1]).href` 判定），被 import 时不得触发网络/写文件副作用。
 12. **HTML 结构合法**：交互元素遵循内容模型（`<button>` 内不嵌套标题等 flow content；`<ol>` 直接子元素只允许 `<li>`）；弹层关闭态必须移出可访问性树（`visibility: hidden` 或条件渲染，不能只靠 opacity/pointer-events）。
+13. **服务状态接口（Worker `/api/status`）**：
+    - **Token 只进 Secret**：`BETTERSTACK_API_TOKEN` 只能通过 Cloudflare Worker Secret 设置（`npx wrangler secret put BETTERSTACK_API_TOKEN`），不得写入 `wrangler.jsonc`、`.env*`、前端构建变量、响应、日志、缓存键或任何提交物；`BETTERSTACK_STATUS_PAGE_ID` 是非敏感 Worker 变量，写 `wrangler.jsonc` 的 `vars`，本地 `wrangler dev` 用已 gitignore 的 `.dev.vars` 覆盖。
+    - **前端兜底优先**：`SiteStatusBadge` 首帧固定渲染中性「服务状态」（`unavailable`），只在客户端 effect 中请求；只有上游明确返回四种真实状态才更新，**只有 `operational` 显示绿色**。任何失败（未知值/缺字段/非 2xx、含 1027/429、超时、网络断开、坏 JSON）都回退 `unavailable`，**不得伪装成 operational**，也不得隐藏或禁用入口——它始终可点击跳转状态页。
+    - **缓存与超时固定**：Worker 成功结果写 Cache API 60 秒、上游 5 秒超时且**不重试**、**失败不写缓存**；前端 60 秒轮询、8 秒超时、不重试、不做结果缓存。静态资源不得进 Worker（`run_worker_first` 只允许 `/api/*`）。
+    - 改这条链路必须同步 `ai-rules/site-status.md`，并跑 `worker/index.test.mjs`、`src/services/siteStatus.test.ts`、`src/components/SiteStatusBadge.test.tsx`。
 
 ## 四、目录约定
 
 - `src/` 前端源码（components/pages/hooks/services/utils/ssr）；
+- `worker/` Cloudflare Worker 运行时：`index.mjs` 是入口（只允许 `export default { fetch }`），
+  `status.mjs` 放 `/api/status` 同源代理的全部逻辑与可测试具名导出；静态资源仍由 `dist/` 直出、
+  不在 Worker 里转发；不要在此目录写前端组件或扩大 Worker 的路由面；
 - `scripts/` 构建与自动化脚本（Node ESM），共享库在 `scripts/lib/`；
 - `ai-rules/` 功能规则集（见第一节）；
 - `config/` 构建配置与站点配置（`site.config.json` 等）；`config/routes.mjs` 是路由清单的
@@ -51,6 +64,8 @@
 - [ ] `npx eslint .` 无错误
 - [ ] 相关单测通过（全量 `npm test` 不回归）
 - [ ] 构建相关改动已 `npm run build` 验证
+- [ ] Worker / `wrangler.jsonc` 改动已用 `npx --yes wrangler@4.123.0 deploy --dry-run` 做配置校验（不实际部署）
+- [ ] 服务状态链路改动已跑 `npx vitest run worker/index.test.mjs src/services/siteStatus.test.ts src/components/SiteStatusBadge.test.tsx`
 - [ ] 提交信息中文、粒度为一个逻辑任务、未 push
 
 ## 六、免责与授权

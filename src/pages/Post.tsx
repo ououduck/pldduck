@@ -13,15 +13,10 @@ import { remarkCodeMeta } from '@/utils/remarkCodeMeta';
 import {
   ArrowLeft,
   ArrowRight,
-  Clock,
-  Calendar,
   ChevronRight,
   Share2,
-  Users,
   ExternalLink,
-  Eye,
   EyeOff,
-  BookOpen,
   Minus,
   Plus,
   RotateCcw,
@@ -188,6 +183,16 @@ const formatMetaDate = (dateText?: string) => {
     day: '2-digit',
   });
 };
+
+/**
+ * 文章署名行的轻量分隔点：作为「前置分隔」放进每个信息项里，
+ * 窄屏换行时点会跟着下一项走，不会孤零零留在上一行行尾。
+ */
+const PostMetaDivider = () => (
+  <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
+    ·
+  </span>
+);
 
 const getDisplayAuthors = (post: PostType): PostAuthor[] => {
   if (post.authors && post.authors.length > 0) {
@@ -1964,91 +1969,92 @@ export const Post = () => {
           structuredData={[...buildSiteSchemas(post.excerpt), postStructuredData, breadcrumbData]}
         />
 
-        <header className="post-header mx-auto mb-8 max-w-3xl px-3 pt-4 text-center md:mb-12 md:pt-8">
-          {!isReadingMode && (
-            <div className="print-hidden mb-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400 md:mb-7">
-              <Link
-                to="/posts"
-                className="inline-flex items-center gap-1 transition-colors hover:text-zinc-700 dark:hover:text-zinc-300"
-              >
-                <ArrowLeft size={13} />
-                返回文章
-              </Link>
-              <span aria-hidden="true">/</span>
-              <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5">
-                <Link to="/" className="transition-colors hover:text-zinc-700 dark:hover:text-zinc-300">
-                  首页
-                </Link>
-                <ChevronRight size={11} aria-hidden="true" />
-                <Link
-                  to={`/posts?category=${encodeURIComponent(post.category)}`}
-                  className="truncate transition-colors hover:text-zinc-700 dark:hover:text-zinc-300"
-                >
-                  {post.category}
-                </Link>
-              </nav>
-            </div>
-          )}
-
-          {/* LCP 元素首帧即渲染最终可见状态，不设入场动画（避免 SSR 输出 opacity:0） */}
-          <div>
-            <h1 className="mb-5 break-words text-balance text-[1.875rem] font-bold leading-[1.25] tracking-[-0.01em] text-ink [overflow-wrap:anywhere] dark:text-white md:mb-6 md:text-[2.5rem] lg:text-[2.75rem]">
-              {post.title}
-            </h1>
-
+        <header className="post-header mx-auto mb-10 w-full max-w-5xl px-3 pt-4 md:mb-14 md:pt-8">
+          {/* 内层与正文列同宽：左对齐后标题、署名与正文首字严格对齐；
+              阅读模式下 index.css 会另行收窄 post-header，内层仍与正文同轴 */}
+          <div className="mx-auto max-w-[46rem]">
             {!isReadingMode && (
-              <div className="post-meta print-hidden mx-auto flex max-w-2xl flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-zinc-600 dark:text-zinc-400 sm:gap-x-5">
-                <span className="inline-flex max-w-full items-center gap-1.5">
-                  <Users size={14} className="shrink-0 opacity-70" />
-                  <span className="truncate font-semibold text-zinc-800 dark:text-zinc-200">{authorsLabel}</span>
+              <div className="print-hidden mb-6 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                <Link
+                  to="/posts"
+                  className="inline-flex min-h-11 items-center gap-1.5 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
+                >
+                  <ArrowLeft size={14} aria-hidden="true" />
+                  返回文章
+                </Link>
+                <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
+                  /
                 </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Calendar size={14} className="shrink-0 opacity-70" />
-                  <span>发布于 {formatMetaDate(post.date)}</span>
-                </span>
-                {post.updatedAt && post.updatedAt !== post.date && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Calendar size={14} className="shrink-0 opacity-70" />
-                    <span>更新 {formatMetaDate(post.updatedAt)}</span>
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1.5">
-                  <Clock size={14} className="shrink-0 opacity-70" />
-                  <span>{post.readTime}</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 tabular-nums" title="由不蒜子提供本页阅读量">
-                  <Eye size={14} className="shrink-0 opacity-70" />
-                  <span>
-                    <span id="busuanzi_page_pv">加载中</span> 次阅读
-                  </span>
-                </span>
+                <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5">
+                  <Link to="/" className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">
+                    首页
+                  </Link>
+                  <ChevronRight size={12} aria-hidden="true" className="text-zinc-300 dark:text-zinc-700" />
+                  <Link
+                    to={`/posts?category=${encodeURIComponent(post.category)}`}
+                    className="truncate transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
+                  >
+                    {post.category}
+                  </Link>
+                </nav>
               </div>
             )}
 
-            {/* 编辑 / 分享操作独立一行：与上方文章信息行分开排版 */}
+            {/* LCP 元素首帧即渲染最终可见状态，不设入场动画（避免 SSR 输出 opacity:0） */}
+            <h1 className="mb-4 break-words text-balance text-[1.875rem] font-bold leading-[1.22] tracking-[-0.015em] text-content [overflow-wrap:anywhere] md:mb-5 md:text-[2.5rem] lg:text-[2.75rem]">
+              {post.title}
+            </h1>
+
+            {/* 编辑式署名行：作者/日期/阅读时长/阅读量在左，编辑·分享在右（移动端换行） */}
             {!isReadingMode && (
-              <div className="print-hidden mt-3 flex flex-wrap items-center justify-center gap-2">
-                {post.filePath && (
-                  <a
-                    href={getPostEditUrl(post.filePath)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`在 GitHub 上编辑此文：${post.title}`}
-                    className="inline-flex min-h-10 items-center gap-1.5 rounded-[6px] border border-[#d0d7de] bg-white px-3 py-1.5 text-xs font-semibold text-[#57606a] transition-colors hover:border-[#0969da] hover:text-[#0969da] dark:border-[#30363d] dark:bg-transparent dark:text-[#8b949e] dark:hover:border-[#58a6ff] dark:hover:text-[#58a6ff]"
+              <div className="print-hidden flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
+                <div className="post-meta flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] leading-6 text-zinc-500 dark:text-zinc-400">
+                  <span className="font-medium text-zinc-800 dark:text-zinc-200">{authorsLabel}</span>
+                  <span className="inline-flex items-center gap-2.5">
+                    <PostMetaDivider />
+                    <span>发布于 {formatMetaDate(post.date)}</span>
+                  </span>
+                  {post.updatedAt && post.updatedAt !== post.date && (
+                    <span className="inline-flex items-center gap-2.5">
+                      <PostMetaDivider />
+                      <span>更新于 {formatMetaDate(post.updatedAt)}</span>
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-2.5">
+                    <PostMetaDivider />
+                    <span>{post.readTime}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-2.5 tabular-nums" title="由不蒜子提供本页阅读量">
+                    <PostMetaDivider />
+                    <span>
+                      <span id="busuanzi_page_pv">加载中</span> 次阅读
+                    </span>
+                  </span>
+                </div>
+
+                <div className="-ml-2.5 flex shrink-0 items-center gap-1">
+                  {post.filePath && (
+                    <a
+                      href={getPostEditUrl(post.filePath)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`在 GitHub 上编辑此文：${post.title}`}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2.5 text-[13px] font-medium text-zinc-500 transition-colors hover:bg-surface-muted hover:text-content dark:text-zinc-400"
+                    >
+                      <Github size={15} aria-hidden="true" />
+                      编辑
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShareModalOpen(true)}
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2.5 text-[13px] font-medium text-zinc-500 transition-colors hover:bg-surface-muted hover:text-content dark:text-zinc-400"
+                    aria-label={`分享文章：${post.title}`}
                   >
-                    <Github size={14} />
-                    编辑
-                  </a>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setShareModalOpen(true)}
-                  className="inline-flex min-h-10 items-center gap-1.5 rounded-[6px] border border-[#d0d7de] bg-white px-3 py-1.5 text-xs font-semibold text-[#57606a] transition-colors hover:border-[#0969da] hover:text-[#0969da] dark:border-[#30363d] dark:bg-transparent dark:text-[#8b949e] dark:hover:border-[#58a6ff] dark:hover:text-[#58a6ff]"
-                  aria-label={`分享文章：${post.title}`}
-                >
-                  <Share2 size={14} />
-                  分享
-                </button>
+                    <Share2 size={15} aria-hidden="true" />
+                    分享
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -2061,7 +2067,7 @@ export const Post = () => {
             onClick={() => setPreviewImage({ src: resolveBrowserAsset(post.coverImage!)!, alt: post.title })}
             aria-label={`预览文章封面：${post.title}`}
           >
-            <div className="mb-8 aspect-[16/10] cursor-zoom-in overflow-hidden rounded-[6px] sm:aspect-[16/8] md:mb-14 lg:aspect-[21/9]">
+            <div className="mb-8 aspect-[16/10] cursor-zoom-in overflow-hidden rounded-micro bg-zinc-100 dark:bg-zinc-900 sm:aspect-[16/8] md:mb-12 lg:aspect-[21/9]">
               <ProgressiveImage
                 src={resolveBrowserAsset(post.coverImage)}
                 alt={post.title}
@@ -2096,10 +2102,10 @@ export const Post = () => {
 
             {!isReadingMode && (
               <aside
-                className="post-license mt-14 border-l-2 border-zinc-200 pl-4 text-sm leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 md:mt-16 md:pl-5"
+                className="post-license mt-14 border-t border-line pt-6 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400 md:mt-16"
                 aria-labelledby="license-heading"
               >
-                <h2 id="license-heading" className="mb-1 font-semibold text-zinc-700 dark:text-zinc-200">
+                <h2 id="license-heading" className="mb-1.5 text-[13px] font-semibold text-zinc-700 dark:text-zinc-200">
                   CC BY-SA 4.0 许可协议
                 </h2>
                 <p>
@@ -2120,67 +2126,73 @@ export const Post = () => {
 
             {!isReadingMode && (
               <>
-                <div className="mt-8 flex flex-col gap-3 border-t border-zinc-200 pt-6 text-sm sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+                <div className="mt-8 flex flex-col gap-2 border-t border-line pt-5 text-sm sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-zinc-500 dark:text-zinc-400">
-                    作者 <span className="font-semibold text-zinc-800 dark:text-zinc-200">{authorsLabel}</span>
+                    作者 <span className="font-medium text-zinc-800 dark:text-zinc-200">{authorsLabel}</span>
                   </p>
                   <a
                     href={getPostSourceUrl(post.filePath)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-zinc-500 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:decoration-zinc-700 dark:hover:text-zinc-100"
+                    className="inline-flex min-h-11 items-center gap-1.5 text-zinc-500 transition-colors hover:text-content dark:text-zinc-400"
                   >
-                    <ExternalLink size={14} />
+                    <ExternalLink size={14} aria-hidden="true" />
                     <span>帮助改进本文</span>
                   </a>
                 </div>
 
-                <div className="post-actions mt-8">
+                <div className="post-actions mt-10">
                   <IssueSubscriptionCard />
                 </div>
 
                 {seriesNavigation && (
-                  <section
-                    className="post-series mt-10 border-t border-zinc-200 pt-7 dark:border-zinc-800 md:mt-12 md:pt-8"
-                    aria-labelledby="series-heading"
-                  >
-                    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                  <section className="post-series mt-12 border-t border-line pt-8" aria-labelledby="series-heading">
+                    <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                       <div>
-                        <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                          系列文章
-                        </p>
-                        <h2 id="series-heading" className="text-xl font-bold text-ink dark:text-white">
+                        <p className="mb-1 text-[11px] font-medium text-zinc-400 dark:text-zinc-500">系列文章</p>
+                        <h2 id="series-heading" className="text-xl font-bold text-content">
                           {seriesNavigation.name}
                         </h2>
                       </div>
-                      <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                      <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
                         第 {seriesNavigation.currentIndex + 1} / {seriesNavigation.posts.length} 篇
                       </span>
                     </div>
-                    <ol className="space-y-2">
-                      {seriesNavigation.posts.map((seriesPost, index) => (
-                        <li key={seriesPost.id}>
-                          <Link
-                            to={`/post/${seriesPost.id}`}
-                            aria-current={seriesPost.id === post.id ? 'page' : undefined}
-                            className={`flex min-h-11 items-center gap-3 rounded-control border px-3 py-2 text-sm transition-colors ${seriesPost.id === post.id ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 text-zinc-700 hover:border-zinc-500 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600'}`}
-                          >
-                            <span className="w-7 shrink-0 text-center text-xs tabular-nums opacity-60">
-                              {index + 1}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate">{seriesPost.title}</span>
-                          </Link>
-                        </li>
-                      ))}
+                    <ol className="divide-y divide-line border-y border-line">
+                      {seriesNavigation.posts.map((seriesPost, index) => {
+                        const isCurrentSeriesPost = seriesPost.id === post.id;
+
+                        return (
+                          <li key={seriesPost.id}>
+                            <Link
+                              to={`/post/${seriesPost.id}`}
+                              aria-current={isCurrentSeriesPost ? 'page' : undefined}
+                              className={`flex min-h-11 items-center gap-3 px-1 py-2.5 text-sm transition-colors hover:bg-surface-muted ${
+                                isCurrentSeriesPost ? 'font-semibold text-content' : 'text-zinc-600 dark:text-zinc-400'
+                              }`}
+                            >
+                              <span className="w-6 shrink-0 text-xs tabular-nums text-zinc-400 dark:text-zinc-500">
+                                {String(index + 1).padStart(2, '0')}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate">{seriesPost.title}</span>
+                              {isCurrentSeriesPost && (
+                                <span className="shrink-0 text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+                                  当前
+                                </span>
+                              )}
+                            </Link>
+                          </li>
+                        );
+                      })}
                     </ol>
                     {(seriesNavigation.previous || seriesNavigation.next) && (
-                      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
                         {seriesNavigation.previous ? (
                           <Link
                             to={`/post/${seriesNavigation.previous.id}`}
-                            className="editorial-button inline-flex min-h-11 items-center justify-center gap-2 text-sm"
+                            className="inline-flex min-h-11 items-center gap-1.5 text-zinc-500 transition-colors hover:text-content dark:text-zinc-400"
                           >
-                            <ArrowLeft size={15} />
+                            <ArrowLeft size={15} aria-hidden="true" />
                             上一章
                           </Link>
                         ) : (
@@ -2189,10 +2201,10 @@ export const Post = () => {
                         {seriesNavigation.next ? (
                           <Link
                             to={`/post/${seriesNavigation.next.id}`}
-                            className="editorial-button inline-flex min-h-11 items-center justify-center gap-2 text-sm"
+                            className="inline-flex min-h-11 items-center gap-1.5 text-zinc-500 transition-colors hover:text-content dark:text-zinc-400"
                           >
                             下一章
-                            <ArrowRight size={15} />
+                            <ArrowRight size={15} aria-hidden="true" />
                           </Link>
                         ) : (
                           <span />
@@ -2202,25 +2214,22 @@ export const Post = () => {
                   </section>
                 )}
 
-                <nav
-                  aria-label="文章导航"
-                  className="post-navigation mt-10 border-t border-zinc-200 pt-7 dark:border-zinc-800 md:mt-12 md:pt-8"
-                >
+                <nav aria-label="文章导航" className="post-navigation mt-12 border-t border-line pt-8">
                   <div className="grid gap-5 sm:grid-cols-2 sm:gap-10">
                     {adjacentPosts.prev ? (
                       <Link
                         to={`/post/${adjacentPosts.prev.id}`}
-                        className="group flex min-h-11 min-w-0 items-start gap-3 rounded-control py-1 text-left"
+                        className="group flex min-h-11 min-w-0 items-start gap-3 py-1 text-left"
                       >
                         <ArrowLeft
-                          size={17}
-                          className="mt-0.5 flex-shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-900 dark:text-zinc-700 dark:group-hover:text-zinc-100"
+                          size={16}
+                          className="mt-0.5 flex-shrink-0 text-zinc-300 transition-colors group-hover:text-content dark:text-zinc-700"
                         />
                         <span className="min-w-0">
-                          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                          <span className="mb-1 block text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
                             上一篇
                           </span>
-                          <span className="line-clamp-2 text-sm font-semibold leading-relaxed text-zinc-700 transition-colors group-hover:text-zinc-950 dark:text-zinc-300 dark:group-hover:text-white">
+                          <span className="line-clamp-2 text-sm font-medium leading-relaxed text-zinc-700 transition-colors group-hover:text-content dark:text-zinc-300">
                             {adjacentPosts.prev.title}
                           </span>
                         </span>
@@ -2232,19 +2241,19 @@ export const Post = () => {
                     {adjacentPosts.next ? (
                       <Link
                         to={`/post/${adjacentPosts.next.id}`}
-                        className="group flex min-h-11 min-w-0 items-start gap-3 rounded-control py-1 text-left sm:justify-end sm:text-right"
+                        className="group flex min-h-11 min-w-0 items-start gap-3 py-1 text-left sm:justify-end sm:text-right"
                       >
                         <span className="min-w-0">
-                          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                          <span className="mb-1 block text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
                             下一篇
                           </span>
-                          <span className="line-clamp-2 text-sm font-semibold leading-relaxed text-zinc-700 transition-colors group-hover:text-zinc-950 dark:text-zinc-300 dark:group-hover:text-white">
+                          <span className="line-clamp-2 text-sm font-medium leading-relaxed text-zinc-700 transition-colors group-hover:text-content dark:text-zinc-300">
                             {adjacentPosts.next.title}
                           </span>
                         </span>
                         <ArrowRight
-                          size={17}
-                          className="mt-0.5 order-first flex-shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-900 sm:order-last dark:text-zinc-700 dark:group-hover:text-zinc-100"
+                          size={16}
+                          className="mt-0.5 order-first flex-shrink-0 text-zinc-300 transition-colors group-hover:text-content sm:order-last dark:text-zinc-700"
                         />
                       </Link>
                     ) : (
@@ -2262,15 +2271,15 @@ export const Post = () => {
                 </nav>
 
                 {relatedPosts.length > 0 && (
-                  <section
-                    className="post-related mt-10 border-t border-zinc-200 pt-7 dark:border-zinc-800 md:mt-12 md:pt-8"
-                    aria-labelledby="related-heading"
-                  >
-                    <div className="mb-5 flex items-center gap-2">
-                      <BookOpen size={16} className="text-zinc-400" />
-                      <h2 id="related-heading" className="text-xl font-bold text-ink dark:text-white">
+                  <section className="post-related mt-12 border-t border-line pt-8" aria-labelledby="related-heading">
+                    <div className="mb-4 flex items-baseline gap-3">
+                      <h2
+                        id="related-heading"
+                        className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500"
+                      >
                         你可能还喜欢
                       </h2>
+                      <span aria-hidden="true" className="h-px min-w-0 flex-1 bg-line" />
                     </div>
                     <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
                       {relatedPosts.map((relatedPost) => (

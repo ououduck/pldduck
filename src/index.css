@@ -706,33 +706,48 @@ html.dark {
 }
 
 .prose table {
-  @apply w-full border-collapse text-sm md:text-[15px];
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375em;
+  line-height: 1.65;
   font-variant-numeric: tabular-nums;
 }
 
-/* GitHub 风格表格：全网格边框、表头浅底加粗，无斑马纹/行悬停。 */
+/* 表格：低对比发丝网格 + 弱底色表头，不用 GitHub 蓝灰边框。 */
 .prose thead th {
-  @apply px-3 py-2 text-left font-semibold text-zinc-800 dark:text-zinc-100 md:px-4;
-  border: 1px solid #d0d7de;
-  background: #f6f8fa;
-}
-
-.dark .prose thead th {
-  border-color: #30363d;
-  background: #161b22;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  font-weight: 600;
+  text-align: left;
 }
 
 .prose tbody td {
-  @apply px-3 py-2 align-middle text-zinc-700 dark:text-zinc-300 md:px-4;
-  border: 1px solid #d0d7de;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: top;
+}
+
+.prose tbody tr:hover {
+  background: transparent;
+}
+
+.dark .prose thead th {
+  border-color: var(--color-border);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
 }
 
 .dark .prose tbody td {
-  border-color: #30363d;
+  border-color: var(--color-border);
+  color: var(--color-text);
 }
 
 .table-wrapper {
-  @apply my-7 overflow-x-auto md:my-9;
+  margin: var(--space-6) 0;
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-inline: contain;
   scrollbar-width: thin;
@@ -745,28 +760,29 @@ html.dark {
   content: '';
 }
 
-/* GitHub 风格分隔线：整行 4px 色块（替代旧版居中短横线）。 */
+/* 分隔线：一条中性发丝线，不抢段落之间的节奏。 */
 .prose hr {
-  @apply border-0;
-  height: 4px;
-  margin-top: 2.5em;
-  margin-bottom: 2.5em;
-  background-color: #d0d7de;
+  height: 1px;
+  margin: var(--space-9) 0;
+  border: 0;
+  background: var(--color-border);
 }
 .dark .prose hr {
-  background-color: #30363d;
+  background: var(--color-border);
 }
 
 .prose ol > li::marker {
-  @apply font-bold text-zinc-400 dark:text-zinc-500;
+  color: var(--color-text-secondary);
+  font-weight: 600;
 }
 
 .heading-anchor-wrapper {
   @apply group/heading;
 }
-/* GitHub 风格标题锚点：位于标题文字之后，悬停/聚焦时显现。 */
+/* 标题锚点：默认低对比，悬停/聚焦时用强调色显现。 */
 .heading-anchor {
-  @apply ml-2 hidden items-center text-[0.7em] font-semibold text-zinc-400 opacity-0 transition-opacity hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 md:inline-flex;
+  @apply ml-2 hidden items-center text-[0.7em] font-semibold opacity-0 transition-opacity md:inline-flex;
+  color: var(--color-text-secondary);
   vertical-align: middle;
 }
 .group\/heading:hover .heading-anchor,
@@ -774,22 +790,48 @@ html.dark {
 .heading-anchor:focus-visible {
   @apply opacity-100;
 }
+.heading-anchor:hover,
 .heading-anchor:focus-visible {
-  @apply rounded-micro outline outline-2 outline-offset-2 outline-zinc-900 dark:outline-zinc-100;
+  color: var(--color-accent);
+}
+.heading-anchor:focus-visible {
+  @apply rounded-micro outline outline-2 outline-offset-2;
+  outline-color: var(--color-focus-ring);
 }
 
 /* ===== 文章正文排版（post-prose）=====
-   文章页专属排版增强：正文在 prose 插件（1.125rem/1.85）基础上再精细化，
-   让中文长文阅读更舒适。非 @layer 规则优先级高于插件生成的 components 层。 */
-.post-prose {
-  font-size: 1.0625rem; /* 移动端 17px，避免过大的行宽导致换行频繁 */
-  line-height: 1.9;
+   文章页专属排版增强：正文在 prose 插件基础上重新校准为中文长文阅读尺度。
+   颜色/字体/间距/圆角一律走语义 Token；非 @layer 规则优先级高于插件 components 层。 */
+/* 选择器带 .prose 提高一级特异性：覆盖 typography 插件在 md:prose-lg / prose-invert
+   上写死的字号、行高与颜色（它们与 .post-prose 同级且可能在产物中后置）。 */
+.post-prose.prose {
+  font-family: var(--font-sans);
+  font-size: 1.0625rem; /* 移动端 17px */
+  line-height: 1.95;
+  color: var(--color-text);
+  letter-spacing: 0.005em;
 }
 
 @media (min-width: 768px) {
-  .post-prose {
-    font-size: 1.125rem; /* 桌面端 18px（md:prose-lg 同值，这里统一行高） */
+  .post-prose.prose {
+    font-size: 1.125rem; /* 桌面端 18px */
+    line-height: 1.95;
   }
+}
+
+/* 段落：统一底部间距，段间不再叠加插件默认的 p + p 上边距。 */
+.post-prose :is(p, .md-paragraph) {
+  margin: 0 0 var(--space-5);
+  line-height: 1.95;
+}
+
+.post-prose :is(p, .md-paragraph) + :is(p, .md-paragraph) {
+  margin-top: 0;
+}
+
+/* 含图片的段落容器本身不占正文段间距，图片间距交给 figure。 */
+.post-prose .md-paragraph:has(> figure) {
+  margin-bottom: 0;
 }
 
 /* 中文正文两端对齐：消除参差右缘，行尾不留明显空隙。
@@ -810,6 +852,177 @@ html.dark {
   widows: 3;
 }
 
+/* 标题：Markdown 的 # / ## / ### 经 Post.tsx 映射为 h2 / h3 / h4，三者是正文主力。
+   层级靠字号与留白区分，h2 只保留一条低对比发丝线。 */
+.post-prose :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  text-wrap: balance;
+  scroll-margin-top: var(--article-heading-offset);
+}
+
+.post-prose h1 {
+  margin: var(--space-10) 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 1.75em;
+}
+
+.post-prose h2 {
+  margin: var(--space-10) 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 1.45em;
+}
+
+.post-prose h3 {
+  margin: var(--space-8) 0 var(--space-2);
+  font-size: 1.2em;
+}
+
+.post-prose h4 {
+  margin: var(--space-6) 0 var(--space-1);
+  font-size: 1.05em;
+}
+
+.post-prose h5,
+.post-prose h6 {
+  margin: var(--space-5) 0 var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 0.95em;
+}
+
+/* 第一个块级元素不额外下沉：正文从封面/标题后自然开始。 */
+.post-prose > :first-child {
+  margin-top: 0;
+}
+
+/* 列表：行距与正文一致，缩进收窄到适合中文短列表的宽度。 */
+.post-prose :is(ul, ol) {
+  margin: 0 0 var(--space-5);
+  padding-left: 1.35em;
+}
+
+.post-prose li {
+  margin: var(--space-1) 0;
+  padding-left: 0.1em;
+  line-height: 1.95;
+}
+
+.post-prose :is(ul, ol) :is(ul, ol) {
+  margin: var(--space-1) 0 0;
+}
+
+.post-prose :is(ul, ol) > li::marker {
+  color: var(--color-text-secondary);
+}
+
+/* 引用：左侧发丝线 + 次级文字色，不用高饱和边框或底色。 */
+.post-prose blockquote {
+  margin: var(--space-6) 0;
+  padding: var(--space-1) 0 var(--space-1) var(--space-5);
+  border-left: 2px solid var(--color-border);
+  color: var(--color-text-secondary);
+  line-height: 1.95;
+  font-style: normal;
+}
+
+.post-prose blockquote p {
+  margin-bottom: 0;
+}
+
+.post-prose blockquote p + p {
+  margin-top: var(--space-3);
+}
+
+/* 链接：默认带一条低对比下划线，悬停时才让下划线跟随强调色。 */
+.post-prose a {
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: var(--color-border);
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    text-decoration-color var(--duration-fast) var(--ease-standard);
+}
+
+.post-prose a:hover {
+  text-decoration-color: currentColor;
+}
+
+.post-prose strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.post-prose sup,
+.post-prose sub {
+  line-height: 0;
+  font-size: 0.75em;
+}
+
+/* 脚注（remark-gfm 输出）：与正文以一条发丝线分隔，字号降低半档。 */
+.post-prose [data-footnotes],
+.post-prose .footnotes {
+  margin-top: var(--space-9);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 0.875em;
+  line-height: 1.7;
+}
+
+.post-prose [data-footnotes] li {
+  margin: var(--space-1) 0;
+}
+
+.post-prose [data-footnote-ref] {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* 行内 code：用弱底代替描边，字号略小于正文，不抢阅读节奏。
+   选择器多带 .prose 一级：压过插件同样带 :not(pre) 的 code 配色。 */
+.post-prose.prose :not(pre) > code {
+  padding: 0.12em 0.38em;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  font-size: 0.875em;
+  font-weight: 500;
+}
+
+/* typography 插件的 dark:prose-invert 选择器（.dark\:prose-invert:is(.dark *) …）
+   特异性略高于普通 .post-prose 规则；这里只在暗色下用同一组语义 Token 重新声明
+   被覆盖的颜色，不引入第二套色值。 */
+.dark .post-prose.prose {
+  color: var(--color-text);
+  line-height: 1.95;
+}
+
+.dark .post-prose.prose :is(h1, h2) {
+  border-bottom-color: var(--color-border);
+}
+
+.dark .post-prose.prose blockquote {
+  color: var(--color-text-secondary);
+  border-left-color: var(--color-border);
+}
+
+.dark .post-prose.prose hr {
+  background: var(--color-border);
+}
+
+.dark .post-prose.prose :is(thead th, tbody td) {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
 /* 代码统一等宽字体：typography 插件默认让 pre code 继承正文 sans
    （Windows 上即微软雅黑），技术博客代码块必须使用等宽字体才可读。 */
 .post-prose :not(pre) > code,
@@ -820,39 +1033,109 @@ html.dark {
 }
 
 .code-block {
-  @apply overflow-hidden rounded-[6px] border border-[#d0d7de] bg-[#f6f8fa] dark:border-[#30363d] dark:bg-[#0d1117];
+  overflow: hidden;
+  margin-block: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
 }
 
 /* highlight.js 主题自带底色（白/#0d1117），改透明以透出 .code-block
-   的统一背景，得到 GitHub 式整块同底色的代码区。 */
+   的统一背景，得到整块同底色的代码区。 */
 .code-block .hljs {
   background: transparent;
 }
 
 .code-toolbar {
-  /* GitHub 式代码块头部：浅色与代码区同底（#f6f8fa），仅靠下边框区分；
-     深色使用 GitHub 头部专色 #161b22，与代码区 #0d1117 形成层次。 */
-  @apply flex min-h-12 items-center justify-between gap-3 border-b border-[#d0d7de] bg-[#f6f8fa] px-3 py-1.5 text-xs text-[#57606a] dark:border-[#30363d] dark:bg-[#161b22] dark:text-[#8b949e];
+  display: flex;
+  min-height: var(--space-11);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
 }
 
 .code-language {
-  @apply min-w-0 truncate font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6e7781] dark:text-[#8b949e];
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .code-toolbar-actions {
-  @apply flex shrink-0 items-center gap-1;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .code-action-btn {
-  @apply inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-[6px] border border-[#d0d7de] bg-white px-2.5 py-1.5 text-xs font-medium text-[#57606a] transition-colors hover:border-[#0969da] hover:bg-[#ddf4ff] hover:text-[#0969da] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0969da] active:scale-[.98] dark:border-[#30363d] dark:bg-[#21262d] dark:text-[#8b949e] dark:hover:border-[#58a6ff] dark:hover:bg-[#1f6feb33] dark:hover:text-[#58a6ff] dark:focus-visible:outline-[#58a6ff];
+  display: inline-flex;
+  min-height: var(--space-11);
+  min-width: var(--space-11);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.code-action-btn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-muted);
+  color: var(--color-accent);
+}
+
+.code-action-btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.code-action-btn:active {
+  transform: scale(0.98);
 }
 
 .code-action-btn-success {
-  @apply border-emerald-500 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-500/70 dark:bg-emerald-500/15 dark:text-emerald-300 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-200;
+  border-color: var(--color-success);
+  background: var(--color-surface-muted);
+  color: var(--color-success);
+}
+
+.code-action-btn-success:hover {
+  border-color: var(--color-success);
+  color: var(--color-success);
 }
 
 .code-copy-feedback {
-  @apply hidden text-xs font-medium text-emerald-700 dark:text-emerald-300 sm:inline;
+  display: none;
+  color: var(--color-success);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+@media (min-width: 640px) {
+  .code-copy-feedback {
+    display: inline;
+  }
 }
 
 @keyframes copy-pop {
@@ -872,11 +1155,7 @@ html.dark {
 .code-scroll {
   @apply relative overflow-x-auto touch-pan-x;
   scrollbar-width: thin;
-  scrollbar-color: #d0d7de transparent;
-}
-
-.dark .code-scroll {
-  scrollbar-color: #30363d transparent;
+  scrollbar-color: var(--color-border) transparent;
 }
 
 .code-content {
@@ -891,28 +1170,75 @@ html.dark {
 }
 
 .code-line-numbers {
-  @apply flex shrink-0 flex-col select-none border-r border-[#d0d7de] px-3 py-3.5 text-right font-mono text-[0.8125rem] leading-6 text-[#6e7781] dark:border-[#30363d] dark:text-[#8b949e] md:py-5;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 0.875rem var(--space-3);
+  border-right: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5rem;
+  text-align: right;
+  user-select: none;
+}
+
+@media (min-width: 768px) {
+  .code-line-numbers {
+    padding-block: var(--space-5);
+  }
 }
 
 /* 行号是键盘可达的复制按钮：右对齐、整格点击区、hover/focus 反馈。
    button 不继承 UA 字体/颜色，显式对齐容器的 mono 字体与配色。 */
 .code-line-numbers button {
-  @apply block h-6 w-full cursor-pointer appearance-none border-0 bg-transparent p-0 text-right font-mono text-[0.8125rem] leading-6 text-[#6e7781] transition-colors hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-600 active:scale-[0.98] dark:text-[#8b949e] dark:hover:text-blue-300 dark:focus-visible:outline-blue-300;
+  display: block;
+  width: 100%;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.5rem;
+  text-align: right;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.code-line-numbers button:hover {
+  color: var(--color-accent);
+}
+
+.code-line-numbers button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.code-line-numbers button:active {
+  transform: scale(0.98);
 }
 
 .code-line-count {
-  @apply hidden shrink-0 font-mono text-[11px] tabular-nums text-[#6e7781] dark:text-[#8b949e] sm:inline;
+  display: none;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 640px) {
+  .code-line-count {
+    display: inline;
+  }
 }
 
 .code-block pre,
 .code-block code {
-  color: #172033;
+  color: var(--color-text);
   font-variant-ligatures: contextual;
-}
-
-.dark .code-block pre,
-.dark .code-block code {
-  color: #f1f5f9;
 }
 
 .code-block .hljs {
@@ -931,7 +1257,12 @@ html.dark {
 
 .code-block-collapsed::after {
   content: '';
-  @apply pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#f6f8fa] via-[#f6f8fa]/95 to-transparent dark:from-[#0d1117] dark:via-[#0d1117]/95;
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 5rem;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--color-surface), transparent);
 }
 
 .code-block-expanded {
@@ -940,17 +1271,48 @@ html.dark {
 
 .code-expand-btn,
 .code-collapse-btn {
-  @apply z-10 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-control border border-slate-300 bg-white px-3 py-2 text-center text-xs font-medium text-slate-700 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-50 hover:text-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 active:scale-[.98] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-blue-400 dark:hover:bg-blue-500/15 dark:hover:text-blue-100 dark:focus-visible:outline-blue-300;
-  max-width: calc(100% - 1rem);
+  position: absolute;
+  bottom: var(--space-2);
+  left: 50%;
+  z-index: 10;
+  display: inline-flex;
+  min-height: var(--space-11);
+  max-width: calc(100% - var(--space-4));
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
   overflow-wrap: anywhere;
+  transform: translateX(-50%);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
 }
 
-.code-expand-btn {
-  @apply absolute bottom-2 left-1/2 -translate-x-1/2 text-sm;
+.code-expand-btn:hover,
+.code-collapse-btn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-muted);
+  color: var(--color-accent);
 }
 
-.code-collapse-btn {
-  @apply absolute bottom-2 left-1/2 -translate-x-1/2;
+.code-expand-btn:focus-visible,
+.code-collapse-btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.code-expand-btn:active,
+.code-collapse-btn:active {
+  transform: translateX(-50%) scale(0.98);
 }
 
 /* ===== 文章胶囊导航（桌面端文章阅读控制台） ===== */
@@ -1338,15 +1700,27 @@ html.dark {
 }
 
 .code-filename {
-  @apply inline-flex max-w-[45%] shrink-0 items-center gap-1.5 font-mono text-[11px] font-medium text-slate-500 dark:text-slate-400;
+  display: inline-flex;
+  max-width: 45%;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
 }
 
 .code-filename span {
-  @apply truncate;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .code-action-btn-active {
-  @apply border-blue-500 bg-blue-50 text-blue-800 dark:border-blue-400 dark:bg-blue-500/15 dark:text-blue-100;
+  border-color: var(--color-accent);
+  background: var(--color-surface-muted);
+  color: var(--color-accent);
 }
 
 /* 换行模式：行号与折行后的视觉行不再一一对应，隐藏行号列；
@@ -1369,7 +1743,7 @@ html.dark {
 
 /* 复制失败反馈：与成功态同位，红色语义 */
 .code-copy-feedback-error {
-  @apply text-red-700 dark:text-red-300;
+  color: var(--color-danger);
 }
 
 /* diff 代码块整行高亮：rehype-highlight 输出 hljs-addition/deletion/meta，
@@ -1428,8 +1802,21 @@ html.dark {
 }
 
 .prose figcaption {
+  margin-top: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 0.875em;
+  line-height: 1.65;
+  text-align: center;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.post-prose figure {
+  margin: var(--space-7) 0;
+}
+
+.post-prose figure > button {
+  border-radius: var(--radius-md);
 }
 
 .back-to-top-btn {
@@ -1459,7 +1846,7 @@ html.dark {
 }
 
 .prose img {
-  @apply rounded-media;
+  border-radius: var(--radius-md);
 }
 
 .prose pre,
@@ -1789,26 +2176,42 @@ html.dark .mermaid-diagram > svg {
 }
 
 .kbd {
-  @apply inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-micro border border-zinc-300 bg-zinc-100 px-1.5 text-[11px] font-medium leading-none text-zinc-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400;
+  display: inline-flex;
+  height: 1.375rem;
+  min-width: 1.375rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
-.dark .prose {
-  --tw-prose-body: #e4e4e7;
-  --tw-prose-headings: #fafafa;
-  --tw-prose-lead: #8b949e;
-  --tw-prose-links: #58a6ff;
-  --tw-prose-bold: #fafafa;
-  --tw-prose-counters: #8b949e;
-  --tw-prose-bullets: #30363d;
-  --tw-prose-hr: #30363d;
-  --tw-prose-quotes: #8b949e;
-  --tw-prose-quote-borders: #30363d;
-  --tw-prose-captions: #8b949e;
-  --tw-prose-code: #e6edf3;
-  --tw-prose-pre-code: #e6edf3;
-  --tw-prose-pre-bg: #161b22;
-  --tw-prose-th-borders: #30363d;
-  --tw-prose-td-borders: #30363d;
+/* prose 插件的颜色变量统一映射到语义 Token；深色由 html.dark 覆盖同一组 Token，
+   这里不再单独写 .dark 值。 */
+.prose {
+  --tw-prose-body: var(--color-text);
+  --tw-prose-headings: var(--color-text);
+  --tw-prose-lead: var(--color-text-secondary);
+  --tw-prose-links: var(--color-accent);
+  --tw-prose-bold: var(--color-text);
+  --tw-prose-counters: var(--color-text-secondary);
+  --tw-prose-bullets: var(--color-border);
+  --tw-prose-hr: var(--color-border);
+  --tw-prose-quotes: var(--color-text-secondary);
+  --tw-prose-quote-borders: var(--color-border);
+  --tw-prose-captions: var(--color-text-secondary);
+  --tw-prose-code: var(--color-text);
+  --tw-prose-pre-code: var(--color-text);
+  --tw-prose-pre-bg: var(--color-surface);
+  --tw-prose-th-borders: var(--color-border);
+  --tw-prose-td-borders: var(--color-border);
+  --tw-prose-kbd: var(--color-text);
+  --tw-prose-kbd-shadows: transparent;
 }
 
 @media (max-width: 1023px) {
@@ -1838,16 +2241,16 @@ html.dark .mermaid-diagram > svg {
 }
 
 .reading-mode-article .post-header {
-  max-width: 56rem;
-  margin-bottom: 3rem;
+  max-width: 44rem;
+  margin-bottom: var(--space-10);
 }
 
 .reading-mode-article .post-body {
-  max-width: 68rem;
+  max-width: var(--article-width);
 }
 
 .reading-mode-article .post-body > div {
-  max-width: 46rem;
+  max-width: 44rem;
 }
 
 .reading-mode-article .post-prose {
@@ -1860,22 +2263,27 @@ html.dark .mermaid-diagram > svg {
   line-height: 1.95;
 }
 
+.reading-mode-article .post-prose :is(p, .md-paragraph) {
+  margin-bottom: var(--space-6);
+}
+
 .reading-mode-article .post-prose h2,
 .reading-mode-article .post-prose h3,
 .reading-mode-article .post-prose h4 {
-  scroll-margin-top: 2rem;
+  scroll-margin-top: var(--space-8);
 }
 
 .reading-mode-article .post-prose pre,
+.reading-mode-article .post-prose .code-block,
 .reading-mode-article .post-prose .table-wrapper,
 .reading-mode-article .post-prose .mermaid-container {
-  margin-top: 2.25rem;
-  margin-bottom: 2.25rem;
+  margin-top: var(--space-7);
+  margin-bottom: var(--space-7);
 }
 
 .reading-mode-article .post-prose figure {
-  margin-top: 2rem;
-  margin-bottom: 2rem;
+  margin-top: var(--space-7);
+  margin-bottom: var(--space-7);
 }
 
 .reading-mode-article .post-prose img {
@@ -1888,17 +2296,21 @@ html.dark .mermaid-diagram > svg {
 
 @media (max-width: 767px) {
   .reading-mode-article .post-header {
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-7);
   }
 
   .reading-mode-article .post-prose {
     font-size: 1.125rem;
-    line-height: 1.9;
+    line-height: 1.95;
   }
 
   .reading-mode-article .post-prose :is(p, .md-paragraph),
   .reading-mode-article .post-prose li {
-    line-height: 1.9;
+    line-height: 1.95;
+  }
+
+  .reading-mode-article .post-prose :is(p, .md-paragraph) {
+    margin-bottom: var(--space-5);
   }
 }
 

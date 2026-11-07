@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Post } from './Post';
 import { ReadingModeProvider } from '@/components/ReadingModeContext';
@@ -257,5 +257,73 @@ describe('Post', () => {
       { timeout: 4000 },
     );
     await waitFor(() => expect(assertHeadingIdsInDom()).toBe(true));
+  });
+
+  it('编辑式标题区：署名、发布日期、阅读时长、编辑/分享入口与阅读量锚点齐备', async () => {
+    renderPost();
+    await screen.findByText('测试文章标题');
+
+    expect(screen.getByText(/发布于/)).toBeInTheDocument();
+    expect(screen.getByText('5分钟阅读')).toBeInTheDocument();
+
+    const editLink = screen.getByRole('link', { name: /在 GitHub 上编辑此文/ });
+    expect(editLink.getAttribute('href')).toMatch(/\/edit\//);
+    expect(editLink).toHaveAttribute('target', '_blank');
+    expect(screen.getByRole('button', { name: '分享文章：测试文章标题' })).toBeInTheDocument();
+
+    // 不蒜子阅读量回填锚点必须保留（Layout 的 pingBusuanzi 依赖该 id）。
+    expect(document.getElementById('busuanzi_page_pv')).toBeInTheDocument();
+  });
+
+  it('文末尾区顺序：许可 → 作者/改进本文 → 订阅卡 → 相邻导航 → 相关文章 → 评论', async () => {
+    vi.mocked(postsService.getPosts).mockResolvedValue([
+      makePost({ id: 'prev-post', title: '上一篇占位' }),
+      makePost(),
+      makePost({ id: 'next-post', title: '下一篇占位' }),
+      makePost({ id: 'related-a', title: '相关甲', tags: ['React'] }),
+      makePost({ id: 'related-b', title: '相关乙', tags: ['React'] }),
+    ] as never);
+    renderPost();
+    await screen.findByText('测试文章标题');
+    await waitFor(() => expect(document.querySelector('.post-related')).not.toBeNull());
+
+    const orderedNodes = [
+      '.post-license',
+      '.post-actions',
+      '.post-navigation',
+      '.post-related',
+      '[data-testid="mock-giscus"]',
+    ].map((selector) => document.querySelector(selector));
+
+    orderedNodes.forEach((node) => expect(node).not.toBeNull());
+    for (let index = 1; index < orderedNodes.length; index += 1) {
+      const previous = orderedNodes[index - 1] as Node;
+      const current = orderedNodes[index] as Node;
+      expect(previous.compareDocumentPosition(current) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it('系列文章区：轻量列表、当前篇标记与上下章入口', async () => {
+    vi.mocked(postsService.getPostById).mockResolvedValue(
+      makePost({ series: true, seriesName: '测试系列', seriesOrder: 2 }) as never,
+    );
+    vi.mocked(postsService.getPosts).mockResolvedValue([
+      makePost({ id: 'series-1', title: '系列第一篇', series: true, seriesName: '测试系列', seriesOrder: 1 }),
+      makePost({ series: true, seriesName: '测试系列', seriesOrder: 2 }),
+      makePost({ id: 'series-3', title: '系列第三篇', series: true, seriesName: '测试系列', seriesOrder: 3 }),
+    ] as never);
+    renderPost();
+    await screen.findByText('测试文章标题');
+    await waitFor(() => expect(document.querySelector('.post-series')).not.toBeNull());
+
+    const series = document.querySelector('.post-series') as HTMLElement;
+    expect(within(series).getByRole('heading', { name: '测试系列' })).toBeInTheDocument();
+    expect(series.querySelectorAll('ol > li')).toHaveLength(3);
+
+    const currentSeriesPost = within(series).getByRole('link', { name: /测试文章标题/ });
+    expect(currentSeriesPost).toHaveAttribute('aria-current', 'page');
+    expect(within(series).getByText('当前')).toBeInTheDocument();
+    expect(within(series).getByRole('link', { name: /上一章/ })).toBeInTheDocument();
+    expect(within(series).getByRole('link', { name: /下一章/ })).toBeInTheDocument();
   });
 });

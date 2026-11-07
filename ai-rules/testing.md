@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-Vitest 测试体系：101 个测试文件 / 1100 个用例；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
+Vitest 测试体系：101 个测试文件 / 1118 个用例；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
 
 ## 关键文件
 
@@ -25,6 +25,7 @@ Vitest 测试体系：101 个测试文件 / 1100 个用例；jsdom（src）与 n
 11. **尾斜杠页名归一测试**：`siteNav.ts` 的 `normalizePathname` 会去掉尾斜杠再比较（SSG 产物是 `/posts/`，客户端 pathname 可能是 `/posts`）。改导航/顶栏页名时必须断言 `/posts` 与 `/posts/` 得到同一页名、同一激活态，否则水合首帧文本会抖动；优先直接对 `isNavItemActive` / `resolveNavLabel` 纯函数断言，不要只依赖某个页面的 DOM 间接覆盖。
 12. **视觉回归（PostCard / Posts）**：视觉重构的测试锁结构与可访问语义，不锁整段 className：断言普通与精选卡片标题**都是 `h2`**（列表页没有 `h2` 区块，避免 `h1 → h3` 跳级；Search 桌面网格同样适用），标签最多 3 个且是纯文字链接，分享回调仍触发，分类 tab 的 `aria-pressed`，单排序按钮的 `aria-pressed` / `aria-label`，继续阅读横条保留进度与「继续 / 放弃」操作，骨架与条目结构同构。**PostCard 同时服务 `/search` 桌面三列网格**，改布局必须同时跑 Search 的桌面网格用例，不能只测 `/posts`。
 13. **文章页视觉回归（Post）**：标题区断言署名/发布于/阅读时长/编辑/分享与不蒜子锚点 `#busuanzi_page_pv` 齐备；文末端顺序用 `compareDocumentPosition` 断言「许可 → 作者/改进 → 订阅 → 相邻 → 相关 → 评论」；系列区断言 `ol > li` 数量、当前篇 `aria-current="page"`/「当前」标记与上/下一章；阅读模式断言控制台隐藏、退出按钮与正文 `post-prose` 容器保留。**正文计算样式（17/18/19px、行高 1.95、46/44rem）不要写进 jsdom 用例**：jsdom 不加载 `index.css`，`getComputedStyle` 拿不到真实排版，这类改动用浏览器截图/构建产物核对，单测只锁类名、结构与语义。
+14. **内容页视觉回归（Archive / Tags / Search）**：三个页面都断言「已删除英文大写眉题」（`Archive` / `Tags Collection` / `Search` 不应作为可见标题出现）与 `h1.font-serif` + 右侧统计；归档断言 ghost「全部展开/折叠」按钮的 `aria-pressed` 与文章行保留分类/时长/评论语义；标签云断言按字号/字重分级、**没有 `aria-pressed`**、`aria-label` 含文章数、选中标签后是单列发丝线条目与文字 ghost「返回全部标签」；搜索断言范围文字 tab 的 `aria-pressed`/`?scope=` 联动、轻骨架与 `Ctrl / ⌘ + K` 静态提示。顺序/结构类断言优先用角色、文案与关键结构类（`.post-*` / `divide-y`），不要锁整串 className。
 
 ## 常见陷阱
 
@@ -44,6 +45,10 @@ Vitest 测试体系：101 个测试文件 / 1100 个用例；jsdom（src）与 n
   文末用 `compareDocumentPosition`、系列区用 `ol > li` 与 `aria-current` 断言；
 - 想在 jsdom 里验证正文 `font-size`/`line-height`/46rem：jsdom 不加载 `index.css`，结果恒为默认值；
   这类排版改动用浏览器截图（1440×900 / 390×844、浅/深、阅读模式）核对；
+- 给标签云补 `aria-pressed` 去「修复」旧测试：标签云是导航视图切换，正确断言是 `aria-label` 含文章数、
+  选中后视图替换为单列文章列表；只有归档「全部展开/折叠」与搜索范围 tab 才该有 `aria-pressed`；
+- 内容页视觉只用 className 断言：至少同时断言页头文案、统计文案、关键结构节点（`divide-y` / 单列条目）
+  与可访问语义，否则恢复旧眉题/胶囊/重卡片都测不出来；
 - 等待动画/异步完成禁用裸 setTimeout（Layout 的 600ms sleep、SlideModal 的
   50ms 均曾为此类）——用 waitFor 轮询状态或 fake timers + advanceTimersByTime；
 - URL 等静态方法的 mock 用 vi.spyOn（可被 restoreAllMocks 恢复），勿用

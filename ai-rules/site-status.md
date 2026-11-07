@@ -18,7 +18,7 @@
 - `src/components/Layout.tsx`（移动抽屉把 `onExternalClick` / `interactionDisabled` 传给侧栏内容体）
 - `worker/index.mjs`（Worker 入口：只允许 `export default { fetch }`，不得有任何具名导出）
 - `worker/status.mjs`（`GET /api/status` 逻辑与可测试具名导出：Better Stack 代理、Cache API、严格校验）
-- `wrangler.jsonc`（`main`、`assets.run_worker_first`、`vars.BETTERSTACK_STATUS_PAGE_ID`）
+- `wrangler.jsonc`（`main`、`assets.run_worker_first`、`vars.BETTERSTACK_STATUS_PAGE_ID`、`observability` / Workers Logs）
 - `config/site.config.json` / `config/site.config.ts` / `.pages.yml`（`statusPageUrl` 及其 CMS 字段）
 - `.env.example`（Worker Secret / Worker 变量 / 前端公开 URL 的说明与占位）
 - 测试：`worker/index.test.mjs`、`src/services/siteStatus.test.ts`、`src/components/SiteStatusBadge.test.tsx`

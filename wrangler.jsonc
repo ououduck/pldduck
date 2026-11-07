@@ -22,4 +22,17 @@
     // 本地 wrangler dev 如需覆盖，请在 .dev.vars（已 gitignore）中配置。
     "BETTERSTACK_STATUS_PAGE_ID": "270705",
   },
+  // Workers Observability / Workers Logs：部署后可在 Cloudflare Dashboard
+  // Workers & Pages → pldduck → Logs 查看 /api/status 的 console.warn。
+  // 日志只含通用错误信息（HTTP 状态码 / 错误名），不含 Token、Authorization 或上游响应体。
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true,
+    },
+  },
 }

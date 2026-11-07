@@ -198,6 +198,11 @@ wrangler 版本固定为 `4.123.0`（浮动 tag 会让部署行为不可复现�
 `wrangler dev` 会拒绝启动；升级 wrangler 时再一起上调。部署完成后，`dist/` 由 Static Assets 直出，
 `worker/index.mjs` 只拦截 `run_worker_first` 匹配的 `/api/*`。
 
+Worker 已开启 **Workers Observability / Workers Logs**（`wrangler.jsonc` 的 `observability`）：
+排障时在 Cloudflare Dashboard → Workers & Pages → `pldduck` → Logs 查看，或本地执行
+`npx --yes wrangler@4.123.0 tail pldduck`。日志只输出通用错误信息，不包含 Token、`Authorization`
+或上游响应体。
+
 ### GitHub Secrets
 
 仓库需要配置：`CLOUDFLARE_API_TOKEN`（Workers Scripts:Edit 权限）、`CLOUDFLARE_ACCOUNT_ID`、

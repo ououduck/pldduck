@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Layout } from './Layout';
+import { resolveNavLabel } from './siteNav';
 
 // 懒加载子组件用简单 stub 替代，避免测试中等待 dynamic import 与动画。
 // 注意：Layout 以命名导出方式解构（import('./X').then(m => m.X)），mock 需提供同名导出。
@@ -170,6 +171,12 @@ describe('Layout', () => {
   it('不再渲染全局页脚：版权只保留在侧栏底部，正文区没有 contentinfo', () => {
     renderLayout();
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
+  });
+
+  it('尾斜杠路径归一到同一导航页名（避免 SSG/客户端水合文本不一致）', () => {
+    expect(resolveNavLabel('/posts/')).toBe('文章');
+    expect(resolveNavLabel('/archive/')).toBe('归档');
+    expect(resolveNavLabel('/')).toBe('首页');
   });
 
   it('侧栏底部顺序：服务状态入口在版权信息之上（版权在最底）', () => {

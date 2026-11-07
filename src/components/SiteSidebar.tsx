@@ -12,9 +12,13 @@ import { preloadPage } from '@/utils/preload';
 import { isNavItemActive, navGroups } from './siteNav';
 import { SiteStatusBadge } from './SiteStatusBadge';
 
-const ACTIVE_ROW_CLASS = 'bg-zinc-900 text-paper dark:bg-zinc-100 dark:text-zinc-900';
-const IDLE_ROW_CLASS =
-  'text-zinc-600 hover:bg-zinc-100/80 hover:text-ink dark:text-zinc-300 dark:hover:bg-zinc-900/80 dark:hover:text-white';
+/**
+ * 激活行：墨色实底（浅色深底浅字、深色浅底深字，由语义 Token 自动反转）。
+ * 静态与 hover 配色不在这里写 —— 统一由 index.css 的 .nav-item 语义 Token 规则提供：
+ * 侧栏底部的服务状态入口复用同一组 nav-item 类却不在本组件里，只有全局规则
+ * 才能让「导航项 / 状态入口 / 桌面侧栏 / 移动抽屉」四处外观始终一致。
+ */
+const ACTIVE_ROW_CLASS = 'bg-content text-background';
 
 interface SiteNavListProps {
   pathname: string;
@@ -38,7 +42,7 @@ const SiteNavList: React.FC<SiteNavListProps> = ({
   <div className="flex flex-col gap-4">
     {navGroups.map((group) => (
       <div key={group.label}>
-        <p className="sidebar-nav-group-title mb-1.5 truncate px-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500">
+        <p className="sidebar-nav-group-title mb-1.5 truncate px-2 text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
           {group.label}
         </p>
         <nav aria-label={`${labelPrefix}${group.label}`}>
@@ -47,7 +51,7 @@ const SiteNavList: React.FC<SiteNavListProps> = ({
               const Icon = item.icon;
               const isActive = 'path' in item && isNavItemActive(item.path, pathname);
               const rowClass = `nav-item flex min-w-0 items-center gap-2.5 rounded-control px-2 py-2 text-sm font-semibold transition-colors ${
-                isActive ? ACTIVE_ROW_CLASS : IDLE_ROW_CLASS
+                isActive ? ACTIVE_ROW_CLASS : ''
               }`;
               const label = <span className="nav-item-label min-w-0 flex-1 truncate">{item.label}</span>;
               const hint = (
@@ -60,7 +64,7 @@ const SiteNavList: React.FC<SiteNavListProps> = ({
                 const content = (
                   <>
                     <span className="sidebar-icon flex h-7 w-7 shrink-0 items-center justify-center" aria-hidden="true">
-                      <Icon size={16} />
+                      <Icon size={16} strokeWidth={1.75} />
                     </span>
                     {label}
                     {hint}
@@ -108,7 +112,7 @@ const SiteNavList: React.FC<SiteNavListProps> = ({
                     className={`${rowClass} w-full`}
                   >
                     <span className="sidebar-icon flex h-7 w-7 shrink-0 items-center justify-center" aria-hidden="true">
-                      <Icon size={16} />
+                      <Icon size={16} strokeWidth={1.75} />
                     </span>
                     {label}
                     {opensNewTab ? (
@@ -143,10 +147,10 @@ const SidebarBrand: React.FC<{ onSelectPath?: (path: string) => void; interactio
         className="sidebar-avatar h-7 w-7 shrink-0 rounded-full bg-white object-cover"
       />
       <span className="sidebar-brand-text min-w-0 flex-1">
-        <span className="block truncate font-serif text-base font-bold tracking-tight text-ink dark:text-white">
+        <span className="block truncate font-serif text-[15px] font-semibold tracking-[-0.01em] text-content">
           {siteConfig.title}
         </span>
-        <span className="block truncate text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+        <span className="block truncate text-[11px] font-normal tracking-[0.01em] text-zinc-500 dark:text-zinc-400">
           {siteConfig.author.role}
         </span>
       </span>
@@ -160,7 +164,7 @@ const SidebarBrand: React.FC<{ onSelectPath?: (path: string) => void; interactio
         onClick={() => onSelectPath('/')}
         disabled={interactionDisabled}
         aria-label={`${siteConfig.title} 首页`}
-        className="sidebar-brand flex w-full min-w-0 items-center gap-2.5 rounded-control py-1 pl-2 text-left transition-colors hover:bg-zinc-100/80 disabled:cursor-not-allowed dark:hover:bg-zinc-900/80"
+        className="sidebar-brand flex w-full min-w-0 items-center gap-2.5 rounded-control py-1 pl-2 text-left transition-colors hover:bg-surface-muted disabled:cursor-not-allowed"
       >
         {content}
       </button>
@@ -171,7 +175,7 @@ const SidebarBrand: React.FC<{ onSelectPath?: (path: string) => void; interactio
     <Link
       to="/"
       aria-label={`${siteConfig.title} 首页`}
-      className="sidebar-brand flex min-w-0 items-center gap-2.5 rounded-control py-1 pl-2 transition-colors hover:bg-zinc-100/80 dark:hover:bg-zinc-900/80"
+      className="sidebar-brand flex min-w-0 items-center gap-2.5 rounded-control py-1 pl-2 transition-colors hover:bg-surface-muted"
     >
       {content}
     </Link>
@@ -247,7 +251,7 @@ export const SiteSidebar: React.FC<{ pathname: string }> = ({ pathname }) => (
     className="site-sidebar sticky top-0 z-sidebar hidden h-screen shrink-0 self-start lg:block"
   >
     <div
-      className="site-sidebar-inner flex flex-col border-r border-zinc-200/80 bg-paper no-scrollbar dark:border-zinc-800/80 dark:bg-void"
+      className="site-sidebar-inner flex flex-col border-r border-line bg-surface no-scrollbar"
       style={{
         paddingTop: 'calc(1.25rem + env(safe-area-inset-top, 0px))',
         // 右边框占掉 1px，扣掉它才能让行高亮块与图标同轴落在 rail 中心线上

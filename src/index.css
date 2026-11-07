@@ -23,6 +23,81 @@
      （专注阅读为 1.5rem）；JS（TOC 跳转/active 判断/hash 深链）与下方
      .post-prose 的 scroll-margin-top 统一读取。6.5rem=104px 为桌面兜底。 */
   --article-heading-offset: 6.5rem;
+
+  /* ===== 语义设计 Token（UI 重构第二阶段）=====
+     颜色取当前视觉值（paper/ink 与 zinc 中性色），换成 Token 不产生突变；
+     Tailwind 侧在 config/tailwind.config.js 映射为 background/surface/... 工具类，
+     深色只覆盖颜色（见下方 html.dark），间距/圆角/动效两态共用同一套。 */
+  --color-background: #f2f0e9; /* 页面底色（= paper） */
+  --color-surface: #f7f5ef; /* 外壳表面：侧栏 / 顶栏，比底色略亮一档 */
+  --color-surface-muted: #e9e5db; /* hover / 弱底块：暖中性，替代 zinc-100 */
+  --color-text: #1c1917; /* 正文与主文字（= ink） */
+  --color-text-secondary: #625d55; /* 次要文字：导航标签、页名、品牌身份 */
+  --color-border: #e4e0d5; /* 发丝线边框：暖中性，替代 zinc-200/80 */
+  --color-accent: #0969da; /* 强调/链接色，与正文链接保持一致 */
+  --color-success: #047857;
+  --color-warning: #b45309;
+  --color-danger: #b91c1c;
+  /* 焦点环保留原来的中性灰（不改成强调色），只收进 Token 便于统一替换。 */
+  --color-focus-ring: #3f3f46;
+
+  /* 字体语义：与 config/tailwind.config.js 的 fontFamily 保持一致（改一处要同步另一处）。
+     font-sans / font-serif 工具类仍走 Tailwind 配置，这里供 CSS 与后续阶段引用。 */
+  --font-sans:
+    'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Alibaba PuHuiTi', 'Noto Sans SC',
+    'Source Han Sans SC', 'Noto Sans CJK SC', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, 'Plus Jakarta Sans', 'Noto Sans', sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-serif:
+    'Playfair Display', 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN', 'Songti SC', 'STSong',
+    'Microsoft YaHei', 'SimSun', 'Times New Roman', Times, serif;
+
+  /* 间距：4px 基准，供 CSS 与内联样式使用（Tailwind 的间距刻度保持不变）。 */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-9: 2.25rem;
+  --space-10: 2.5rem;
+  --space-11: 2.75rem;
+  --space-12: 3rem;
+
+  /* 圆角：与 Tailwind 的 micro(4) / icon(8) / overlay(12) 对齐。 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* 布局宽度：与现有 max-w-7xl / max-w-3xl 一致，便于后续统一替换。 */
+  --content-width: 80rem;
+  --article-width: 48rem;
+
+  /* 动效：--ease-standard 即侧栏与加载态现行的柔和曲线；
+     --ease-emphasized 为更强减速的入场曲线（motion.ts 的 easeOut 同值）。 */
+  --duration-fast: 150ms;
+  --duration-normal: 240ms;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 深色主题只覆盖颜色 Token；不写任何正文/边框的 dark: 变体也能自动跟随。
+   注意：必须保持无 @layer 包裹 —— :root 的变量是无层声明，层内的 html.dark
+   会在层叠优先级上输给无层的 :root，深色值将失效。 */
+html.dark {
+  --color-background: #0a0a0a; /* = void */
+  --color-surface: #121212;
+  --color-surface-muted: #26262a;
+  --color-text: #fafafa;
+  --color-text-secondary: #b4b4ba;
+  --color-border: #2a2a2e;
+  --color-accent: #58a6ff;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-focus-ring: #d4d4d8;
 }
 
 /* 侧边导航：常驻图标条 + 鼠标移入（或键盘聚焦）时展开为浮层。
@@ -40,7 +115,7 @@
   width: var(--sidebar-width);
   overflow-x: hidden;
   overflow-y: auto;
-  transition: width 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width var(--duration-normal) var(--ease-standard);
 }
 
 /* 静置态只留图标条：文字与 ↗ 外链角标**淡出**而不是撤出布局 —— 两个状态里行高、图标
@@ -58,7 +133,7 @@
     .sidebar-brand-text,
     .sidebar-footer
   ) {
-  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 180ms var(--ease-standard);
 }
 
 @media (hover: hover) {
@@ -78,6 +153,47 @@
     opacity: 0;
     pointer-events: none;
   }
+}
+
+/* 导航行（含侧栏底部的服务状态入口）：静态用次要文字色、hover 用 surface-muted 弱底，
+   让桌面侧栏、移动抽屉、导航项与服务状态入口始终同一套配色。
+   服务状态入口在 SiteStatusBadge 里自带一份 IDLE_ROW_CLASS（不属本次改动范围），
+   只有全局规则能让两处外观保持一致；:not([aria-current='page']) 排除激活行，
+   避免盖掉它的墨色实底。 */
+.nav-item:not([aria-current='page']) {
+  color: var(--color-text-secondary);
+}
+
+.nav-item:not([aria-current='page']):hover {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+/* 顶栏 ghost 按钮：搜索与主题切换共用（ThemeToggle 不在本次改动范围，
+   故从容器覆盖其按钮外观 —— 不改变结构、aria-label 与切换逻辑）。
+   带 .site-navbar 前缀是为了压过 ThemeToggle 自带的 dark: 工具类；44px 点击区不变。 */
+.site-navbar .topbar-ghost-button,
+.site-navbar .topbar-theme-button > button {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.site-navbar .topbar-ghost-button:hover,
+.site-navbar .topbar-theme-button > button:hover,
+.site-navbar .topbar-ghost-button:active,
+.site-navbar .topbar-theme-button > button:active {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
 }
 
 /* 触屏笔记本与大屏平板（lg 宽度以上却没有 hover 能力）没有「鼠标移入」这条路，
@@ -114,23 +230,16 @@
 
   body {
     cursor: default;
-    background: #f2f0e9;
-    color: #1c1917;
+    background: var(--color-background);
+    color: var(--color-text);
   }
 
-  html.dark body {
-    background: #0a0a0a;
-    color: #fafafa;
-  }
+  /* 深色背景/文字由 html.dark 的 Token 覆盖，这里不再重复一遍 dark 规则。 */
 
   /* 中性焦点态（不依赖主题色的 focus 样式） */
   :focus-visible {
-    outline: 2px solid #3f3f46;
+    outline: 2px solid var(--color-focus-ring);
     outline-offset: 3px;
-  }
-
-  html.dark :focus-visible {
-    outline-color: #d4d4d8;
   }
 
   /* 主题切换的 View Transition 动画 */

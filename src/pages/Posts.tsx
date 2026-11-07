@@ -2,7 +2,6 @@
  * 文章页：精选/最新文章网格、站内搜索、分类/排序/分页筛选与继续阅读。
  * 首页（/）只做导流，文章列表的全部交互集中在这里。
  */
-
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronRight, X } from 'lucide-react';
@@ -42,6 +41,9 @@ const POSTS_PER_PAGE = 9;
 const HERO_SLOTS = 3;
 const initialPosts = getInitialPosts();
 
+/** 列表与骨架屏共用同一套网格节奏，避免加载前后列宽/行距跳动。 */
+const POSTS_GRID_CLASS = 'grid grid-cols-1 gap-x-6 gap-y-10 md:grid-cols-2 md:gap-x-8 md:gap-y-12 lg:grid-cols-3';
+
 const getCategories = (posts: PostMetadata[]) => Array.from(new Set(posts.map((post) => post.category)));
 
 const SkeletonBlock: React.FC<{ className?: string; shouldReduceMotion: boolean }> = ({
@@ -52,42 +54,29 @@ const SkeletonBlock: React.FC<{ className?: string; shouldReduceMotion: boolean 
 );
 
 const FeaturedPostSkeleton: React.FC<{ shouldReduceMotion: boolean }> = ({ shouldReduceMotion }) => (
-  <div
-    aria-hidden="true"
-    className="col-span-full overflow-hidden rounded-surface border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-  >
-    <div className="md:grid md:min-h-80 md:grid-cols-5">
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="aspect-[16/9] md:col-span-3 md:aspect-auto" />
-      <div className="flex flex-col p-4 md:col-span-2 md:p-7">
-        <div className="mb-3 flex items-center gap-3 md:mb-4">
-          <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-16" />
-          <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-12" />
-        </div>
-        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mb-2 h-8 w-4/5 md:mb-3" />
-        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mb-2 h-3 w-full" />
-        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mb-3 h-3 w-3/4 md:mb-4" />
-        <div className="mt-auto flex items-center gap-3 border-t border-zinc-200 pt-3 dark:border-zinc-800 md:pt-4">
-          <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-20" />
-          <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-16" />
-        </div>
-      </div>
+  <div aria-hidden="true" className="col-span-full grid gap-4 sm:grid-cols-5 sm:items-center sm:gap-6 md:gap-8">
+    <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="aspect-[16/10] rounded-media sm:col-span-2" />
+    <div className="flex min-w-0 flex-col sm:col-span-3">
+      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-24" />
+      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-3 h-7 w-4/5" />
+      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-4 h-3 w-full" />
+      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-1.5 h-3 w-2/3" />
+      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-6 h-3 w-32" />
     </div>
   </div>
 );
 
 const PostCardSkeleton: React.FC<{ shouldReduceMotion: boolean }> = ({ shouldReduceMotion }) => (
-  <div
-    aria-hidden="true"
-    className="overflow-hidden rounded-surface border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-  >
-    <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="aspect-[16/9] md:aspect-[16/10]" />
-    <div className="space-y-2.5 p-3.5 md:space-y-3 md:p-5">
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-20" />
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-4 w-4/5" />
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-full" />
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-2/3" />
-      <div className="mt-4 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+  <div aria-hidden="true" className="flex h-full min-w-0 flex-col">
+    <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="aspect-[16/10] rounded-media" />
+    <div className="flex flex-1 flex-col pt-3.5">
+      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-16" />
+      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-2.5 h-4 w-4/5" />
+      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-2 h-3 w-full" />
+      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-1.5 h-3 w-2/3" />
+      <div className="mt-auto flex items-center justify-between pt-4">
         <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-28" />
+        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-9 w-9 rounded-full" />
       </div>
     </div>
   </div>
@@ -103,7 +92,7 @@ const LoadingGrid: React.FC<{ heroSlots: number; label: string; hasFeatured: boo
   const regularSkeletonCount = Math.max(0, POSTS_PER_PAGE - featuredSlots);
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+    <div className={POSTS_GRID_CLASS} aria-busy="true">
       <LoadingStatus label={label} className="col-span-full" />
       {hasFeatured && <FeaturedPostSkeleton shouldReduceMotion={shouldReduceMotion} />}
       {Array.from({ length: regularSkeletonCount }).map((_, index) => (
@@ -133,7 +122,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ categories, selected, onSelect, s
   const { fadeStart, fadeEnd } = useScrollEdgeFade(scrollerRef);
 
   return (
-    <div className="flex items-center justify-between gap-2 border-y border-zinc-200 py-3 sm:gap-3 dark:border-zinc-800">
+    <div className="flex items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 sm:gap-4">
       <div
         ref={scrollerRef}
         className={mergeClassName(
@@ -142,16 +131,16 @@ const FilterBar: React.FC<FilterBarProps> = ({ categories, selected, onSelect, s
           fadeEnd && 'filter-scroll-mask-end',
         )}
       >
-        <div className="flex items-center gap-2" role="group" aria-label="文章分类筛选">
+        <div className="flex items-center gap-0.5 sm:gap-1" role="group" aria-label="文章分类筛选">
           {[ALL_CATEGORY, ...categories].map((category) => (
             <button
               key={category}
               onClick={() => onSelect(category)}
               aria-pressed={selected === category}
-              className={`min-h-11 whitespace-nowrap rounded-control border px-3.5 py-2 text-sm font-semibold transition-[background-color,border-color,color,transform,box-shadow] duration-150 active:scale-[.98] ${
+              className={`min-h-11 whitespace-nowrap px-2 text-sm font-medium transition-colors duration-150 ${
                 selected === category
-                  ? 'border-ink bg-ink text-white shadow-[0_1px_3px_rgba(24,24,27,0.3)] dark:border-white dark:bg-white dark:text-ink dark:shadow-none'
-                  : 'border-zinc-300 bg-paper text-zinc-700 shadow-none hover:border-ink hover:bg-zinc-100 hover:text-ink hover:shadow-[0_1px_2px_rgba(24,24,27,0.08)] dark:border-zinc-700 dark:bg-void dark:text-zinc-300 dark:hover:border-white dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:shadow-none'
+                  ? 'text-ink underline decoration-1 underline-offset-8 dark:text-white'
+                  : 'text-zinc-500 hover:text-ink dark:text-zinc-400 dark:hover:text-white'
               }`}
             >
               {category}
@@ -159,38 +148,23 @@ const FilterBar: React.FC<FilterBarProps> = ({ categories, selected, onSelect, s
           ))}
         </div>
       </div>
-      <div
-        className="relative isolate grid grid-cols-2 shrink-0 items-center rounded-control border border-zinc-300 bg-paper p-0.5 dark:border-zinc-700 dark:bg-void"
-        role="group"
-        aria-label="文章排序"
+
+      {/* 排序收成一个轻量切换按钮：图标 + 当前排序词，aria-pressed 跟随「最早优先」态。 */}
+      <button
+        type="button"
+        onClick={onToggleSort}
+        aria-pressed={sortOrder === 'oldest'}
+        aria-label={`按${sortOrder === 'newest' ? '最新' : '最早'}优先排序`}
+        title="切换排序方式"
+        className="inline-flex min-h-11 shrink-0 items-center gap-1.5 px-2 text-sm text-zinc-500 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-400 dark:hover:text-white dark:focus-visible:outline-zinc-100"
       >
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-control bg-ink shadow-[0_1px_3px_rgba(24,24,27,0.3)] transition-transform duration-200 ease-out dark:bg-white dark:shadow-none"
-          style={{ transform: sortOrder === 'oldest' ? 'translateX(100%)' : 'translateX(0)' }}
-        />
-        {[
-          { key: 'newest' as const, label: '最新', Icon: ArrowDownWideNarrow },
-          { key: 'oldest' as const, label: '最早', Icon: ArrowUpWideNarrow },
-        ].map(({ key, label, Icon }) => {
-          const active = sortOrder === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => {
-                if (!active) onToggleSort();
-              }}
-              aria-pressed={active}
-              aria-label={`按${label}优先排序`}
-              className={`relative z-10 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-control px-3 text-sm font-semibold transition-colors duration-150 active:scale-[.98] ${active ? 'text-white dark:text-zinc-950' : 'text-zinc-700 hover:text-ink dark:text-zinc-300 dark:hover:text-white'}`}
-            >
-              <Icon size={14} />
-              <span>{label}</span>
-            </button>
-          );
-        })}
-      </div>
+        {sortOrder === 'newest' ? (
+          <ArrowDownWideNarrow size={15} aria-hidden="true" />
+        ) : (
+          <ArrowUpWideNarrow size={15} aria-hidden="true" />
+        )}
+        <span>{sortOrder === 'newest' ? '最新' : '最早'}</span>
+      </button>
     </div>
   );
 };
@@ -342,6 +316,7 @@ export const Posts = () => {
     const matchingPost = allPosts.find((post) => post.id === latestReading.postId);
     return matchingPost ? { post: matchingPost, entry: latestReading } : null;
   }, [allPosts, latestReading]);
+  const continueReadingProgress = continueReading ? Math.round(continueReading.entry.progress * 100) : 0;
 
   useEffect(() => {
     if (latestReading && allPosts.length > 0 && !allPosts.some((post) => post.id === latestReading.postId)) {
@@ -523,50 +498,49 @@ export const Posts = () => {
 
       {continueReading && (
         <section
-          className="continue-reading mx-4 mb-8 rounded-surface border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900 md:mx-0 md:mb-10 md:p-5"
+          className="continue-reading mb-6 border-t border-zinc-200 dark:border-zinc-800 md:mb-8"
           aria-labelledby="continue-reading-heading"
         >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                继续阅读
+          <div className="flex items-center gap-3 py-1.5">
+            <div className="min-w-0 flex-1">
+              <p className="flex flex-wrap items-center gap-x-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                <span id="continue-reading-heading">继续阅读</span>
+                <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
+                  /
+                </span>
+                <span className="text-[11px] font-medium normal-case tracking-normal">
+                  {continueReading.post.category} · 已阅读 {continueReadingProgress}%
+                </span>
               </p>
-              <h2 id="continue-reading-heading" className="truncate text-xl font-bold text-ink dark:text-white">
-                {continueReading.post.title}
-              </h2>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                {continueReading.post.category} · 已阅读 {Math.round(continueReading.entry.progress * 100)}%
-              </p>
+              <h2 className="truncate text-sm font-medium text-ink dark:text-zinc-100">{continueReading.post.title}</h2>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex shrink-0 items-center gap-0.5">
               <Link
                 to={`/post/${continueReading.post.id}`}
-                className="editorial-button-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 px-4 text-sm font-semibold"
+                className="inline-flex min-h-11 items-center gap-0.5 px-1 text-xs font-medium text-zinc-600 underline-offset-4 transition-colors hover:text-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-400 dark:hover:text-white dark:focus-visible:outline-zinc-100"
                 aria-label={`继续阅读：${continueReading.post.title}`}
               >
-                继续阅读 <ChevronRight size={15} />
+                继续阅读
+                <ChevronRight size={14} aria-hidden="true" />
               </Link>
               <button
                 type="button"
                 onClick={handleAbandonReading}
-                className="editorial-button inline-flex min-h-11 shrink-0 items-center justify-center gap-2 px-4 text-sm"
+                className="inline-flex min-h-11 w-11 items-center justify-center text-zinc-400 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-500 dark:hover:text-white dark:focus-visible:outline-zinc-100"
                 aria-label={`放弃阅读：${continueReading.post.title}`}
                 title="放弃阅读"
               >
-                放弃阅读 <X size={15} aria-hidden="true" />
+                <X size={15} aria-hidden="true" />
               </button>
             </div>
           </div>
-          <div className="mt-4 h-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" aria-hidden="true">
-            <div
-              className="h-full rounded-full bg-zinc-900 dark:bg-zinc-100"
-              style={{ width: `${Math.round(continueReading.entry.progress * 100)}%` }}
-            />
+          <div className="h-px overflow-hidden bg-zinc-200 dark:bg-zinc-800" aria-hidden="true">
+            <div className="h-full bg-zinc-900 dark:bg-zinc-100" style={{ width: `${continueReadingProgress}%` }} />
           </div>
         </section>
       )}
 
-      <div className="space-y-6 px-4 md:space-y-8 md:px-0">
+      <div className="space-y-5 md:space-y-7">
         <FilterBar
           categories={categories}
           selected={selectedCategory}
@@ -604,7 +578,7 @@ export const Posts = () => {
         ) : (
           <div id="posts-panel" className="space-y-7" aria-live="polite" tabIndex={-1}>
             {hasSearchQuery && results.length > 0 && (
-              <div className="flex items-center justify-end px-4 md:px-0">
+              <div className="flex items-center justify-end">
                 <Link
                   to={`/search?q=${encodeURIComponent(searchQuery)}`}
                   className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-zinc-600 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:decoration-zinc-700 dark:hover:text-white"
@@ -614,7 +588,7 @@ export const Posts = () => {
               </div>
             )}
 
-            <div id="posts-grid" className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div id="posts-grid" className={POSTS_GRID_CLASS}>
               {featuredPost && <PostCard key={featuredPost.id} post={featuredPost} featured onShare={setSharePost} />}
               {remainingPosts.length > 0 ? (
                 remainingPosts.map((post) => <PostCard key={post.id} post={post} onShare={setSharePost} />)

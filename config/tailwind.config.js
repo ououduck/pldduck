@@ -65,9 +65,25 @@ export default {
         ],
       },
       colors: {
+        // 既有品牌底色：保持原值与原类的含义不变。
         paper: '#f2f0e9',
         ink: '#1c1917',
         void: '#0a0a0a',
+        // 语义颜色（UI 重构第二阶段）：值统一来自 src/index.css 的 --color-* Token，
+        // 深色由 html.dark 覆盖同一组变量 —— 组件写 bg-surface / border-line 即可
+        // 两态自适应，不必再逐个加 dark: 变体。新增/调整配色只改 Token。
+        // 注意：var() 颜色不支持 Tailwind 的 /opacity 修饰符，需要透明度时改用
+        // 对应 surface-muted/line 等现成 Token，或单独补一个 Token。
+        background: 'var(--color-background)',
+        surface: 'var(--color-surface)',
+        'surface-muted': 'var(--color-surface-muted)',
+        content: 'var(--color-text)',
+        'content-muted': 'var(--color-text-secondary)',
+        line: 'var(--color-border)',
+        accent: 'var(--color-accent)',
+        success: 'var(--color-success)',
+        warning: 'var(--color-warning)',
+        danger: 'var(--color-danger)',
       },
       borderRadius: {
         micro: '4px',

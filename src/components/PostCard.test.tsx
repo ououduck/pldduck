@@ -35,6 +35,15 @@ describe('PostCard', () => {
     expect(screen.getByText('5分钟阅读')).toBeInTheDocument();
   });
 
+  it('普通卡片与精选卡片的标题都使用 h2（列表页无 h2 区块，避免 h1 → h3 跳级）', () => {
+    const { unmount } = renderWithRouter(<PostCard post={makePost()} {...baseProps} />);
+    expect(screen.getByRole('heading', { level: 2, name: '测试文章标题' })).toBeInTheDocument();
+    unmount();
+
+    renderWithRouter(<PostCard post={makePost({ featured: true })} {...baseProps} featured />);
+    expect(screen.getByRole('heading', { level: 2, name: '测试文章标题' })).toBeInTheDocument();
+  });
+
   it('文章标题链接指向文章详情页', () => {
     renderWithRouter(<PostCard post={makePost()} {...baseProps} />);
     // 封面图与标题各有一个同 aria-label 的链接，取其一断言 href

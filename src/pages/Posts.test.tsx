@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { Posts } from './Posts';
+import { getInitialPosts } from '@/services/posts';
+import { getReadingHistory, removeReadingHistory } from '@/services/readingHistory';
 
 // URL 探针：MemoryRouter 不更新 window.location，断言搜索参数必须经
 // useSearchParams 读取（否则「清除搜索后参数移除」的断言恒真、无回归保护）。
@@ -13,7 +15,7 @@ const SearchParamsProbe = () => {
   return null;
 };
 
-// 弹层与工具组件用 stub 替代，聚焦 Home 自身行为。
+// 弹层与工具组件用 stub 替代，聚焦 Posts 自身行为。
 vi.mock('@/components/ShareModal', () => ({
   ShareModal: () => <div data-testid="mock-share-modal" />,
 }));
@@ -48,6 +50,7 @@ const renderPosts = (initialEntry = '/posts') =>
 describe('Posts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getReadingHistory).mockReturnValue([]);
     // jsdom 不实现 matchMedia：useReducedMotion/useMediaQuery 等依赖媒体查询。
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
@@ -64,9 +67,11 @@ describe('Posts', () => {
     });
   });
 
-  it('渲染站点英雄区（标题与副标题）', () => {
+  it('渲染 sr-only h1 供屏幕阅读器定位页面主题', () => {
     renderPosts();
-    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toHaveTextContent('文章');
+    expect(heading).toHaveClass('sr-only');
   });
 
   it('渲染文章卡片列表（来自构建期数据）', () => {
@@ -117,6 +122,42 @@ describe('Posts', () => {
     const categoryButton = await screen.findByRole('button', { name: '分享' });
     expect(categoryButton).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: '全部' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('排序按钮在最新/最早间切换，并同步 URL 的 sort 参数', async () => {
+    const user = userEvent.setup();
+    renderPosts();
+
+    const newestButton = screen.getByRole('button', { name: '按最新优先排序' });
+    expect(newestButton).toHaveAttribute('aria-pressed', 'false');
+    expect(newestButton).toHaveTextContent('最新');
+
+    await user.click(newestButton);
+
+    await waitFor(() => expect(probeSearch).toContain('sort=oldest'));
+    const oldestButton = screen.getByRole('button', { name: '按最早优先排序' });
+    expect(oldestButton).toHaveAttribute('aria-pressed', 'true');
+    expect(oldestButton).toHaveTextContent('最早');
+  });
+
+  it('继续阅读以轻量横条呈现，保留继续/放弃操作与进度', async () => {
+    const user = userEvent.setup();
+    const [firstPost] = getInitialPosts();
+    vi.mocked(getReadingHistory).mockReturnValue([{ postId: firstPost.id, progress: 0.42, updatedAt: 1 }]);
+
+    renderPosts();
+
+    const strip = await screen.findByRole('region', { name: '继续阅读' });
+    expect(strip).toHaveTextContent('已阅读 42%');
+    // 列表首卡也使用 h2，与横条标题同名；这里必须限定在「继续阅读」区域内。
+    expect(within(strip).getByRole('heading', { level: 2, name: firstPost.title })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: `继续阅读：${firstPost.title}` })).toHaveAttribute(
+      'href',
+      `/post/${firstPost.id}`,
+    );
+
+    await user.click(screen.getByRole('button', { name: `放弃阅读：${firstPost.title}` }));
+    expect(removeReadingHistory).toHaveBeenCalledWith(firstPost.id);
   });
 
   it('打开分享弹层：点击卡片分享按钮', async () => {

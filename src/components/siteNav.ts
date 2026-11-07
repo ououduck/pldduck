@@ -96,9 +96,15 @@ export const navGroups: NavGroup[] = [
   },
 ];
 
+/** 去掉尾斜杠再比较：SSG 产物是 /posts/，客户端 pathname 可能是 /posts，二者必须同一激活态/页名，避免水合文本不一致。 */
+const normalizePathname = (pathname: string): string =>
+  pathname.length > 1 ? pathname.replace(/\/+$/, '') || '/' : pathname;
+
 /** 导航项激活判定：文章详情页归属「文章」栏目。 */
-export const isNavItemActive = (path: string, pathname: string) =>
-  pathname === path || (path === '/posts' && pathname.startsWith('/post/'));
+export const isNavItemActive = (path: string, pathname: string) => {
+  const normalized = normalizePathname(pathname);
+  return normalized === path || (path === '/posts' && normalized.startsWith('/post/'));
+};
 
 /**
  * 顶栏面包屑页名：精确命中导航项，其次按详情路径归属栏目；

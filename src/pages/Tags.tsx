@@ -1,10 +1,13 @@
 /**
  * 标签页：标签云聚合视图，支持标签筛选与搜索。
+ *
+ * 视觉走「极简编辑式」：页头只留标题与统计（无大写英文眉题）、标签云靠字号/字重/
+ * 颜色分层（不用粗下划线或重胶囊）、选中标签后的文章列表用发丝线分隔的轻量条目。
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { SearchField } from '@/components/SearchField';
 import { siteConfig } from '@config/site.config';
 import { getInitialPosts, getPosts } from '@/services/posts';
@@ -149,11 +152,14 @@ export const Tags = () => {
     };
   }, [allTags, results, selectedTag, tags]);
 
+  // 标签云三档视觉层级：字号 / 字重 / 颜色（主文字 vs 次要文字）。
+  // 阈值语义保持不变（>0.7 最大档、>0.4 中档、其余小档），只把每档的样式收敛得
+  // 更克制 —— 不再用粗下划线/重胶囊，交互反馈交给 hover 下划线与变深文字色。
   const getTagSize = (count: number) => {
     const ratio = count / maxCount;
-    if (ratio > 0.7) return 'text-lg sm:text-2xl md:text-3xl';
-    if (ratio > 0.4) return 'text-base sm:text-xl md:text-2xl';
-    return 'text-sm sm:text-base md:text-lg';
+    if (ratio > 0.7) return 'text-lg font-semibold text-content sm:text-xl';
+    if (ratio > 0.4) return 'text-base font-medium text-content sm:text-lg';
+    return 'text-sm font-normal text-content-muted sm:text-base';
   };
 
   const updateTagParam = (nextTag?: string) => {
@@ -228,23 +234,25 @@ export const Tags = () => {
     },
   ];
 
+  // 选中标签时的篇数：有搜索词时按「当前搜索结果里仍属于该标签的文章」计数，
+  // 与下方列表同源（保持原有语义）。
+  const selectedPostCount = hasSearchQuery ? filteredSelectedTagPosts.length : (selectedTagInfo?.count ?? 0);
+
   return (
     <div className="pb-8 md:pb-14">
       <Seo title={seoTitle} description={seoDescription} structuredData={tagsStructuredData} />
 
-      <header className="mb-10 border-b border-zinc-200 pb-8 dark:border-zinc-800 md:pb-10">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
-          Tags Collection
-        </p>
-        <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-5xl">标签集合</h1>
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">
-          共 {allTags.length} 个标签，{allTags.reduce((sum, tag) => sum + tag.count, 0)} 篇文章
+      {/* 编辑式页头：去掉英文大写眉题与重边框，标题 + 右侧统计，一条发丝线收尾 */}
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-line pb-5 md:pb-6">
+        <h1 className="font-serif text-3xl font-bold tracking-tight text-content md:text-4xl">标签集合</h1>
+        <p className="text-sm tabular-nums text-content-muted">
+          共 {allTags.length} 个标签 · {allTags.reduce((sum, tag) => sum + tag.count, 0)} 篇文章
         </p>
       </header>
 
       {/* 搜索框保持在条件渲染之外：搜索进行中（防抖/评分）输入框不随结果区一起卸载，
           避免用户无法继续输入或修改关键词。 */}
-      <div className="mb-8">
+      <div className="mb-8 mt-7 md:mt-9">
         <SearchField
           value={searchQuery}
           onValueChange={handleSearchChange}
@@ -254,15 +262,14 @@ export const Tags = () => {
           aria-label="搜索标签或文章"
         />
         {hasSearchQuery && (
-          <div className="mt-3 text-sm text-zinc-700 dark:text-zinc-300">
-            搜索 "<span className="font-bold text-zinc-900 dark:text-zinc-100">{searchQuery}</span>" 找到 {tags.length}{' '}
-            个标签
-          </div>
+          <p className="mt-3 text-sm text-content-muted">
+            “<span className="font-semibold text-content">{searchQuery}</span>” · 找到 {tags.length} 个标签
+          </p>
         )}
       </div>
 
       {loading || isSearching ? (
-        <div className="flex items-center justify-center py-20" aria-busy="true">
+        <div className="flex items-center justify-center py-16" aria-busy="true">
           <LoadingStatus label={isSearching ? '正在搜索标签和文章' : '正在加载标签'} />
         </div>
       ) : loadError || searchError ? (
@@ -273,103 +280,102 @@ export const Tags = () => {
           actionLabel={loadError ? '重新加载' : '清除搜索'}
           onAction={loadError ? () => setLoadAttempt((attempt) => attempt + 1) : handleClearSearch}
         />
+      ) : !selectedTag ? (
+        tags.length > 0 ? (
+          /* 标签云：只靠字号/字重/颜色分层，靠留白分隔；每项仍是 44px 高的真实点击区，
+             保留 aria-label（含文章数）。hover 时下划线 + 文字变深，不做重胶囊/粗下划线。 */
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 sm:gap-x-7 md:gap-x-8">
+            {tags.map((tag) => (
+              <button
+                key={tag.name}
+                type="button"
+                onClick={() => updateTagParam(tag.name)}
+                aria-label={`查看标签 ${tag.name}，共 ${tag.count} 篇文章`}
+                className="group inline-flex min-h-11 max-w-full items-center text-left"
+              >
+                <span className="inline-flex min-w-0 items-baseline gap-1.5">
+                  <span
+                    className={`min-w-0 break-words decoration-line underline-offset-4 transition-colors [overflow-wrap:anywhere] group-hover:text-content group-hover:underline ${getTagSize(tag.count)}`}
+                  >
+                    {tag.name}
+                  </span>
+                  <span className="shrink-0 text-[11px] font-normal tabular-nums text-content-muted">{tag.count}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <ContentStatus
+            title={hasSearchQuery ? '未找到匹配标签' : '当前还没有可展示的标签内容。'}
+            description={hasSearchQuery ? '尝试缩短关键词，或清除搜索条件后查看全部标签。' : undefined}
+            actionLabel={hasSearchQuery ? '清除搜索' : undefined}
+            onAction={hasSearchQuery ? handleClearSearch : undefined}
+            className="mt-2"
+          />
+        )
       ) : (
-        <>
-          {!selectedTag ? (
-            tags.length > 0 ? (
-              <div className="mt-2 border-y border-zinc-200 py-8 dark:border-zinc-800 md:py-10">
-                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 md:gap-6">
-                  {tags.map((tag) => (
-                    <button
-                      key={tag.name}
-                      onClick={() => updateTagParam(tag.name)}
-                      className={`${getTagSize(tag.count)} relative inline-flex min-h-11 max-w-full items-center justify-center break-words border-b border-zinc-300 px-2 py-1.5 text-center font-bold leading-tight text-zinc-700 transition-colors [overflow-wrap:anywhere] hover:border-zinc-900 hover:text-zinc-900 focus-visible:border-zinc-900 focus-visible:text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 sm:px-3 sm:py-2 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100 dark:focus-visible:border-zinc-100 dark:focus-visible:text-zinc-100 dark:focus-visible:outline-zinc-100`}
-                      aria-label={`查看标签 ${tag.name}，共 ${tag.count} 篇文章`}
-                    >
-                      <span className="min-w-0 break-words [overflow-wrap:anywhere]">{tag.name}</span>
-                      <span className="ml-1.5 flex-shrink-0 text-[10px] opacity-60 sm:ml-2 sm:text-xs">
-                        ({tag.count})
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <ContentStatus
-                title={hasSearchQuery ? '未找到匹配标签' : '当前还没有可展示的标签内容。'}
-                description={hasSearchQuery ? '尝试缩短关键词，或清除搜索条件后查看全部标签。' : undefined}
-                actionLabel={hasSearchQuery ? '清除搜索' : undefined}
-                onAction={hasSearchQuery ? handleClearSearch : undefined}
-                className="mt-2"
-              />
-            )
-          ) : (
-            <div>
-              <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="min-w-0 text-2xl font-bold text-zinc-900 dark:text-zinc-100 md:text-3xl">
-                  标签:{' '}
-                  <span className="break-words underline decoration-zinc-400 underline-offset-4 dark:decoration-zinc-600">
-                    {selectedTag}
-                  </span>
-                  <span className="ml-3 text-base text-zinc-400">
-                    ({hasSearchQuery ? filteredSelectedTagPosts.length : (selectedTagInfo?.count ?? 0)} 篇)
-                  </span>
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => updateTagParam()}
-                  className="editorial-button inline-flex w-full gap-2 px-4 font-bold sm:w-fit"
-                >
-                  <ArrowLeft size={15} />
-                  返回全部标签
-                </button>
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
-                {filteredSelectedTagPosts.map((post) => (
-                  <div key={post.id}>
-                    <Link
-                      to={`/post/${post.id}`}
-                      className="group block border-t border-zinc-200 py-5 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
-                    >
-                      <div className="mb-3 flex items-center gap-2">
-                        <span className="rounded-full border border-zinc-300 px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-900 dark:border-zinc-700 dark:text-zinc-100">
-                          {post.category}
-                        </span>
-                      </div>
-                      <h3 className="mb-3 text-xl font-bold text-zinc-900 transition-colors group-hover:text-zinc-700 dark:text-zinc-100 dark:group-hover:text-zinc-300">
-                        {post.title}
-                      </h3>
-                      <p className="mb-4 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">{post.excerpt}</p>
-                      <div className="flex items-center gap-4 text-xs text-zinc-400">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={12} />
-                          {post.date}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock size={12} />
-                          {post.readTime}
-                        </span>
-                      </div>
-                    </Link>
-                  </div>
-                ))}
-
-                {selectedTagInfo && filteredSelectedTagPosts.length === 0 && (
-                  <div className="border-y border-zinc-200 py-6 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-                    当前标签存在，但在当前搜索条件下没有匹配文章。你可以清除搜索后查看完整列表。
-                  </div>
-                )}
-
-                {!selectedTagInfo && (
-                  <div className="border-y border-zinc-200 py-6 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-                    当前标签不存在或已失效，请返回查看全部标签。
-                  </div>
-                )}
-              </div>
+        <div>
+          {/* 选中标签：编辑式小标题，返回全部标签降级为文字 ghost 操作（保持 type="button"） */}
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between md:mb-8">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-content-muted">标签</p>
+              <h2 className="mt-1.5 break-words font-serif text-2xl font-bold tracking-tight text-content [overflow-wrap:anywhere] md:text-3xl">
+                {selectedTag}
+                <span className="ml-2.5 align-baseline font-sans text-sm font-normal tabular-nums text-content-muted">
+                  共 {selectedPostCount} 篇
+                </span>
+              </h2>
             </div>
-          )}
-        </>
+            <button
+              type="button"
+              onClick={() => updateTagParam()}
+              className="inline-flex min-h-11 w-fit items-center gap-1.5 text-sm font-medium text-content-muted transition-colors hover:text-content"
+            >
+              <ArrowLeft size={15} aria-hidden="true" />
+              返回全部标签
+            </button>
+          </div>
+
+          {/* 文章列表：标题 + 摘要 + 日期/阅读时长，发丝线分隔；去掉分类胶囊与重边框 */}
+          <div className="border-t border-line" aria-live="polite">
+            {filteredSelectedTagPosts.map((post) => (
+              <div key={post.id} className="border-b border-line">
+                <Link
+                  to={`/post/${post.id}`}
+                  className="group grid min-w-0 gap-x-6 gap-y-2 py-5 transition-colors md:grid-cols-[minmax(0,1fr)_auto] md:items-baseline md:py-6"
+                >
+                  <div className="min-w-0">
+                    <h3 className="min-w-0 break-words text-lg font-semibold leading-snug tracking-tight text-content decoration-line underline-offset-4 transition-colors [overflow-wrap:anywhere] group-hover:underline md:text-xl">
+                      {post.title}
+                    </h3>
+                    <p className="mt-1.5 line-clamp-2 break-words text-sm leading-6 text-content-muted [overflow-wrap:anywhere]">
+                      {post.excerpt}
+                    </p>
+                  </div>
+                  <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] tabular-nums text-content-muted md:justify-end md:whitespace-nowrap">
+                    <time dateTime={post.date}>{post.date}</time>
+                    <span aria-hidden="true" className="opacity-60">
+                      ·
+                    </span>
+                    <span>{post.readTime}</span>
+                  </p>
+                </Link>
+              </div>
+            ))}
+
+            {selectedTagInfo && filteredSelectedTagPosts.length === 0 && (
+              <p className="border-b border-line py-6 text-sm text-content-muted">
+                当前标签存在，但在当前搜索条件下没有匹配文章。你可以清除搜索后查看完整列表。
+              </p>
+            )}
+
+            {!selectedTagInfo && (
+              <p className="border-b border-line py-6 text-sm text-content-muted">
+                当前标签不存在或已失效，请返回查看全部标签。
+              </p>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

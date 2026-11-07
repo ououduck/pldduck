@@ -321,18 +321,16 @@ export const ArchivePage = () => {
     <div className="pb-8 md:pb-14">
       <Seo title="归档" description={archivePageDescription} structuredData={archiveStructuredData} />
 
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-zinc-200 pb-5 dark:border-zinc-800 md:pb-6">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Archive</p>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-4xl">归档</h1>
-        </div>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      {/* 编辑式页头：去掉英文大写眉题，只留标题与右侧统计，底边一条发丝线 */}
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-line pb-5 md:pb-6">
+        <h1 className="font-serif text-3xl font-bold tracking-tight text-content md:text-4xl">归档</h1>
+        <p className="text-sm tabular-nums text-content-muted">
           共 {totalPosts} 篇文章 · {groups.length} 年
         </p>
       </header>
 
       <section className="mt-7 md:mt-9">
-        <div className="mb-8 flex flex-col gap-3 border-b border-zinc-200 pb-6 dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
             <SearchField
               value={searchQuery}
@@ -343,9 +341,8 @@ export const ArchivePage = () => {
               containerClassName="max-w-md"
             />
             {hasSearchQuery && (
-              <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-                “<span className="font-semibold text-zinc-900 dark:text-zinc-100">{searchQuery}</span>” · {totalPosts}{' '}
-                篇文章
+              <p className="mt-3 text-sm text-content-muted">
+                “<span className="font-semibold text-content">{searchQuery}</span>” · {totalPosts} 篇文章
               </p>
             )}
           </div>
@@ -354,23 +351,35 @@ export const ArchivePage = () => {
             onClick={toggleAll}
             disabled={groups.length === 0}
             aria-pressed={allGroupsExpanded}
-            className="editorial-button inline-flex w-fit gap-1.5 px-3 py-2 text-sm font-medium disabled:opacity-40"
+            className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-control px-2 text-sm font-medium text-content-muted transition-colors hover:bg-surface-muted hover:text-content disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
           >
-            {allGroupsExpanded ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+            {allGroupsExpanded ? (
+              <ChevronRight size={15} aria-hidden="true" />
+            ) : (
+              <ChevronDown size={15} aria-hidden="true" />
+            )}
             {allGroupsExpanded ? '全部折叠' : '全部展开'}
           </button>
         </div>
 
         {loading || isSearching ? (
-          <div className="space-y-6" aria-busy="true">
+          <div className="space-y-8" aria-busy="true">
             <LoadingStatus label={isSearching ? '正在搜索归档文章' : '正在加载归档文章'} />
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div
-                key={index}
-                aria-hidden="true"
-                className={`${shouldReduceMotion ? '' : 'animate-pulse '}h-32 rounded-surface border border-zinc-200 bg-paper dark:border-zinc-800 dark:bg-zinc-900`}
-              />
-            ))}
+            {/* 骨架与最终时间线同构：发丝线分隔的轻量行，不使用重卡片 */}
+            <div aria-hidden="true" className="border-t border-line">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="grid gap-x-5 gap-y-2 border-b border-line py-4 md:grid-cols-[4.5rem_minmax(0,1fr)]"
+                >
+                  <div className={`h-3 w-12 bg-surface-muted ${shouldReduceMotion ? '' : 'animate-pulse'}`} />
+                  <div className="min-w-0">
+                    <div className={`h-4 w-2/3 bg-surface-muted ${shouldReduceMotion ? '' : 'animate-pulse'}`} />
+                    <div className={`mt-2.5 h-3 w-1/3 bg-surface-muted ${shouldReduceMotion ? '' : 'animate-pulse'}`} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : loadError || searchError ? (
           <ContentStatus
@@ -391,34 +400,41 @@ export const ArchivePage = () => {
           />
         ) : (
           <div aria-live="polite">
-            <div className="space-y-10 md:space-y-12">
+            <div className="space-y-12 md:space-y-14">
               {groups.map((group) => {
                 const isYearExpanded = expandedYears.has(group.year);
+                // 展示层把「2026年」拆成大字年份 + 小字「年」：数字是视觉锚点，
+                // 后缀保持弱化；aria-label 仍用完整本地化年份。
+                const yearDigits = group.year.match(/\d+/)?.[0] ?? group.year;
+                const hasLocalizedYearSuffix = yearDigits !== group.year;
 
                 return (
                   <section key={group.year}>
                     <button
+                      type="button"
                       onClick={() => toggleYear(group.year)}
-                      className="group flex min-h-11 w-full items-center justify-between gap-4 border-b border-zinc-300 pb-3 text-left transition-colors hover:border-zinc-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:border-zinc-700 dark:hover:border-zinc-500 dark:focus-visible:outline-zinc-100"
+                      className="group flex min-h-11 w-full items-end justify-between gap-4 border-b border-line pb-3 text-left transition-colors hover:border-content-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
                       aria-expanded={isYearExpanded}
                       aria-label={`${isYearExpanded ? '折叠' : '展开'} ${group.year}的文章`}
                     >
-                      <span className="flex items-center gap-3">
+                      {/* 按钮内容模型只允许 phrasing content，不能嵌套标题：
+                            年份层级由按钮自身承担（aria-label 已带可访问名），
+                            这里用 span 保留视觉样式。 */}
+                      <span className="flex items-baseline gap-2">
+                        <span className="tabular-nums text-4xl font-bold leading-none tracking-tight text-content md:text-5xl">
+                          {yearDigits}
+                        </span>
+                        {hasLocalizedYearSuffix && <span className="text-sm font-medium text-content-muted">年</span>}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2 text-sm text-content-muted transition-colors group-hover:text-content">
+                        <span className="tabular-nums">{group.total} 篇</span>
                         <motion.span
                           animate={{ rotate: isYearExpanded ? 0 : -90 }}
                           transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.18, ease: easeOut }}
-                          className="text-zinc-400 transition-colors group-hover:text-zinc-700 dark:group-hover:text-zinc-300"
                         >
-                          <ChevronDown size={17} />
+                          <ChevronDown size={15} aria-hidden="true" />
                         </motion.span>
-                        {/* 按钮内容模型只允许 phrasing content，不能嵌套标题：
-                              年份层级由按钮自身承担（aria-label 已带可访问名），
-                              这里用 span 保留视觉样式。 */}
-                        <span className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-3xl">
-                          {group.year}
-                        </span>
                       </span>
-                      <span className="shrink-0 text-sm text-zinc-500 dark:text-zinc-400">{group.total} 篇</span>
                     </button>
 
                     <AnimatePresence>
@@ -430,23 +446,17 @@ export const ArchivePage = () => {
                           transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.18, ease: easeOut }}
                           className="overflow-hidden"
                         >
-                          <div className="pt-6 md:pt-7">
-                            {group.months.map((monthGroup) => {
+                          <div className="pt-5 md:pt-6">
+                            {group.months.map((monthGroup, monthIndex) => {
                               const monthKey = getMonthKey(group.year, monthGroup.monthNum);
                               const isMonthExpanded = expandedMonths.has(monthKey);
 
                               return (
-                                <div
-                                  key={monthKey}
-                                  className={
-                                    monthGroup.monthNum < group.months[group.months.length - 1].monthNum
-                                      ? 'mb-7 md:mb-8'
-                                      : undefined
-                                  }
-                                >
+                                <div key={monthKey} className={monthIndex > 0 ? 'mt-6' : undefined}>
                                   <button
+                                    type="button"
                                     onClick={() => toggleMonth(group.year, monthGroup.monthNum)}
-                                    className="group mb-2 flex min-h-11 w-full items-center gap-2 px-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
+                                    className="group flex min-h-11 w-full items-center gap-2 text-left text-content-muted transition-colors hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
                                     aria-expanded={isMonthExpanded}
                                     aria-label={`${isMonthExpanded ? '折叠' : '展开'} ${monthGroup.month}的文章`}
                                   >
@@ -455,17 +465,12 @@ export const ArchivePage = () => {
                                       transition={
                                         shouldReduceMotion ? { duration: 0 } : { duration: 0.18, ease: easeOut }
                                       }
-                                      className="text-zinc-400 transition-colors group-hover:text-zinc-700 dark:group-hover:text-zinc-300"
                                     >
-                                      <ChevronDown size={14} />
+                                      <ChevronDown size={13} aria-hidden="true" />
                                     </motion.span>
                                     {/* 同年份按钮：按钮内不嵌套标题，span 保留视觉样式 */}
-                                    <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                                      {monthGroup.month}
-                                    </span>
-                                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                                      {monthGroup.total} 篇
-                                    </span>
+                                    <span className="text-xs font-semibold tracking-[0.14em]">{monthGroup.month}</span>
+                                    <span className="text-[11px] tabular-nums opacity-80">{monthGroup.total} 篇</span>
                                   </button>
 
                                   <AnimatePresence>
@@ -479,36 +484,41 @@ export const ArchivePage = () => {
                                         }
                                         className="overflow-hidden"
                                       >
-                                        <div className="border-t border-zinc-200 dark:border-zinc-800">
+                                        <div className="divide-y divide-line border-t border-line">
                                           {monthGroup.posts.map((post) => (
                                             <div key={post.id}>
                                               <Link
                                                 to={`/post/${post.id}`}
-                                                className="group grid min-w-0 gap-x-5 gap-y-1 border-b border-zinc-200 py-4 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600 md:grid-cols-[4.25rem_minmax(0,1fr)_auto] md:items-baseline md:py-4"
+                                                className="group grid min-w-0 gap-x-5 gap-y-1 py-3.5 transition-colors md:grid-cols-[4.5rem_minmax(0,1fr)_auto] md:items-baseline md:py-4"
                                               >
-                                                <time className="font-mono text-xs font-medium text-zinc-500 dark:text-zinc-400 md:pt-1">
+                                                <time className="font-mono text-[11px] font-medium tracking-wide text-content-muted tabular-nums md:pt-0.5">
                                                   {formatDay(post.date)}
                                                 </time>
                                                 {/* 年份/月份折叠按钮是交互控件，按内容模型不能用标题；文章标题
                                                     即为 h1 之后的下一级内容标题，用 h2 保持层级连续（h1 → h2），
                                                     避免 SEO 审计「标题层级跳级」告警。字号由 className 控制，
                                                     与 h 级别无关，视觉不变。 */}
-                                                <h2 className="min-w-0 break-words text-lg font-bold leading-snug text-zinc-900 transition-colors [overflow-wrap:anywhere] group-hover:text-zinc-600 dark:text-zinc-100 dark:group-hover:text-zinc-300 md:text-xl">
+                                                <h2 className="min-w-0 break-words text-base font-semibold leading-snug text-content decoration-content-muted underline-offset-4 transition-colors [overflow-wrap:anywhere] group-hover:underline md:text-[17px]">
                                                   {post.title}
                                                   <ArrowUpRight
-                                                    className="ml-1 inline-block -translate-y-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-                                                    size={14}
+                                                    className="ml-1 inline-block -translate-y-0.5 opacity-0 transition-opacity group-hover:opacity-50"
+                                                    size={13}
+                                                    aria-hidden="true"
                                                   />
                                                 </h2>
-                                                <p className="min-w-0 break-words text-xs text-zinc-500 [overflow-wrap:anywhere] dark:text-zinc-400 md:whitespace-nowrap">
+                                                <p className="min-w-0 break-words text-[11px] text-content-muted [overflow-wrap:anywhere] md:whitespace-nowrap">
                                                   {post.category}{' '}
-                                                  <span className="mx-1 text-zinc-300 dark:text-zinc-700">·</span>{' '}
+                                                  <span aria-hidden="true" className="mx-1 opacity-60">
+                                                    ·
+                                                  </span>{' '}
                                                   {post.readTime}
                                                   {typeof post.commentCount === 'number' && (
                                                     <>
-                                                      <span className="mx-1 text-zinc-300 dark:text-zinc-700">·</span>
+                                                      <span aria-hidden="true" className="mx-1 opacity-60">
+                                                        ·
+                                                      </span>
                                                       <span className="inline-flex items-center gap-1">
-                                                        <MessageCircle size={11} />
+                                                        <MessageCircle size={11} aria-hidden="true" />
                                                         {post.commentCount} 条评论
                                                       </span>
                                                     </>

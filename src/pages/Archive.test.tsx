@@ -17,6 +17,7 @@ const { MOCK_POSTS } = vi.hoisted(() => ({
       category: '技术',
       filePath: '/posts/post-2026.md',
       readTime: '3分钟阅读',
+      commentCount: 5,
       tags: [],
     },
     {
@@ -143,5 +144,58 @@ describe('Archive', () => {
     await waitFor(() => expect(probeSearch).not.toContain('year='));
     // 回退展开最新年份（2026）。
     expect(await screen.findByText('2026 年文章')).toBeInTheDocument();
+  });
+
+  it('编辑式页头：去掉英文大写眉题，标题「归档」+ 右侧统计', () => {
+    renderArchive();
+    expect(screen.getByRole('heading', { level: 1, name: '归档' })).toBeInTheDocument();
+    expect(screen.getByText('共 2 篇文章 · 2 年')).toBeInTheDocument();
+    // 旧的「ARCHIVE」全大写英文眉题不再出现。
+    expect(screen.queryByText('Archive')).not.toBeInTheDocument();
+  });
+
+  it('文章行保留分类、阅读时长与评论数语义', async () => {
+    renderArchive('/archive?year=2026');
+    const title = await screen.findByText('2026 年文章');
+    const row = title.closest('a');
+    expect(row).not.toBeNull();
+    expect(row).toHaveAttribute('href', '/post/post-2026');
+    expect(row).toHaveTextContent('技术');
+    expect(row).toHaveTextContent('3分钟阅读');
+    expect(row).toHaveTextContent('5 条评论');
+  });
+
+  it('全部展开/折叠按钮切换全部年份与月份，并同步 aria-pressed', async () => {
+    const user = userEvent.setup();
+    renderArchive();
+
+    // 默认只展开最新年份（2026）的首月，2025 文章不可见。
+    expect(screen.queryByText('2025 年文章')).not.toBeInTheDocument();
+
+    const expandAll = screen.getByRole('button', { name: '全部展开' });
+    expect(expandAll).toHaveAttribute('aria-pressed', 'false');
+    await user.click(expandAll);
+
+    const collapseAll = await screen.findByRole('button', { name: '全部折叠' });
+    expect(collapseAll).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByText('2025 年文章')).toBeInTheDocument();
+
+    await user.click(collapseAll);
+    const expandAgain = await screen.findByRole('button', { name: '全部展开' });
+    expect(expandAgain).toHaveAttribute('aria-pressed', 'false');
+    // 折叠动画结束后时间线内容整体移除。
+    await waitFor(() => expect(screen.queryByText('2026 年文章')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('2025 年文章')).not.toBeInTheDocument());
+  });
+
+  it('搜索时保留计数文案（“关键词” · N 篇文章）', async () => {
+    const user = userEvent.setup();
+    renderArchive();
+    const input = screen.getByRole('searchbox', { name: '搜索归档文章' });
+
+    await user.type(input, 'react');
+
+    // 计数行在加载/搜索期间也常驻，文案格式保持不变。
+    expect(await screen.findByText(/·\s*2\s*篇文章/)).toBeInTheDocument();
   });
 });

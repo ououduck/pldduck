@@ -10,7 +10,6 @@ import { usePostSearch } from '@/hooks/usePostSearch';
 import type { PostSearchScope } from '@/services/posts';
 import { PostCard } from '@/components/PostCard';
 import { CompactPostCard } from '@/components/CompactPostCard';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
 import type { PostMetadata } from '../types';
 import { Seo, buildSiteSchemas } from '../components/Seo';
 import { ContentStatus, LoadingStatus } from '@/components/ContentStatus';
@@ -71,7 +70,6 @@ export const Search = () => {
     usePostSearch({
       scope: searchScope,
     });
-  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     // 单向同步（URL → 输入框），仅在「URL 值不是用户最近编辑产生」时生效：
@@ -173,12 +171,9 @@ export const Search = () => {
         structuredData={searchStructuredData}
       />
 
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-zinc-200 pb-5 dark:border-zinc-800 md:pb-6">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Search</p>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-4xl">搜索</h1>
-        </div>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-line pb-5 md:pb-6">
+        <h1 className="font-serif text-3xl font-bold tracking-tight text-content md:text-4xl">搜索</h1>
+        <p className="text-sm leading-6 text-content-muted">
           {hasSearchQuery
             ? isSearching && results.length === 0
               ? '正在搜索…'
@@ -188,63 +183,72 @@ export const Search = () => {
       </header>
 
       <section className="mt-7 md:mt-9">
-        <div className="mb-8 flex flex-col gap-3 border-b border-zinc-200 pb-6 dark:border-zinc-800">
-          <div className="min-w-0 flex-1">
-            <SearchField
-              size="large"
-              value={searchQuery}
-              onValueChange={handleSearchChange}
-              onClear={handleClearSearch}
-              placeholder="搜索标题、摘要、分类与正文内容..."
-              aria-label="搜索文章"
-              containerClassName="max-w-2xl"
-              autoFocus
-              onFocus={() => {
-                searchInputFocusedRef.current = true;
-              }}
-              onBlur={() => {
-                // 失焦 = 编辑结束：清除最近编辑守卫，恢复 URL 驱动的同步
-                // （否则后退/前进/粘贴带 ?q= 的链接会被永久短路）。
-                searchInputFocusedRef.current = false;
-                lastEditedQueryRef.current = null;
-              }}
-            />
+        <div className="mb-8 flex flex-col gap-4">
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+            <div className="min-w-0 flex-1">
+              <SearchField
+                size="large"
+                value={searchQuery}
+                onValueChange={handleSearchChange}
+                onClear={handleClearSearch}
+                placeholder="搜索标题、摘要、分类与正文内容..."
+                aria-label="搜索文章"
+                containerClassName="max-w-2xl"
+                autoFocus
+                onFocus={() => {
+                  searchInputFocusedRef.current = true;
+                }}
+                onBlur={() => {
+                  // 失焦 = 编辑结束：清除最近编辑守卫，恢复 URL 驱动的同步
+                  // （否则后退/前进/粘贴带 ?q= 的链接会被永久短路）。
+                  searchInputFocusedRef.current = false;
+                  lastEditedQueryRef.current = null;
+                }}
+              />
+            </div>
+            {/* 只做静态提示，不新增快捷键逻辑：Ctrl/Cmd+K 由 Layout 的命令面板统一处理 */}
+            <p className="hidden shrink-0 items-center gap-1.5 pb-3 text-[11px] leading-none text-content-muted sm:flex">
+              <kbd className="rounded-micro border border-line px-1.5 py-1 font-sans">Ctrl / ⌘</kbd>
+              <span aria-hidden="true">+</span>
+              <kbd className="rounded-micro border border-line px-1.5 py-1 font-sans">K</kbd>
+              <span>打开命令面板</span>
+            </p>
           </div>
 
           <div>
-            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-300">
-              搜索范围
+            <div role="group" aria-label="搜索范围" className="flex flex-wrap gap-x-6 border-b border-line">
+              {SEARCH_SCOPE_OPTIONS.map((option) => {
+                const isActive = searchScope === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={isActive}
+                    onClick={() => handleScopeChange(option.value)}
+                    className={`-mb-px inline-flex min-h-11 items-center border-b-2 px-0.5 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'border-content text-content'
+                        : 'border-transparent text-content-muted hover:text-content'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {SEARCH_SCOPE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-pressed={searchScope === option.value}
-                  onClick={() => handleScopeChange(option.value)}
-                  className={`min-h-11 rounded-control border px-3 py-2 text-xs font-semibold transition-colors active:scale-[.98] ${
-                    searchScope === option.value
-                      ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                      : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:text-ink dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:text-white'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-zinc-700 dark:text-zinc-300">{activeScopeHint}</p>
+            <p className="mt-3 text-xs leading-5 text-content-muted">{activeScopeHint}</p>
           </div>
         </div>
 
         {isSearching && results.length === 0 ? (
-          <div aria-busy="true">
+          <div aria-busy="true" className="mt-2">
             <LoadingStatus label="正在搜索文章" />
-            {/* 骨架屏与结果卡片同形：移动端横置扁形，sm 起为三列网格卡片 */}
-            <div className="grid gap-3 sm:hidden" aria-hidden="true">
+            {/* 轻量骨架：只保留面积与节奏，不再用带边框/底色的重卡片块 */}
+            <div className="grid gap-2 sm:hidden" aria-hidden="true">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className={`${shouldReduceMotion ? '' : 'animate-pulse '}h-24 rounded-surface border border-zinc-200 bg-paper dark:border-zinc-800 dark:bg-zinc-900`}
+                  className="h-16 animate-pulse rounded-micro bg-surface-muted motion-reduce:animate-none"
                 />
               ))}
             </div>
@@ -252,7 +256,7 @@ export const Search = () => {
               {Array.from({ length: 6 }).map((_, index) => (
                 <div
                   key={index}
-                  className={`${shouldReduceMotion ? '' : 'animate-pulse '}h-56 rounded-surface border border-zinc-200 bg-paper dark:border-zinc-800 dark:bg-zinc-900`}
+                  className="h-44 animate-pulse rounded-surface bg-surface-muted motion-reduce:animate-none"
                 />
               ))}
             </div>
@@ -262,8 +266,8 @@ export const Search = () => {
             {/* 重新搜索（已有旧结果）时保留旧结果展示，仅提示正在刷新，
                 避免每次击键都整块闪回骨架屏（首次搜索无结果才显示骨架）。 */}
             {isSearching && results.length > 0 && (
-              <div className="mb-4 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-                <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
+              <div className="mb-4 flex items-center gap-2 text-xs text-content-muted">
+                <LoaderCircle size={12} className="animate-spin" aria-hidden="true" />
                 <span>正在搜索「{searchQuery}」的最新结果…</span>
               </div>
             )}

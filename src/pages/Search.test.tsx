@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { Search } from './Search';
@@ -77,6 +77,18 @@ describe('Search', () => {
     });
   });
 
+  it('页面标题为轻量的「搜索」，不再渲染 Search 全大写眉题', () => {
+    renderSearch();
+    expect(screen.getByRole('heading', { level: 1, name: '搜索' })).toBeInTheDocument();
+    expect(screen.queryByText('Search')).not.toBeInTheDocument();
+    expect(screen.getByText('全站文章检索')).toBeInTheDocument();
+  });
+
+  it('无查询时展示空态引导（输入关键词开始搜索）', () => {
+    renderSearch();
+    expect(screen.getByText('输入关键词开始搜索')).toBeInTheDocument();
+  });
+
   it('URL 带 ?q= 时同步到搜索框', async () => {
     renderSearch('/search?q=react');
     const input = await screen.findByRole('searchbox', { name: '搜索文章' });
@@ -106,7 +118,7 @@ describe('Search', () => {
     });
   });
 
-  it('点击分类按钮切换搜索范围并写入 URL（scope 参数）', async () => {
+  it('点击「仅标题」文字 tab 切换搜索范围并写入 URL（scope 参数）', async () => {
     const user = userEvent.setup();
     renderSearch();
     const titleScope = screen.getByRole('button', { name: '仅标题' });
@@ -151,6 +163,31 @@ describe('Search', () => {
       expect(screen.getAllByTestId('mock-compact-post-card')).toHaveLength(1);
     });
     expect(screen.getAllByTestId('mock-post-card')).toHaveLength(1);
+    expect(await screen.findByText('找到 1 条结果')).toBeInTheDocument();
     expect(searchPosts).toHaveBeenCalledWith('react', { scope: 'all' });
+  });
+
+  it('搜索失败时展示错误态，并可从错误态清除搜索（URL q 参数移除）', async () => {
+    // usePostSearch 在失败分支会 console.error；测试里静默，避免污染输出。
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      vi.mocked(searchPosts).mockRejectedValue(new Error('network'));
+      const user = userEvent.setup();
+      renderSearch('/search?q=react');
+      const input = await screen.findByRole('searchbox', { name: '搜索文章' });
+      await waitFor(() => expect(input).toHaveValue('react'));
+
+      const errorState = await screen.findByRole('alert');
+      expect(errorState).toHaveTextContent('搜索失败');
+      expect(errorState).toHaveTextContent('搜索暂时不可用，请稍后重试。');
+
+      await user.click(within(errorState).getByRole('button', { name: '清除搜索' }));
+      await waitFor(() => expect(input).toHaveValue(''));
+      await waitFor(() => {
+        expect(probeSearch).not.toContain('q=');
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });

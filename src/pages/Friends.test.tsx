@@ -63,6 +63,22 @@ describe('Friends', () => {
     renderFriends();
     expect(await screen.findByText('示例博客')).toBeInTheDocument();
     expect(screen.getByText('DEV Blog')).toBeInTheDocument();
+    // 条目展示域名（去 www）且整条是外链。
+    expect(screen.getByText('example.com')).toBeInTheDocument();
+    expect(screen.getByText('dev.example.org')).toBeInTheDocument();
+    const entry = screen.getByRole('link', { name: /示例博客/ });
+    expect(entry).toHaveAttribute('href', 'https://example.com');
+    expect(entry).toHaveAttribute('target', '_blank');
+    expect(entry).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('编辑式页头：无英文眉题，标题为友情链接且随机前往按钮可用', async () => {
+    renderFriends();
+    await screen.findByText('示例博客');
+    expect(screen.getByRole('heading', { level: 1, name: '友情链接' })).toBeInTheDocument();
+    expect(screen.queryByText('Friends Directory')).not.toBeInTheDocument();
+    expect(screen.getByText(/以下排名不分先后/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '随机前往' })).toBeEnabled();
   });
 
   it('失联友链归入「已失联的博客」折叠板块，展开后可见', async () => {
@@ -73,6 +89,9 @@ describe('Friends', () => {
     // 展开失联板块。
     await user.click(screen.getByRole('button', { name: /已失联的博客/ }));
     expect(await screen.findByText('失联站点')).toBeInTheDocument();
+    // 轻量条目仍保留红色弱提示与失联圆点。
+    expect(screen.getByText('已失联')).toBeInTheDocument();
+    expect(document.querySelectorAll('.friend-dead-dot')).toHaveLength(1);
   });
 
   it('搜索按名称/描述/域名过滤（大小写不敏感，locale 无关回归）', async () => {

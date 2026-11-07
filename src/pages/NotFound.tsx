@@ -5,7 +5,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Archive, FileSearch, Search, Tags } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { NotFoundState } from '@/components/NotFoundState';
 import { Seo } from '@/components/Seo';
 import { getInitialPosts } from '@/services/posts';
@@ -51,69 +51,70 @@ export const NotFound: React.FC = () => {
         backLabel="返回首页"
         debugLabel={`Path: ${clientPath}`}
       >
-        {/* 站内搜索：直接输入，回车进入搜索页 */}
+        {/* 站内搜索：发丝线下划线输入，回车进入搜索页；不再使用重描边输入框/按钮。 */}
         <form onSubmit={handleSearchSubmit} role="search" className="mt-8 max-w-md">
-          <label
-            htmlFor="not-found-search"
-            className="mb-1.5 block text-xs font-semibold text-zinc-500 dark:text-zinc-400"
-          >
+          <label htmlFor="not-found-search" className="sr-only">
             搜索本站内容
           </label>
-          <div className="flex items-center gap-2">
-            <div className="relative min-w-0 flex-1">
-              <Search
-                size={15}
-                aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500"
-              />
-              <input
-                id="not-found-search"
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="输入关键词…"
-                className="editorial-input !py-2.5 pl-9"
-                autoComplete="off"
-              />
-            </div>
-            <button type="submit" className="editorial-button shrink-0 px-4" aria-label="搜索">
+          <div className="flex items-center gap-3 border-b border-line pb-1 transition-colors focus-within:border-zinc-400 dark:focus-within:border-zinc-600">
+            <Search size={15} aria-hidden="true" className="shrink-0 text-zinc-400 dark:text-zinc-500" />
+            <input
+              id="not-found-search"
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="输入关键词…"
+              className="min-h-11 w-full min-w-0 bg-transparent text-[16px] text-content outline-none placeholder:text-zinc-400 sm:text-sm dark:placeholder:text-zinc-500"
+              autoComplete="off"
+            />
+            <button
+              type="submit"
+              className="inline-flex min-h-11 shrink-0 items-center text-sm font-medium text-content-muted transition-colors hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
+              aria-label="搜索"
+            >
               搜索
             </button>
           </div>
         </form>
 
-        {/* 快速入口：归档 / 标签 / 搜索页 */}
-        <nav aria-label="页面入口" className="mt-7 flex flex-wrap gap-2">
-          <Link to="/archive" className="editorial-button px-4 py-2 text-xs">
-            <Archive size={14} aria-hidden="true" />
+        {/* 快速入口：轻量文字链接 + 发丝线 */}
+        <nav
+          aria-label="页面入口"
+          className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-line pt-4 text-sm"
+        >
+          <Link
+            to="/archive"
+            className="inline-flex min-h-11 items-center text-content-muted underline-offset-4 transition-colors hover:text-content hover:underline"
+          >
             归档
           </Link>
-          <Link to="/tags" className="editorial-button px-4 py-2 text-xs">
-            <Tags size={14} aria-hidden="true" />
+          <Link
+            to="/tags"
+            className="inline-flex min-h-11 items-center text-content-muted underline-offset-4 transition-colors hover:text-content hover:underline"
+          >
             标签
           </Link>
-          <Link to="/search" className="editorial-button px-4 py-2 text-xs">
-            <FileSearch size={14} aria-hidden="true" />
+          <Link
+            to="/search"
+            className="inline-flex min-h-11 items-center text-content-muted underline-offset-4 transition-colors hover:text-content hover:underline"
+          >
             进入搜索页
           </Link>
         </nav>
 
         {recentPosts.length > 0 && (
-          <section aria-labelledby="not-found-recent-heading" className="mt-9 max-w-md">
-            <h2
-              id="not-found-recent-heading"
-              className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400"
-            >
+          <section aria-labelledby="not-found-recent-heading" className="mt-8 max-w-md">
+            <h2 id="not-found-recent-heading" className="mb-2 font-serif text-xl font-bold tracking-tight text-content">
               最近的文章
             </h2>
-            <ul className="space-y-1">
+            <ul className="border-t border-line">
               {recentPosts.map((post) => (
-                <li key={post.id}>
+                <li key={post.id} className="border-b border-line last:border-b-0">
                   <Link
                     to={`/post/${post.id}`}
-                    className="group flex min-h-11 items-center justify-between gap-3 rounded-control px-2 py-2 text-sm transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                    className="group flex min-h-11 items-center justify-between gap-3 py-2 text-sm transition-colors"
                   >
-                    <span className="min-w-0 truncate font-medium text-zinc-800 transition-colors group-hover:text-zinc-950 dark:text-zinc-200 dark:group-hover:text-white">
+                    <span className="min-w-0 truncate text-content-muted transition-colors group-hover:text-content">
                       {post.title}
                     </span>
                     <span className="shrink-0 text-xs tabular-nums text-zinc-400 dark:text-zinc-500">{post.date}</span>

@@ -3,9 +3,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToString } from 'react-dom/server';
 import { HelmetProvider } from 'react-helmet-async';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Home } from './Home';
 import { siteConfig } from '@config/site.config';
+import { ISSUE_SUBSCRIPTION_URL } from '@/components/IssueSubscriptionCard';
 import { copyTextToClipboard } from '@/utils/clipboard';
 import { assetUrl } from '@/utils/siteUrl';
 
@@ -13,11 +14,22 @@ vi.mock('@/utils/clipboard', () => ({ copyTextToClipboard: vi.fn() }));
 
 const mockedCopyTextToClipboard = vi.mocked(copyTextToClipboard);
 
+const LocationProbe = () => {
+  const location = useLocation();
+  return (
+    <div data-testid="location">
+      {location.pathname}
+      {location.search}
+    </div>
+  );
+};
+
 const renderHome = () =>
   render(
     <HelmetProvider>
       <MemoryRouter initialEntries={['/']}>
         <Home />
+        <LocationProbe />
       </MemoryRouter>
     </HelmetProvider>,
   );
@@ -62,7 +74,7 @@ describe('Home', () => {
     expect(screen.getByText(siteConfig.author.bio)).toBeInTheDocument();
   });
 
-  it('只保留 GitHub 与邮箱两个链接：外链新标签 + rel 保护，邮箱走 mailto', () => {
+  it('首页承载联系方式与订阅入口：GitHub / 邮箱 / RSS / 更新订阅 / 项目仓库', () => {
     renderHome();
 
     const githubLink = screen.getByRole('link', { name: /GitHub/ });
@@ -74,8 +86,19 @@ describe('Home', () => {
     expect(mailLink).toHaveAttribute('href', siteConfig.social.email);
     expect(mailLink).not.toHaveAttribute('target');
 
-    // 页面里只有这两个链接：不存在任何门户入口、文章、搜索或订阅入口。
-    expect(screen.getAllByRole('link')).toHaveLength(2);
+    expect(screen.getByRole('link', { name: /RSS 订阅/ })).toHaveAttribute('href', assetUrl('/feed.xml'));
+    expect(screen.getByRole('link', { name: /更新订阅/ })).toHaveAttribute('href', ISSUE_SUBSCRIPTION_URL);
+    expect(screen.getByRole('link', { name: /项目仓库/ })).toHaveAttribute('href', siteConfig.friendsPage.repoUrl);
+  });
+
+  it('首页搜索表单提交后进入全站搜索页', async () => {
+    const user = userEvent.setup();
+    renderHome();
+
+    const input = screen.getByRole('searchbox', { name: '搜索全站' });
+    await user.type(input, 'Cloudflare{Enter}');
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/search?q=Cloudflare');
   });
 
   it('复制 QQ 号成功后给出状态播报', async () => {
@@ -112,12 +135,9 @@ describe('Home', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('复制失败，请手动复制 QQ 号'));
   });
 
-  it('不再渲染任何门户内容：无站点入口、搜索、开源项目、关于本站与订阅卡', () => {
-    const { container } = renderHome();
+  it('不再渲染任何门户内容：无站点入口、开源项目、关于本站与订阅卡', () => {
+    renderHome();
 
-    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
-    expect(screen.queryByRole('search')).not.toBeInTheDocument();
-    expect(container.querySelector('form')).toBeNull();
     expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
     expect(screen.queryAllByRole('article')).toHaveLength(0);
 
@@ -127,12 +147,6 @@ describe('Home', () => {
 
     collectPortalCopy().forEach((text) => {
       expect(screen.queryByText(text)).not.toBeInTheDocument();
-    });
-
-    // 所有链接都指向站外联系方式，没有任何站内文章/栏目路径。
-    screen.getAllByRole('link').forEach((link) => {
-      const href = link.getAttribute('href') ?? '';
-      expect(href.startsWith('/')).toBe(false);
     });
   });
 

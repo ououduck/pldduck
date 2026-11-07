@@ -10,8 +10,12 @@ const renderWithRouter = (ui: React.ReactNode) => render(<MemoryRouter>{ui}</Mem
 describe('NotFoundState', () => {
   it('渲染标题与描述', () => {
     renderWithRouter(<NotFoundState title="页面不存在" description="你访问的页面走丢了" />);
-    expect(screen.getByRole('heading', { name: '页面不存在' })).toBeInTheDocument();
+    const heading = screen.getByRole('heading', { name: '页面不存在' });
+    expect(heading).toBeInTheDocument();
+    expect(heading).toHaveClass('font-serif');
     expect(screen.getByText('你访问的页面走丢了')).toBeInTheDocument();
+    // 旧的英文眉题已移除，页头不再承担装饰性大写文案。
+    expect(screen.queryByText('Page Missing')).not.toBeInTheDocument();
   });
 
   it('渲染 404 标识', () => {

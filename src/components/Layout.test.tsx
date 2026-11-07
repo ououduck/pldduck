@@ -121,11 +121,14 @@ describe('Layout', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  it('邮件入口就地打开（mailto 无需新窗口）', () => {
+  it('侧栏不再有「订阅与联系」分组：联系方式已移到首页', () => {
     renderLayout();
-    const link = within(sidebar()).getByRole('link', { name: /^邮件/ });
-    expect(link.getAttribute('href')).toMatch(/^mailto:/);
-    expect(link).not.toHaveAttribute('target');
+    const nav = within(sidebar());
+
+    expect(nav.queryByText('订阅与联系')).not.toBeInTheDocument();
+    expect(nav.queryByRole('link', { name: /^邮件/ })).not.toBeInTheDocument();
+    expect(nav.queryByRole('link', { name: /^RSS 订阅/ })).not.toBeInTheDocument();
+    expect(nav.queryByRole('link', { name: /^更新订阅/ })).not.toBeInTheDocument();
   });
 
   it('侧栏最底部常驻服务状态入口（外链 Better Stack 状态页）', () => {

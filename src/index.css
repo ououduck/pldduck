@@ -28,18 +28,18 @@
      颜色取当前视觉值（paper/ink 与 zinc 中性色），换成 Token 不产生突变；
      Tailwind 侧在 config/tailwind.config.js 映射为 background/surface/... 工具类，
      深色只覆盖颜色（见下方 html.dark），间距/圆角/动效两态共用同一套。 */
-  --color-background: #f2f0e9; /* 页面底色（= paper） */
-  --color-surface: #f7f5ef; /* 外壳表面：侧栏 / 顶栏，比底色略亮一档 */
-  --color-surface-muted: #e9e5db; /* hover / 弱底块：暖中性，替代 zinc-100 */
-  --color-text: #1c1917; /* 正文与主文字（= ink） */
-  --color-text-secondary: #625d55; /* 次要文字：导航标签、页名、品牌身份 */
-  --color-border: #e4e0d5; /* 发丝线边框：暖中性，替代 zinc-200/80 */
-  --color-accent: #0969da; /* 强调/链接色，与正文链接保持一致 */
+  --color-background: #ffffff; /* 页面底色：黑白强对比的纯白 */
+  --color-surface: #ffffff; /* 外壳表面：侧栏 / 顶栏 */
+  --color-surface-muted: #f4f4f5; /* hover / 弱底块：中性浅灰 */
+  --color-text: #0a0a0a; /* 正文与主文字（= ink） */
+  --color-text-secondary: #525252; /* 次要文字：导航标签、页名、品牌身份 */
+  --color-border: #d4d4d8; /* 发丝线边框：中性灰 */
+  --color-accent: #0a0a0a; /* 强调/链接色：与正文同墨色 */
   --color-success: #047857;
   --color-warning: #b45309;
   --color-danger: #b91c1c;
-  /* 焦点环保留原来的中性灰（不改成强调色），只收进 Token 便于统一替换。 */
-  --color-focus-ring: #3f3f46;
+  /* 焦点环：浅色黑、深色白，保持黑白强对比。 */
+  --color-focus-ring: #0a0a0a;
 
   /* 字体语义：与 config/tailwind.config.js 的 fontFamily 保持一致（改一处要同步另一处）。
      font-sans / font-serif 工具类仍走 Tailwind 配置，这里供 CSS 与后续阶段引用。 */
@@ -88,16 +88,16 @@
    会在层叠优先级上输给无层的 :root，深色值将失效。 */
 html.dark {
   --color-background: #0a0a0a; /* = void */
-  --color-surface: #121212;
-  --color-surface-muted: #26262a;
+  --color-surface: #111111;
+  --color-surface-muted: #262626;
   --color-text: #fafafa;
-  --color-text-secondary: #b4b4ba;
-  --color-border: #2a2a2e;
-  --color-accent: #58a6ff;
+  --color-text-secondary: #a3a3a3;
+  --color-border: #2a2a2a;
+  --color-accent: #fafafa;
   --color-success: #34d399;
   --color-warning: #fbbf24;
   --color-danger: #f87171;
-  --color-focus-ring: #d4d4d8;
+  --color-focus-ring: #fafafa;
 }
 
 /* 侧边导航：常驻图标条 + 鼠标移入（或键盘聚焦）时展开为浮层。

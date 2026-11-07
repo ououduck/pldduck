@@ -65,9 +65,9 @@ export default {
         ],
       },
       colors: {
-        // 既有品牌底色：保持原值与原类的含义不变。
-        paper: '#f2f0e9',
-        ink: '#1c1917',
+        // 黑白强对比基底：paper=纯白、ink/void=近黑，旧类名保持兼容。
+        paper: '#ffffff',
+        ink: '#0a0a0a',
         void: '#0a0a0a',
         // 语义颜色（UI 重构第二阶段）：值统一来自 src/index.css 的 --color-* Token，
         // 深色由 html.dark 覆盖同一组变量 —— 组件写 bg-surface / border-line 即可
@@ -122,7 +122,7 @@ export default {
             '--tw-prose-body': theme('colors.ink'),
             '--tw-prose-headings': theme('colors.ink'),
             '--tw-prose-lead': '#57606a',
-            '--tw-prose-links': '#0969da',
+            '--tw-prose-links': 'var(--color-accent)',
             '--tw-prose-bold': theme('colors.ink'),
             '--tw-prose-counters': '#57606a',
             '--tw-prose-bullets': '#d0d7de',
@@ -237,7 +237,7 @@ export default {
 
             // GitHub 链接：蓝色、默认无下划线、悬停显示下划线。
             a: {
-              color: '#0969da',
+              color: 'var(--color-accent)',
               fontWeight: '500',
               textDecoration: 'none',
             },
@@ -273,7 +273,7 @@ export default {
             '--tw-prose-body': '#e4e4e7',
             '--tw-prose-headings': '#fafafa',
             '--tw-prose-lead': '#8b949e',
-            '--tw-prose-links': '#58a6ff',
+            '--tw-prose-links': 'var(--color-accent)',
             '--tw-prose-bold': '#fafafa',
             '--tw-prose-counters': '#8b949e',
             '--tw-prose-bullets': '#30363d',
@@ -312,10 +312,10 @@ export default {
             },
 
             a: {
-              color: '#58a6ff',
+              color: 'var(--color-accent)',
             },
             'a:hover': {
-              textDecorationColor: '#58a6ff',
+              textDecorationColor: 'var(--color-accent)',
             },
 
             hr: {

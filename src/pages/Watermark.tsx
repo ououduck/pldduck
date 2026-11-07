@@ -213,19 +213,15 @@ export const Watermark: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto max-w-7xl pb-12 pt-6 md:pb-20 md:pt-10">
+    <div className="pb-8 md:pb-14">
       <Seo
         title="水印工具"
         description="在浏览器中免费为图片添加文字水印，支持自定义文字样式、实时预览与本地导出，无需上传文件，保护图片版权。"
       />
-      <header className="mb-8 border-b border-zinc-200 pb-8 dark:border-zinc-800 md:mb-10 md:pb-10">
-        <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.28em] text-zinc-500 dark:text-zinc-400">
-          Image Watermark
-        </p>
-        <h1 className="mb-4 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-5xl">
-          图片水印
-        </h1>
-        <p className="max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-400 md:text-base">
+      {/* 编辑式页头：去英文眉题，serif 标题 + 描述 + 发丝线，左对齐 */}
+      <header className="mb-7 border-b border-line pb-5 md:mb-8 md:pb-6">
+        <h1 className="font-serif text-3xl font-bold tracking-tight text-content md:text-4xl">图片水印</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-content-muted md:text-base">
           选择一张图片，添加轻量的文字标识。所有处理都在本地完成，不会上传你的图片。
         </p>
       </header>
@@ -236,7 +232,7 @@ export const Watermark: React.FC = () => {
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ImageIcon size={18} />
-                <h2 className="font-bold text-ink dark:text-white">图片</h2>
+                <h2 className="font-bold text-content">图片</h2>
               </div>
               {imageState && (
                 <button
@@ -289,7 +285,7 @@ export const Watermark: React.FC = () => {
           </section>
 
           <section className={cardClass}>
-            <h2 className="mb-5 font-bold text-ink dark:text-white">水印设置</h2>
+            <h2 className="mb-5 font-bold text-content">水印设置</h2>
             <label className="mb-4 block">
               <span className="mb-2 block text-xs font-semibold text-zinc-600 dark:text-zinc-400">水印文字</span>
               <input
@@ -351,7 +347,7 @@ export const Watermark: React.FC = () => {
           </section>
 
           <section className={cardClass}>
-            <h2 className="mb-5 font-bold text-ink dark:text-white">导出</h2>
+            <h2 className="mb-5 font-bold text-content">导出</h2>
             <div className="mb-4 grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
               <label className="min-w-0 text-xs font-semibold text-zinc-600 dark:text-zinc-400">
                 格式
@@ -407,16 +403,11 @@ export const Watermark: React.FC = () => {
         </aside>
 
         <section className={`${cardClass} min-h-[26rem] md:min-h-[30rem]`} aria-label="水印预览">
-          <div className="mb-5 flex items-center justify-between border-b border-zinc-200 pb-4 dark:border-zinc-800">
-            <div>
-              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
-                Preview
-              </p>
-              <h2 className="text-xl font-bold text-ink dark:text-white">实时预览</h2>
-            </div>
-            {imageState && <span className="text-xs text-zinc-500 dark:text-zinc-400">{format.toUpperCase()}</span>}
+          <div className="mb-5 flex items-center justify-between gap-3 border-b border-line pb-4">
+            <h2 className="text-xl font-bold text-content">实时预览</h2>
+            {imageState && <span className="text-xs tabular-nums text-content-muted">{format.toUpperCase()}</span>}
           </div>
-          <div className="flex min-h-[20rem] min-w-0 items-center justify-center overflow-hidden rounded-control border border-zinc-200 bg-zinc-100 p-3 dark:border-zinc-800 dark:bg-zinc-950/60 min-[360px]:min-h-[24rem] min-[360px]:p-4 md:min-h-[34rem]">
+          <div className="flex min-h-[20rem] min-w-0 items-center justify-center overflow-hidden rounded-control border border-line bg-surface-muted p-3 min-[360px]:min-h-[24rem] min-[360px]:p-4 md:min-h-[34rem]">
             {imageState ? (
               <canvas
                 ref={canvasRef}
@@ -427,7 +418,7 @@ export const Watermark: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-3 px-2 text-zinc-500 transition-colors hover:text-ink dark:text-zinc-400 dark:hover:text-white"
+                className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-3 px-2 text-content-muted transition-colors hover:text-content"
               >
                 <ImageIcon size={40} strokeWidth={1.2} />
                 <span className="text-center text-sm">选择图片开始预览</span>

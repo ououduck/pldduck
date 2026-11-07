@@ -54,6 +54,28 @@ describe('CoverGenerator', () => {
     expect(screen.getByRole('tab', { name: '导出' })).toBeInTheDocument();
   });
 
+  it('页头为 serif 中文标题，不再有英文大写眉题', () => {
+    renderCover();
+    const heading = screen.getByRole('heading', { level: 1, name: '封面生成器' });
+    expect(heading).toHaveClass('font-serif');
+    expect(screen.queryByText('COVER STUDIO')).not.toBeInTheDocument();
+  });
+
+  it('标签页支持方向键切换（键盘交互保持）', async () => {
+    const userEvent = (await import('@testing-library/user-event')).default;
+    const user = userEvent.setup();
+    renderCover();
+    const contentTab = screen.getByRole('tab', { name: '内容' });
+    expect(contentTab).toHaveAttribute('aria-selected', 'true');
+
+    contentTab.focus();
+    await user.keyboard('{ArrowRight}');
+
+    const styleTab = await screen.findByRole('tab', { name: '样式' });
+    expect(styleTab).toHaveAttribute('aria-selected', 'true');
+    expect(contentTab).toHaveAttribute('aria-selected', 'false');
+  });
+
   it('切换标签页显示对应设置面板', async () => {
     const userEvent = (await import('@testing-library/user-event')).default;
     const user = userEvent.setup();

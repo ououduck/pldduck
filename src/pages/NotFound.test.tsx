@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToString } from 'react-dom/server';
+import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { NotFound } from './NotFound';
 
@@ -70,5 +71,32 @@ describe('NotFound — 404 页功能模块', () => {
     await user.type(screen.getByRole('searchbox', { name: '搜索本站内容' }), '{Enter}');
     const probe = await screen.findByTestId('search-probe');
     expect(probe).toHaveTextContent('q=');
+  });
+
+  it('渲染最近 3 篇文章入口，标题使用衬线常规大小', () => {
+    renderAtPath('/missing');
+    const heading = screen.getByRole('heading', { level: 2, name: '最近的文章' });
+    expect(heading).toHaveClass('font-serif');
+    const section = heading.closest('section');
+    expect(section).not.toBeNull();
+    const recentLinks = within(section as HTMLElement).getAllByRole('link');
+    expect(recentLinks).toHaveLength(3);
+    recentLinks.forEach((link) => {
+      expect(link.getAttribute('href')).toMatch(/^\/post\//);
+    });
+  });
+
+  it('保持 noindex，避免 404 页被收录', () => {
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/missing']}>
+          <Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    const robots = document.head.querySelector('meta[name="robots"]');
+    expect(robots?.getAttribute('content')).toContain('noindex');
   });
 });

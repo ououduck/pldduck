@@ -26,9 +26,13 @@ const renderShuoShuo = (initialEntry = '/shuoshuo') =>
   );
 
 describe('ShuoShuo', () => {
-  it('页面标题与介绍渲染', () => {
+  it('渲染衬线页面标题与介绍，不再输出英文眉题', () => {
     renderShuoShuo();
-    expect(screen.getByRole('heading', { level: 1, name: '说说' })).toBeInTheDocument();
+    const heading = screen.getByRole('heading', { level: 1, name: '说说' });
+    expect(heading).toBeInTheDocument();
+    expect(heading).toHaveClass('font-serif');
+    expect(screen.getByText('这里是一块类似 PLDDUCK 朋友圈的短动态小天地。')).toBeInTheDocument();
+    expect(screen.queryByText('ShuoShuo · Moments')).not.toBeInTheDocument();
   });
 
   it('giscusEnabled=true 时按公告 discussion 编号锁定内嵌评论区', () => {

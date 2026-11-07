@@ -42,13 +42,10 @@ export const ShuoShuo = () => {
         ]}
       />
 
-      <header className="mb-6 border-b border-zinc-200 pb-8 dark:border-zinc-800 md:pb-10">
-        <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
-          <MessageCircle size={14} aria-hidden="true" />
-          ShuoShuo · Moments
-        </p>
-        <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-5xl">说说</h1>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400 md:text-base">
+      {/* 编辑式页头：只保留衬线标题、介绍与一条发丝线，不再输出英文眉题/图标。 */}
+      <header className="mb-8 border-b border-line pb-7 md:mb-10 md:pb-9">
+        <h1 className="font-serif text-4xl font-bold tracking-tight text-content md:text-5xl">说说</h1>
+        <p className="mt-3 max-w-xl text-sm leading-7 text-content-muted md:text-base">
           这里是一块类似 PLDDUCK 朋友圈的短动态小天地。
         </p>
       </header>

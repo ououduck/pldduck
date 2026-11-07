@@ -26,7 +26,6 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Wand2,
   ArrowLeftRight,
   RotateCcw,
   RotateCw,
@@ -1384,19 +1383,16 @@ export const CoverGenerator: React.FC = () => {
     'inline-flex items-center rounded-full border border-zinc-300 bg-paper px-3 py-1 text-xs font-semibold text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300';
 
   return (
-    <div className="pb-20">
+    <div className="pb-8 md:pb-14">
       <Seo
         title="封面生成"
         description="在线免费生成精美博客文章封面图片，支持自定义文字、图标与渐变背景，适配多种社交分享比例，开箱即用无需登录。"
       />
 
-      <header className="mb-6 border-b border-zinc-200 px-1 pb-7 text-center dark:border-zinc-800 md:pb-9">
-        <div className="mb-3 inline-flex items-center gap-2 text-xs font-semibold tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-          <Wand2 size={14} />
-          COVER STUDIO
-        </div>
-        <h1 className="mb-3 text-3xl font-bold tracking-tight text-ink dark:text-white md:text-5xl">封面生成器</h1>
-        <p className="mx-auto max-w-3xl text-sm leading-6 text-zinc-500 dark:text-zinc-400 md:text-base">
+      {/* 编辑式页头：去英文眉题，serif 标题 + 描述 + 发丝线，左对齐 */}
+      <header className="mb-6 border-b border-line pb-5 md:mb-7 md:pb-6">
+        <h1 className="font-serif text-3xl font-bold tracking-tight text-content md:text-4xl">封面生成器</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-content-muted md:text-base">
           聚焦博客封面生成体验，保留现有的 <strong>纯黑</strong> 与 <strong>纯白</strong>{' '}
           两种背景模板，补足更顺手的编辑、预览与导出能力。
         </p>
@@ -1405,7 +1401,7 @@ export const CoverGenerator: React.FC = () => {
       <div
         role="tablist"
         aria-label="封面编辑设置"
-        className="mb-5 flex flex-wrap justify-center gap-1 border-b border-zinc-200 pb-3 dark:border-zinc-800"
+        className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-1 border-b border-line md:mb-6"
       >
         {(['content', 'style', 'layout', 'export'] as const).map((tab) => (
           <button
@@ -1418,10 +1414,10 @@ export const CoverGenerator: React.FC = () => {
             tabIndex={activeTab === tab ? 0 : -1}
             onClick={() => setActiveTab(tab)}
             onKeyDown={handleTabKeyDown}
-            className={`min-h-11 rounded-control px-5 py-2.5 text-sm font-semibold transition-colors ${
+            className={`-mb-px min-h-11 border-b-2 px-1 text-sm font-semibold transition-colors ${
               activeTab === tab
-                ? 'bg-ink text-white dark:bg-white dark:text-ink'
-                : 'text-zinc-600 hover:bg-zinc-100 hover:text-ink dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white'
+                ? 'border-content text-content'
+                : 'border-transparent text-content-muted hover:text-content'
             }`}
           >
             {{ content: '内容', style: '样式', layout: '排版', export: '导出' }[tab]}

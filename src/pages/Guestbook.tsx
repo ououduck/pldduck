@@ -40,12 +40,9 @@ export const Guestbook = () => {
         ]}
       />
 
-      <header className="mb-6 md:mb-8">
-        <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
-          <MessageSquareText size={14} aria-hidden="true" />
-          Guestbook
-        </p>
-        <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-5xl">留言板</h1>
+      {/* 编辑式页头：只保留衬线标题与一条发丝线，不输出英文眉题/图标。 */}
+      <header className="mb-8 border-b border-line pb-7 md:mb-10 md:pb-9">
+        <h1 className="font-serif text-4xl font-bold tracking-tight text-content md:text-5xl">留言板</h1>
       </header>
 
       {siteConfig.giscusEnabled ? (

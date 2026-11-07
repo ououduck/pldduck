@@ -1,15 +1,17 @@
 /**
- * 首页：极简个人主页。
+ * 首页：极简个人主页 + 全站搜索 + 联系方式。
  *
- * 只呈现站主身份本身——头像、名字、个人介绍与联系方式；门户入口、搜索、
- * 开源项目、订阅卡等内容已全部移除。文案全部来自构建期内联的 `siteConfig`，
- * 渲染期不访问时钟、随机值或客户端 API，SSG 与水合首帧严格一致。
+ * 站主身份、搜索与联系/订阅入口集中在首页；侧边栏只保留内容导航与工具。
+ * 文案全部来自构建期内联的 `siteConfig`，搜索首帧为空字符串，渲染期不访问
+ * 时钟、随机值或客户端 API，SSG 与水合首帧严格一致。
  */
 
-import { useEffect, useRef, useState } from 'react';
-import { Check, Copy, Github, Mail } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Check, Copy, Github, Mail, Rss, Search } from 'lucide-react';
 import { siteConfig } from '@config/site.config';
 import { Seo, buildSiteSchemas } from '@/components/Seo';
+import { ISSUE_SUBSCRIPTION_URL } from '@/components/IssueSubscriptionCard';
 import { useResetTimer } from '@/hooks/useResetTimer';
 import { copyTextToClipboard } from '@/utils/clipboard';
 import { absoluteSiteUrl, assetUrl } from '@/utils/siteUrl';
@@ -50,6 +52,8 @@ const contactItemClassName =
 const contactIconClassName = 'shrink-0 text-zinc-400 dark:text-zinc-500';
 
 export const Home = () => {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
   const [qqFeedback, setQqFeedback] = useState<CopyFeedback>('idle');
   const { schedule: scheduleFeedbackReset } = useResetTimer();
   // 复制是异步的：组件若在 promise 落地前卸载，不得再 setState。
@@ -89,6 +93,12 @@ export const Home = () => {
   const copyStatusMessage =
     qqFeedback === 'copied' ? 'QQ 号已复制到剪贴板' : qqFeedback === 'error' ? '复制失败，请手动复制 QQ 号' : '';
 
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    navigate(query ? `/search?q=${encodeURIComponent(query)}` : '/search');
+  };
+
   return (
     <>
       <Seo
@@ -121,9 +131,33 @@ export const Home = () => {
             {siteConfig.author.bio}
           </p>
 
+          <form role="search" onSubmit={handleSearchSubmit} className="mx-auto mt-9 max-w-md">
+            <label htmlFor="home-search" className="sr-only">
+              搜索全站
+            </label>
+            <div className="flex items-center gap-2 border-b border-zinc-300 pb-1 transition-colors focus-within:border-ink dark:border-zinc-700 dark:focus-within:border-white">
+              <Search size={16} aria-hidden="true" className="shrink-0 text-zinc-400 dark:text-zinc-500" />
+              <input
+                id="home-search"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="搜索文章、标签与分类…"
+                autoComplete="off"
+                className="min-h-11 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-zinc-400 dark:text-white dark:placeholder:text-zinc-500"
+              />
+              <button
+                type="submit"
+                className="min-h-11 shrink-0 px-1 text-sm font-medium text-ink transition-colors hover:text-zinc-500 dark:text-white dark:hover:text-zinc-400"
+              >
+                搜索
+              </button>
+            </div>
+          </form>
+
           <nav
             aria-label="联系方式"
-            className="mt-9 flex flex-col items-center gap-0.5 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-6 sm:gap-y-1"
+            className="mt-8 flex flex-col items-center gap-0.5 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-6 sm:gap-y-1"
           >
             <a
               href={siteConfig.social.github}
@@ -156,6 +190,33 @@ export const Home = () => {
                 <span>QQ {qqNumber}</span>
               </button>
             )}
+
+            <a href={assetUrl('/feed.xml')} className={`${contactItemClassName} group`}>
+              <Rss size={16} aria-hidden="true" className={contactIconClassName} />
+              <span className="underline-offset-4 group-hover:underline">RSS 订阅</span>
+            </a>
+
+            <a
+              href={ISSUE_SUBSCRIPTION_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${contactItemClassName} group`}
+            >
+              <Bell size={16} aria-hidden="true" className={contactIconClassName} />
+              <span className="underline-offset-4 group-hover:underline">更新订阅</span>
+              <span className="sr-only">（外部站点，新标签页打开）</span>
+            </a>
+
+            <a
+              href={siteConfig.friendsPage.repoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${contactItemClassName} group`}
+            >
+              <Github size={16} aria-hidden="true" className={contactIconClassName} />
+              <span className="underline-offset-4 group-hover:underline">项目仓库</span>
+              <span className="sr-only">（外部站点，新标签页打开）</span>
+            </a>
           </nav>
 
           {/* 复制结果只在这里播报：成功/失败都如实反馈，反馈期间不挪动上方联系方式。 */}

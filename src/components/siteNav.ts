@@ -6,24 +6,17 @@
 
 import {
   Archive,
-  Bell,
   BookOpen,
-  Github,
   House,
   Image as ImageIcon,
-  Mail,
   MessageCircle,
   MessageSquareText,
-  Rss,
   Search,
   Stamp,
   Tag,
   TrainFront,
   Users,
 } from 'lucide-react';
-import { assetUrl } from '@/utils/siteUrl';
-import { siteConfig } from '@config/site.config';
-import { ISSUE_SUBSCRIPTION_URL } from './IssueSubscriptionCard';
 
 /** lucide 图标组件类型：沿用 Layout 既有写法，避免依赖 lucide 的类型导出名。 */
 type NavIcon = typeof BookOpen;
@@ -83,15 +76,6 @@ export const navGroups: NavGroup[] = [
       { key: 'search', path: '/search', label: '站内搜索', hint: '全站检索', icon: Search },
       { key: 'cover', path: '/cover', label: '封面生成器', hint: '制作文章封面', icon: ImageIcon },
       { key: 'watermark', path: '/watermark', label: '水印工具', hint: '给图片加文字水印', icon: Stamp },
-    ],
-  },
-  {
-    label: '订阅与联系',
-    items: [
-      { key: 'email', href: siteConfig.social.email, label: '邮件', hint: '联系作者', icon: Mail, newTab: false },
-      { key: 'github', href: siteConfig.friendsPage.repoUrl, label: 'GitHub', hint: '项目仓库', icon: Github },
-      { key: 'rss', href: assetUrl('/feed.xml'), label: 'RSS 订阅', hint: '订阅更新', icon: Rss },
-      { key: 'issue-subscription', href: ISSUE_SUBSCRIPTION_URL, label: '更新订阅', hint: '接收文章提醒', icon: Bell },
     ],
   },
 ];

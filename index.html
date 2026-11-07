@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -14,21 +14,10 @@
          实际输出为准），仅作为开发模式 / 未跑 SSG 时的后备。文案与 siteConfig 保持一致。 -->
     <meta name="description" content="跑路的duck的小站" />
     <meta name="keywords" content="pldduck,跑路的duck,前端博客,技术分享,编程教程,React,TypeScript,Web开发" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f0e9" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
-    <!-- color-scheme：声明明暗双模式，让 UA 组件（滚动条/表单控件/默认 canvas 色）在 CSS 加载前适配深色，避免深色模式首帧闪白。mergeHead 不移除该标签，生产构建安全保留。 -->
-    <meta name="color-scheme" content="light dark" />
-    <script>
-      (function () {
-        try {
-          var theme = localStorage.getItem('theme');
-          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          if (theme === 'dark' || (theme !== 'light' && prefersDark)) {
-            document.documentElement.classList.add('dark');
-          }
-        } catch (_) {}
-      })();
-    </script>
+    <meta name="theme-color" content="#0a0a0a" />
+    <!-- color-scheme：全站深色唯一，声明 dark 让 UA 组件（滚动条/表单控件/默认 canvas 色）
+         在 CSS 加载前就适配深色，避免首帧闪白。mergeHead 不移除该标签，生产构建安全保留。 -->
+    <meta name="color-scheme" content="dark" />
 
     <!-- DNS 预解析和预连接优化 -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
@@ -93,7 +82,7 @@
     </script>
   </head>
 
-  <body class="bg-paper text-ink dark:bg-void dark:text-gray-200 overflow-x-hidden">
+  <body class="bg-void text-ink overflow-x-hidden">
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
   </body>

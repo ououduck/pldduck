@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToString } from 'react-dom/server';
@@ -72,6 +74,39 @@ describe('Home', () => {
       assetUrl(siteConfig.author.avatar),
     );
     expect(screen.getByText(siteConfig.author.bio)).toBeInTheDocument();
+  });
+
+  it('深色唯一：模板首帧即 dark，没有浅色主题与 localStorage 启动脚本', () => {
+    const indexHtml = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+
+    expect(indexHtml).toContain('<html lang="zh-CN" class="dark">');
+    expect(indexHtml).toContain('<meta name="color-scheme" content="dark" />');
+    expect(indexHtml).not.toContain("localStorage.getItem('theme')");
+    expect(indexHtml).not.toContain('prefers-color-scheme: light');
+  });
+
+  it('首页使用大色块 hero 面板与克制的 CSS 入场结构（无内联动画、SSR 可确定）', () => {
+    renderHome();
+
+    const hero = document.querySelector('.home-hero');
+    expect(hero).not.toBeNull();
+    expect(hero?.querySelector('.home-hero-glow')).not.toBeNull();
+
+    const reveals = Array.from(document.querySelectorAll('[data-home-reveal]'));
+    expect(reveals.map((element) => element.getAttribute('data-home-reveal'))).toEqual([
+      'avatar',
+      'title',
+      'bio',
+      'search',
+      'contact',
+    ]);
+    // 入场完全由 CSS 类驱动：SSR/首帧不写内联动画样式，避免水合差异。
+    reveals.forEach((element) => expect(element.getAttribute('style')).toBeNull());
+  });
+
+  it('不再有主题切换入口（深色唯一）', () => {
+    renderHome();
+    expect(screen.queryByRole('button', { name: /切换外观主题|切换深浅色/ })).not.toBeInTheDocument();
   });
 
   it('首页承载联系方式与订阅入口：GitHub / 邮箱 / RSS / 更新订阅 / 项目仓库', () => {

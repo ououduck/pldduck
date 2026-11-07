@@ -85,16 +85,14 @@ describe('Layout', () => {
     expect(within(rail).getByRole('link', { name: /^友链/ })).toBeInTheDocument();
   });
 
-  it('侧边栏常驻含归档与标签（不再收纳进「更多」）', () => {
+  it('侧边栏已移除「标签」与「站内搜索」导航（标签并入文章页）', () => {
     renderLayout();
     const rail = sidebar();
+    expect(within(rail).queryByRole('link', { name: /^标签/ })).not.toBeInTheDocument();
+    expect(within(rail).queryByRole('link', { name: /^站内搜索/ })).not.toBeInTheDocument();
+    // 其余栏目入口保持常驻。
     expect(within(rail).getByRole('link', { name: /^归档/ })).toBeInTheDocument();
-    expect(within(rail).getByRole('link', { name: /^标签/ })).toBeInTheDocument();
-  });
-
-  it('侧边栏提供站内搜索入口（此前只能靠 Ctrl+K 打开命令面板）', () => {
-    renderLayout();
-    expect(within(sidebar()).getByRole('link', { name: /^站内搜索/ })).toHaveAttribute('href', '/search');
+    expect(within(rail).getByRole('link', { name: /^友链/ })).toBeInTheDocument();
   });
 
   it('当前页在侧栏中以 aria-current 标记', () => {
@@ -103,9 +101,9 @@ describe('Layout', () => {
     expect(within(sidebar()).getByRole('link', { name: /^首页/ })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('渲染主题切换按钮', () => {
+  it('深色唯一：顶栏不再渲染主题切换按钮', () => {
     renderLayout();
-    expect(screen.getAllByRole('button', { name: /切换外观主题/ }).length).toBe(1);
+    expect(screen.queryByRole('button', { name: /切换外观主题/ })).not.toBeInTheDocument();
   });
 
   it('渲染搜索入口按钮', () => {
@@ -260,7 +258,7 @@ describe('Layout', () => {
     await waitForNavOpen();
 
     // 抽屉内的栏目项是 button（先播关闭动画、动画结束再导航），不是 Link。
-    await user.click(within(dialog).getByRole('button', { name: /^标签/ }));
+    await user.click(within(dialog).getByRole('button', { name: /^友链/ }));
     await waitForNavClosed();
     expect(screen.queryByRole('dialog', { name: '移动端导航菜单' })).not.toBeInTheDocument();
   });

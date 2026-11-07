@@ -1,7 +1,7 @@
 /**
  * 文章阅读控制台（编排层）：
- * - 桌面（≥1024px）：CapsuleNav 悬浮胶囊（目录/进度/分享/复制/阅读模式）；
- * - 移动（<1024px）：ArticleToolbar 工具栏 + 受控 TableOfContents 目录 Sheet；
+ * - 桌面（≥1024px）：CapsuleNav 右侧小目录入口（目录/进度/分享/复制/阅读模式）；
+ * - 移动（<1024px）：ArticleToolbar 精简工具栏 + 受控 TableOfContents 目录 Sheet；
  * - 统一数据源：useActiveHeading / useReadingProgress / utils/toc 单一实现；
  * - 媒体查询决定渲染哪套 UI，同一时刻只有一套监听器在跑（性能约束）。
  */
@@ -89,7 +89,6 @@ export const ArticleConsole: React.FC<ArticleConsoleProps> = ({ headings, target
           onOpenToc={openToc}
           onShare={onShare}
           onToggleReadingMode={toggleReadingMode}
-          onCopyArticleLink={handleCopyArticleLink}
         />
         <TableOfContents
           headings={headings}

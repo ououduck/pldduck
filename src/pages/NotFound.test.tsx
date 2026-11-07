@@ -52,7 +52,7 @@ describe('NotFound — 404 页功能模块', () => {
     expect(screen.getByRole('heading', { name: '这篇文章跑路了 🏃' })).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: '搜索本站内容' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /归档/ })).toHaveAttribute('href', '/archive');
-    expect(screen.getByRole('link', { name: /标签/ })).toHaveAttribute('href', '/tags');
+    expect(screen.getByRole('link', { name: /标签/ })).toHaveAttribute('href', '/posts');
     expect(screen.getByRole('link', { name: /进入搜索页/ })).toHaveAttribute('href', '/search');
     expect(screen.getByRole('link', { name: /返回首页/ })).toHaveAttribute('href', '/');
   });

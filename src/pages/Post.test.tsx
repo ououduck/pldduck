@@ -114,8 +114,8 @@ describe('Post', () => {
   it('进入阅读模式：控制台消失、仅保留退出按钮；退出后恢复', async () => {
     renderPost();
     await screen.findByText('测试文章标题');
-    fireEvent.click(await screen.findByRole('button', { name: '更多阅读操作' }, { timeout: 4000 }));
-    fireEvent.click(await screen.findByRole('menuitem', { name: '专注阅读' }));
+    // 移动工具栏已去掉「更多」二级菜单：专注阅读是底栏直达入口。
+    fireEvent.click(await screen.findByRole('button', { name: '进入专注阅读' }, { timeout: 4000 }));
     await waitFor(() => expect(screen.getByRole('button', { name: '退出专注阅读' })).toBeInTheDocument());
     expect(screen.queryByRole('toolbar', { name: '文章阅读工具' })).not.toBeInTheDocument();
 
@@ -240,12 +240,12 @@ describe('Post', () => {
     // 触发多次 Post 重渲染（阅读模式开/关等状态变化）：若渲染组件对象被 useMemo
     // 缓存复用，resolveHeadingId 游标已走到末尾，标题 id 会退化为 slug-N 兜底并
     // 逐次递增（-1、-2…），与 headings 数组发散，目录点击找不到锚点。
-    // 阅读模式现经移动工具栏「更多」菜单进入（ReadingModeToggle 已并入控制台）。
+    // 阅读模式现经移动工具栏直达入口进入（ReadingModeToggle 已并入控制台）。
     // 工具栏在懒加载 chunk + 两层 isClient effect 后才挂载：CI 冷环境高负载下
     // 同步 getByRole 会在挂载前查询（曾致 CI 单次失败），统一改用带超时的
     // findByRole 轮询。
-    fireEvent.click(await screen.findByRole('button', { name: '更多阅读操作' }, { timeout: 4000 }));
-    fireEvent.click(await screen.findByRole('menuitem', { name: '专注阅读' }));
+    // 移动工具栏已去掉「更多」二级菜单：专注阅读是底栏直达入口。
+    fireEvent.click(await screen.findByRole('button', { name: '进入专注阅读' }, { timeout: 4000 }));
     await waitFor(() => expect(screen.getByRole('button', { name: '退出专注阅读' })).toBeInTheDocument());
     // 阅读模式下控制台整体隐藏（仅保留右上角退出按钮）。
     expect(screen.queryByRole('toolbar', { name: '文章阅读工具' })).not.toBeInTheDocument();

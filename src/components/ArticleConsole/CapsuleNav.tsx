@@ -1,10 +1,12 @@
 /**
- * 桌面端胶囊文章导航（≥1024px）：
- * - 收缩态：右侧迷你轨（展开按钮 + 章节序号 + 进度 + 回到顶部），绝不遮挡正文；
+ * 桌面端文章目录入口（≥1024px）：
+ * - 收缩态：右侧单枚小圆按钮（目录图标 + 进度环），安静、不遮挡正文；
  * - hover 轻展开预览（250ms 意图延迟），点击/键盘 focus 固定展开，钉住后不自动收起；
  * - 展开态 = 目录树（共享 TocTree）+ 真实阅读进度 + 阅读操作区；
  * - 状态记忆：pinned/展开状态跨文章导航继承（模块级），专注阅读进出快照恢复；
  * - 定位：fixed 垂直居中，right 偏移按文章容器右缘动态计算（resize 跟随）。
+ *
+ * 视觉：面板用 surface 大色块 + 间距分隔，不再使用高耸的数字胶囊轨/多重描边。
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -24,9 +26,16 @@ import { hasOpenOverlay } from '@/hooks/useModalOverlay';
 
 const HOVER_INTENT_MS = 250;
 const COPY_FEEDBACK_MS = 2000;
-/** 迷你轨最多展示的章节序号数（超出则以「当前/总数」形式显示）。 */
-const MAX_RAIL_SECTIONS = 6;
-const RAIL_WIDTH = 56;
+/** 圆按钮尺寸（与 Tailwind h-11 对齐）：定位公式据此预留右侧留白。 */
+const CAPSULE_BUTTON_SIZE = 44;
+/** 进度环半径/周长（SVG viewBox 44×44，描边 2px）。 */
+const PROGRESS_RING_RADIUS = 20;
+const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * PROGRESS_RING_RADIUS;
+/** 面板操作行：surface 面板上的 ghost 行（无边框，hover 用弱底）。 */
+const PANEL_ACTION_CLASS =
+  'flex min-h-10 items-center gap-2.5 rounded-control px-2.5 text-[13px] text-content-muted transition-colors hover:bg-surface-muted hover:text-content disabled:cursor-not-allowed disabled:opacity-40';
+const PANEL_ICON_BUTTON_CLASS =
+  'inline-flex h-9 w-9 items-center justify-center rounded-icon text-content-muted transition-colors hover:bg-surface-muted hover:text-content';
 
 type CopyFeedback = { kind: 'article' | 'heading'; ok: boolean } | null;
 
@@ -105,7 +114,7 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
       }
       const rect = element.getBoundingClientRect();
       const available = window.innerWidth - rect.right;
-      const offset = Math.max(16, Math.min(available - RAIL_WIDTH - 12, 96));
+      const offset = Math.max(16, Math.min(available - CAPSULE_BUTTON_SIZE - 12, 96));
       document.documentElement.style.setProperty('--capsule-right', `${offset}px`);
     };
 
@@ -268,58 +277,6 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
     activeElement.scrollIntoView({ block: 'nearest', behavior: shouldReduceMotion ? 'auto' : 'smooth' });
   }, [activeHeadingId, expandedMap, isExpanded, shouldReduceMotion]);
 
-  const activeRootIndex = headingTree.findIndex((node) => node.id === activeRootBranchId);
-  const railRoots = headingTree.slice(0, MAX_RAIL_SECTIONS);
-
-  const railActions = (
-    <>
-      <button
-        ref={railToggleRef}
-        type="button"
-        onClick={toggleUserExpanded}
-        className="capsule-rail-btn"
-        aria-label={isExpanded ? '收起文章导航' : '展开文章导航'}
-        aria-expanded={isExpanded}
-      >
-        {isExpanded ? <X size={16} /> : <List size={16} />}
-      </button>
-      {railRoots.map((node) => {
-        const isCurrentRoot = node.id === activeRootBranchId;
-        return (
-          <button
-            key={node.id}
-            type="button"
-            onClick={() => handleNavigate(node.id)}
-            className={`capsule-rail-btn capsule-rail-num ${isCurrentRoot ? 'capsule-rail-num-active' : ''}`}
-            aria-label={`跳转到章节 ${node.index + 1}：${node.text}`}
-            title={node.text}
-          >
-            {String(node.index + 1).padStart(2, '0')}
-          </button>
-        );
-      })}
-      {headingTree.length > MAX_RAIL_SECTIONS && (
-        <span
-          className="capsule-rail-num capsule-rail-total"
-          aria-label={`当前第 ${activeRootIndex + 1} 章，共 ${headingTree.length} 章`}
-          title={`当前第 ${activeRootIndex + 1} / ${headingTree.length} 章`}
-        >
-          {String((activeRootIndex >= 0 ? activeRootIndex : 0) + 1).padStart(2, '0')}
-          <span aria-hidden="true">/{headingTree.length}</span>
-        </span>
-      )}
-      <span className="capsule-progress" title={`阅读进度 ${percentage}%`}>
-        <span className="capsule-progress-track" aria-hidden="true">
-          <span className="capsule-progress-fill" style={{ height: `${percentage}%` }} />
-        </span>
-        <span className="capsule-progress-num" aria-hidden="true">
-          {percentage}
-        </span>
-        <span className="sr-only">阅读进度 {percentage}%</span>
-      </span>
-    </>
-  );
-
   const capsule = createPortal(
     <div
       className="capsule-container"
@@ -341,39 +298,78 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
         }
       }}
     >
-      {/* 迷你轨：收缩态 & 展开态下仍保留（展开面板绝对定位在轨左侧，不占流式布局） */}
-      <nav
-        ref={railRef}
-        aria-label="文章导航（收缩）"
-        className={`capsule-rail ${isExpanded ? 'capsule-rail-dimmed' : ''}`}
-      >
-        {railActions}
+      {/* 目录入口：单枚小圆按钮（图标 + 进度环），安静地贴在正文右侧留白带 */}
+      <nav ref={railRef} aria-label="文章目录入口" className="relative">
+        <button
+          ref={railToggleRef}
+          type="button"
+          onClick={toggleUserExpanded}
+          className="relative flex h-11 w-11 items-center justify-center rounded-full bg-surface text-content-muted shadow-lg transition-colors hover:bg-surface-muted hover:text-content"
+          aria-label={isExpanded ? '收起文章导航' : '展开文章导航'}
+          aria-expanded={isExpanded}
+          title={`${isExpanded ? '收起目录' : '展开目录'} · 阅读进度 ${percentage}%`}
+        >
+          {/* 进度环：只做视觉刻度，语义进度由下方 sr-only 文本承担 */}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 44 44"
+            className="pointer-events-none absolute inset-0 h-full w-full -rotate-90"
+          >
+            <circle
+              cx="22"
+              cy="22"
+              r={PROGRESS_RING_RADIUS}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="opacity-20"
+            />
+            <circle
+              cx="22"
+              cy="22"
+              r={PROGRESS_RING_RADIUS}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeDasharray={PROGRESS_RING_CIRCUMFERENCE}
+              strokeDashoffset={PROGRESS_RING_CIRCUMFERENCE * (1 - Math.min(100, Math.max(0, percentage)) / 100)}
+            />
+          </svg>
+          {isExpanded ? <X size={16} aria-hidden="true" /> : <List size={16} aria-hidden="true" />}
+        </button>
+        <span className="sr-only">阅读进度 {percentage}%</span>
       </nav>
 
-      {/* 展开面板：绝对定位于迷你轨左侧（不挤动轨道，消除 hover 位移抽搐）；
+      {/* 展开面板：绝对定位于目录按钮左侧（不挤动按钮，消除 hover 位移抽搐）；
           wrapper 自带 0.5rem 右侧内边距作为指针过渡桥；可见性由容器
           data-expanded + CSS opacity/visibility 过渡驱动（visibility:hidden
           时移出可访问性树）。 */}
       <aside ref={panelRef} className="capsule-panel" role="group" aria-label="文章阅读导航面板">
-        <div className="capsule-panel-card">
-          <div className="capsule-panel-head">
-            <span className="capsule-panel-title">文章目录</span>
+        <div className="flex max-h-[min(80vh,42rem)] w-[min(20rem,42vw)] flex-col overflow-hidden rounded-overlay bg-surface shadow-2xl">
+          <div className="flex items-center gap-1 px-3 pb-1 pt-2.5">
+            <span className="flex-1 text-[13px] font-semibold">文章目录</span>
             <button
               type="button"
               onClick={togglePinned}
-              className="capsule-panel-btn"
+              className={`${PANEL_ICON_BUTTON_CLASS} ${pinned ? 'bg-surface-muted text-content' : ''}`}
               aria-label={pinned ? '取消固定导航面板' : '固定导航面板'}
               aria-pressed={pinned}
               title={pinned ? '取消固定' : '固定（阅读期间保持展开）'}
             >
-              {pinned ? <PinOff size={14} /> : <Pin size={14} />}
+              {pinned ? <PinOff size={14} aria-hidden="true" /> : <Pin size={14} aria-hidden="true" />}
             </button>
-            <button type="button" onClick={toggleUserExpanded} className="capsule-panel-btn" aria-label="收起导航面板">
-              <X size={14} />
+            <button
+              type="button"
+              onClick={toggleUserExpanded}
+              className={PANEL_ICON_BUTTON_CLASS}
+              aria-label="收起导航面板"
+            >
+              <X size={14} aria-hidden="true" />
             </button>
           </div>
 
-          <div className="capsule-panel-toc">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-2">
             {headingTree.length > 0 && (
               <TocTree
                 nodes={headingTree}
@@ -388,23 +384,23 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
             )}
           </div>
 
-          <div className="capsule-panel-progress">
+          <div className="flex items-center gap-2 bg-surface-muted px-3 py-2 text-[11px] text-content-muted">
             <span>阅读进度</span>
-            <span className="capsule-panel-progress-track" aria-hidden="true">
-              <span className="capsule-panel-progress-fill" style={{ width: `${percentage}%` }} />
+            <span className="h-1 flex-1 overflow-hidden rounded-full bg-background" aria-hidden="true">
+              <span className="block h-full rounded-full bg-content" style={{ width: `${percentage}%` }} />
             </span>
             <span className="tabular-nums">{percentage}%</span>
           </div>
 
-          <div className="capsule-panel-actions">
-            <button type="button" onClick={onShare} className="capsule-action-row" aria-label="分享文章">
+          <div className="flex flex-col gap-0.5 p-1.5">
+            <button type="button" onClick={onShare} className={PANEL_ACTION_CLASS} aria-label="分享文章">
               <Share2 size={15} aria-hidden="true" />
               <span>分享</span>
             </button>
             <button
               type="button"
               onClick={() => void handleCopyArticleLink()}
-              className="capsule-action-row"
+              className={PANEL_ACTION_CLASS}
               aria-label="复制文章链接"
             >
               <Link2 size={15} aria-hidden="true" />
@@ -413,7 +409,7 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
             <button
               type="button"
               onClick={() => void handleCopyHeadingLink()}
-              className="capsule-action-row"
+              className={PANEL_ACTION_CLASS}
               aria-label="复制当前标题链接"
               disabled={!activeHeadingId}
             >
@@ -423,7 +419,7 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
             <button
               type="button"
               onClick={onToggleReadingMode}
-              className="capsule-action-row"
+              className={PANEL_ACTION_CLASS}
               aria-label="进入专注阅读"
             >
               <Eye size={15} aria-hidden="true" />
@@ -431,7 +427,7 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
             </button>
           </div>
 
-          <p className="capsule-copy-status" role="status" aria-live="polite">
+          <p className="min-h-[1.25rem] px-3 pb-2 text-[11px] text-content-muted" role="status" aria-live="polite">
             {copyFeedback
               ? copyFeedback.ok
                 ? copyFeedback.kind === 'article'

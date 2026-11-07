@@ -89,7 +89,7 @@ export const NotFound: React.FC = () => {
             归档
           </Link>
           <Link
-            to="/tags"
+            to="/posts"
             className="inline-flex min-h-11 items-center text-content-muted underline-offset-4 transition-colors hover:text-content hover:underline"
           >
             标签

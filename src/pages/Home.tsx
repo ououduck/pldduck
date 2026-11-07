@@ -45,11 +45,11 @@ const profilePageSchema = {
   },
 };
 
-// 联系方式是轻量文字链接，不是三个大按钮：统一的低对比基色 + 悬停加深即可。
+// 联系方式是轻量文字链接，不是三个大按钮：统一的次要文字色 + 悬停弱底/下划线。
 const contactItemClassName =
-  'inline-flex min-h-11 items-center gap-2 text-zinc-600 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-400 dark:hover:text-white dark:focus-visible:outline-zinc-100';
+  'inline-flex min-h-11 items-center gap-2 rounded-control px-2.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-content';
 
-const contactIconClassName = 'shrink-0 text-zinc-400 dark:text-zinc-500';
+const contactIconClassName = 'shrink-0 opacity-70';
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -112,124 +112,138 @@ export const Home = () => {
         ]}
       />
 
-      <div className="flex min-h-[78vh] flex-col justify-center py-14 md:min-h-[76vh] md:py-20">
-        <div className="mx-auto w-full max-w-xl text-center">
-          <img
-            src={assetUrl(siteConfig.author.avatar)}
-            alt={siteConfig.author.name}
-            width={96}
-            height={96}
-            decoding="async"
-            className="mx-auto h-24 w-24 rounded-full border border-zinc-200 object-cover dark:border-zinc-800"
-          />
+      <div className="mx-auto w-full max-w-3xl py-10 md:py-16">
+        <section className="home-hero relative overflow-hidden rounded-overlay bg-surface px-6 py-10 sm:px-10 sm:py-14 md:px-12 md:py-16">
+          <div aria-hidden="true" className="home-hero-glow" />
+          <div className="relative mx-auto max-w-xl text-center">
+            <img
+              src={assetUrl(siteConfig.author.avatar)}
+              alt={siteConfig.author.name}
+              width={96}
+              height={96}
+              decoding="async"
+              data-home-reveal="avatar"
+              className="home-reveal home-reveal-avatar mx-auto h-24 w-24 rounded-full bg-surface-muted object-cover ring-1 ring-line"
+            />
 
-          <h1 className="mt-8 font-serif text-4xl font-bold tracking-tight text-ink [overflow-wrap:anywhere] dark:text-white sm:text-5xl">
-            {siteConfig.author.name}
-          </h1>
+            <h1
+              data-home-reveal="title"
+              className="home-reveal home-reveal-title mt-8 font-serif text-4xl font-bold tracking-tight text-content [overflow-wrap:anywhere] sm:text-5xl"
+            >
+              {siteConfig.author.name}
+            </h1>
 
-          <p className="mx-auto mt-6 max-w-lg text-[15px] leading-8 text-zinc-600 dark:text-zinc-400 sm:text-base sm:leading-9">
-            {siteConfig.author.bio}
-          </p>
+            <p
+              data-home-reveal="bio"
+              className="home-reveal mx-auto mt-6 max-w-lg text-[15px] leading-8 text-content-muted sm:text-base sm:leading-9"
+            >
+              {siteConfig.author.bio}
+            </p>
 
-          <form role="search" onSubmit={handleSearchSubmit} className="mx-auto mt-9 max-w-md">
-            <label htmlFor="home-search" className="sr-only">
-              搜索全站
-            </label>
-            <div className="flex items-center gap-2 border-b border-zinc-300 pb-1 transition-colors focus-within:border-ink dark:border-zinc-700 dark:focus-within:border-white">
-              <Search size={16} aria-hidden="true" className="shrink-0 text-zinc-400 dark:text-zinc-500" />
-              <input
-                id="home-search"
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="搜索文章、标签与分类…"
-                autoComplete="off"
-                className="min-h-11 min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-zinc-400 dark:text-white dark:placeholder:text-zinc-500"
-              />
-              <button
-                type="submit"
-                className="min-h-11 shrink-0 px-1 text-sm font-medium text-ink transition-colors hover:text-zinc-500 dark:text-white dark:hover:text-zinc-400"
+            <form
+              role="search"
+              onSubmit={handleSearchSubmit}
+              data-home-reveal="search"
+              className="home-reveal mx-auto mt-10 max-w-md"
+            >
+              <label htmlFor="home-search" className="sr-only">
+                搜索全站
+              </label>
+              <div className="flex items-center gap-2 rounded-control bg-surface-muted px-3 transition-shadow duration-200 focus-within:ring-1 focus-within:ring-content-muted">
+                <Search size={16} aria-hidden="true" className="shrink-0 text-content-muted" />
+                <input
+                  id="home-search"
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="搜索文章、标签与分类…"
+                  autoComplete="off"
+                  className="min-h-12 min-w-0 flex-1 bg-transparent text-sm text-content outline-none placeholder:text-content-muted"
+                />
+                <button
+                  type="submit"
+                  className="min-h-11 shrink-0 rounded-micro px-2 text-sm font-medium text-content-muted transition-colors hover:text-content"
+                >
+                  搜索
+                </button>
+              </div>
+            </form>
+
+            <nav
+              aria-label="联系方式"
+              data-home-reveal="contact"
+              className="home-reveal mt-8 flex flex-wrap items-center justify-center gap-1 text-sm"
+            >
+              <a
+                href={siteConfig.social.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${contactItemClassName} group`}
               >
-                搜索
-              </button>
-            </div>
-          </form>
+                <Github size={16} aria-hidden="true" className={contactIconClassName} />
+                <span className="underline-offset-4 group-hover:underline">GitHub</span>
+                <span className="sr-only">（外部站点，新标签页打开）</span>
+              </a>
 
-          <nav
-            aria-label="联系方式"
-            className="mt-8 flex flex-col items-center gap-0.5 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-6 sm:gap-y-1"
-          >
-            <a
-              href={siteConfig.social.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${contactItemClassName} group`}
-            >
-              <Github size={16} aria-hidden="true" className={contactIconClassName} />
-              <span className="underline-offset-4 group-hover:underline">GitHub</span>
-              <span className="sr-only">（外部站点，新标签页打开）</span>
-            </a>
+              <a href={siteConfig.social.email} className={`${contactItemClassName} group`}>
+                <Mail size={16} aria-hidden="true" className={contactIconClassName} />
+                <span className="underline-offset-4 group-hover:underline">{siteConfig.social.rawEmail}</span>
+              </a>
 
-            <a href={siteConfig.social.email} className={`${contactItemClassName} group`}>
-              <Mail size={16} aria-hidden="true" className={contactIconClassName} />
-              <span className="underline-offset-4 group-hover:underline">{siteConfig.social.rawEmail}</span>
-            </a>
+              {qqNumber && (
+                <button
+                  type="button"
+                  onClick={handleCopyQQ}
+                  aria-label={`复制 QQ 号 ${qqNumber}`}
+                  className={contactItemClassName}
+                >
+                  {qqFeedback === 'copied' ? (
+                    <Check size={16} aria-hidden="true" className="shrink-0 text-success" />
+                  ) : (
+                    <Copy size={16} aria-hidden="true" className={contactIconClassName} />
+                  )}
+                  <span>QQ {qqNumber}</span>
+                </button>
+              )}
 
-            {qqNumber && (
-              <button
-                type="button"
-                onClick={handleCopyQQ}
-                aria-label={`复制 QQ 号 ${qqNumber}`}
-                className={contactItemClassName}
+              <a href={assetUrl('/feed.xml')} className={`${contactItemClassName} group`}>
+                <Rss size={16} aria-hidden="true" className={contactIconClassName} />
+                <span className="underline-offset-4 group-hover:underline">RSS 订阅</span>
+              </a>
+
+              <a
+                href={ISSUE_SUBSCRIPTION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${contactItemClassName} group`}
               >
-                {qqFeedback === 'copied' ? (
-                  <Check size={16} aria-hidden="true" className="shrink-0 text-emerald-600 dark:text-emerald-400" />
-                ) : (
-                  <Copy size={16} aria-hidden="true" className={contactIconClassName} />
-                )}
-                <span>QQ {qqNumber}</span>
-              </button>
-            )}
+                <Bell size={16} aria-hidden="true" className={contactIconClassName} />
+                <span className="underline-offset-4 group-hover:underline">更新订阅</span>
+                <span className="sr-only">（外部站点，新标签页打开）</span>
+              </a>
 
-            <a href={assetUrl('/feed.xml')} className={`${contactItemClassName} group`}>
-              <Rss size={16} aria-hidden="true" className={contactIconClassName} />
-              <span className="underline-offset-4 group-hover:underline">RSS 订阅</span>
-            </a>
+              <a
+                href={siteConfig.friendsPage.repoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${contactItemClassName} group`}
+              >
+                <Github size={16} aria-hidden="true" className={contactIconClassName} />
+                <span className="underline-offset-4 group-hover:underline">项目仓库</span>
+                <span className="sr-only">（外部站点，新标签页打开）</span>
+              </a>
+            </nav>
 
-            <a
-              href={ISSUE_SUBSCRIPTION_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${contactItemClassName} group`}
+            {/* 复制结果只在这里播报：成功/失败都如实反馈，反馈期间不挪动上方联系方式。 */}
+            <p
+              role="status"
+              aria-live="polite"
+              className={`mt-3 min-h-5 text-xs ${qqFeedback === 'error' ? 'text-danger' : 'text-content-muted'}`}
             >
-              <Bell size={16} aria-hidden="true" className={contactIconClassName} />
-              <span className="underline-offset-4 group-hover:underline">更新订阅</span>
-              <span className="sr-only">（外部站点，新标签页打开）</span>
-            </a>
-
-            <a
-              href={siteConfig.friendsPage.repoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${contactItemClassName} group`}
-            >
-              <Github size={16} aria-hidden="true" className={contactIconClassName} />
-              <span className="underline-offset-4 group-hover:underline">项目仓库</span>
-              <span className="sr-only">（外部站点，新标签页打开）</span>
-            </a>
-          </nav>
-
-          {/* 复制结果只在这里播报：成功/失败都如实反馈，反馈期间不挪动上方联系方式。 */}
-          <p
-            role="status"
-            aria-live="polite"
-            className={`mt-3 min-h-5 text-xs ${
-              qqFeedback === 'error' ? 'text-red-700 dark:text-red-400' : 'text-zinc-500 dark:text-zinc-400'
-            }`}
-          >
-            {copyStatusMessage}
-          </p>
-        </div>
+              {copyStatusMessage}
+            </p>
+          </div>
+        </section>
       </div>
     </>
   );

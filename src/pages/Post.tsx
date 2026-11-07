@@ -2102,20 +2102,20 @@ export const Post = () => {
 
             {!isReadingMode && (
               <aside
-                className="post-license mt-14 border-t border-line pt-6 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400 md:mt-16"
+                className="post-license mt-14 text-sm leading-relaxed text-content-muted md:mt-16"
                 aria-labelledby="license-heading"
               >
-                <h2 id="license-heading" className="mb-1.5 text-[13px] font-semibold text-zinc-700 dark:text-zinc-200">
+                <h2 id="license-heading" className="mb-1.5 text-[13px] font-semibold text-content">
                   CC BY-SA 4.0 许可协议
                 </h2>
                 <p>
-                  本文由 <strong className="font-semibold text-zinc-700 dark:text-zinc-200">{authorsLabel}</strong>{' '}
-                  原创。除非另有声明，可在署名并以相同协议发布衍生作品的前提下自由复制、传播和修改。详见
+                  本文由 <strong className="font-semibold text-content">{authorsLabel}</strong> 原创。除非另有声明，
+                  可在署名并以相同协议发布衍生作品的前提下自由复制、传播和修改。详见
                   <a
                     href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ml-1 underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800 dark:decoration-zinc-700 dark:hover:text-zinc-200"
+                    className="ml-1 underline decoration-content-muted underline-offset-2 hover:text-content"
                   >
                     CC BY-SA 4.0
                   </a>
@@ -2126,15 +2126,15 @@ export const Post = () => {
 
             {!isReadingMode && (
               <>
-                <div className="mt-8 flex flex-col gap-2 border-t border-line pt-5 text-sm sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-zinc-500 dark:text-zinc-400">
-                    作者 <span className="font-medium text-zinc-800 dark:text-zinc-200">{authorsLabel}</span>
+                <div className="mt-8 flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-content-muted">
+                    作者 <span className="font-medium text-content">{authorsLabel}</span>
                   </p>
                   <a
                     href={getPostSourceUrl(post.filePath)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-11 items-center gap-1.5 text-zinc-500 transition-colors hover:text-content dark:text-zinc-400"
+                    className="inline-flex min-h-11 items-center gap-1.5 text-content-muted transition-colors hover:text-content"
                   >
                     <ExternalLink size={14} aria-hidden="true" />
                     <span>帮助改进本文</span>
@@ -2146,123 +2146,115 @@ export const Post = () => {
                 </div>
 
                 {seriesNavigation && (
-                  <section className="post-series mt-12 border-t border-line pt-8" aria-labelledby="series-heading">
-                    <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                      <div>
-                        <p className="mb-1 text-[11px] font-medium text-zinc-400 dark:text-zinc-500">系列文章</p>
-                        <h2 id="series-heading" className="text-xl font-bold text-content">
-                          {seriesNavigation.name}
-                        </h2>
+                  <section className="post-series mt-12" aria-labelledby="series-heading">
+                    <div className="rounded-surface bg-surface-muted px-4 py-4 sm:px-5 sm:py-5">
+                      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <div>
+                          <p className="mb-1 text-[11px] font-medium text-content-muted">系列文章</p>
+                          <h2 id="series-heading" className="text-xl font-bold text-content">
+                            {seriesNavigation.name}
+                          </h2>
+                        </div>
+                        <span className="text-xs tabular-nums text-content-muted">
+                          第 {seriesNavigation.currentIndex + 1} / {seriesNavigation.posts.length} 篇
+                        </span>
                       </div>
-                      <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
-                        第 {seriesNavigation.currentIndex + 1} / {seriesNavigation.posts.length} 篇
-                      </span>
-                    </div>
-                    <ol className="divide-y divide-line border-y border-line">
-                      {seriesNavigation.posts.map((seriesPost, index) => {
-                        const isCurrentSeriesPost = seriesPost.id === post.id;
+                      <ol className="flex flex-col gap-0.5">
+                        {seriesNavigation.posts.map((seriesPost, index) => {
+                          const isCurrentSeriesPost = seriesPost.id === post.id;
 
-                        return (
-                          <li key={seriesPost.id}>
-                            <Link
-                              to={`/post/${seriesPost.id}`}
-                              aria-current={isCurrentSeriesPost ? 'page' : undefined}
-                              className={`flex min-h-11 items-center gap-3 px-1 py-2.5 text-sm transition-colors hover:bg-surface-muted ${
-                                isCurrentSeriesPost ? 'font-semibold text-content' : 'text-zinc-600 dark:text-zinc-400'
-                              }`}
-                            >
-                              <span className="w-6 shrink-0 text-xs tabular-nums text-zinc-400 dark:text-zinc-500">
-                                {String(index + 1).padStart(2, '0')}
-                              </span>
-                              <span className="min-w-0 flex-1 truncate">{seriesPost.title}</span>
-                              {isCurrentSeriesPost && (
-                                <span className="shrink-0 text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
-                                  当前
+                          return (
+                            <li key={seriesPost.id}>
+                              <Link
+                                to={`/post/${seriesPost.id}`}
+                                aria-current={isCurrentSeriesPost ? 'page' : undefined}
+                                className={`flex min-h-11 items-center gap-3 rounded-control px-2 py-2 text-sm transition-colors hover:bg-surface ${
+                                  isCurrentSeriesPost
+                                    ? 'bg-surface font-semibold text-content'
+                                    : 'text-content-muted hover:text-content'
+                                }`}
+                              >
+                                <span className="w-6 shrink-0 text-xs tabular-nums text-content-muted">
+                                  {String(index + 1).padStart(2, '0')}
                                 </span>
-                              )}
+                                <span className="min-w-0 flex-1 truncate">{seriesPost.title}</span>
+                                {isCurrentSeriesPost && (
+                                  <span className="shrink-0 text-[11px] font-medium text-content-muted">当前</span>
+                                )}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                      {(seriesNavigation.previous || seriesNavigation.next) && (
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+                          {seriesNavigation.previous ? (
+                            <Link
+                              to={`/post/${seriesNavigation.previous.id}`}
+                              className="inline-flex min-h-11 items-center gap-1.5 text-content-muted transition-colors hover:text-content"
+                            >
+                              <ArrowLeft size={15} aria-hidden="true" />
+                              上一章
                             </Link>
-                          </li>
-                        );
-                      })}
-                    </ol>
-                    {(seriesNavigation.previous || seriesNavigation.next) && (
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-                        {seriesNavigation.previous ? (
-                          <Link
-                            to={`/post/${seriesNavigation.previous.id}`}
-                            className="inline-flex min-h-11 items-center gap-1.5 text-zinc-500 transition-colors hover:text-content dark:text-zinc-400"
-                          >
-                            <ArrowLeft size={15} aria-hidden="true" />
-                            上一章
-                          </Link>
-                        ) : (
-                          <span />
-                        )}
-                        {seriesNavigation.next ? (
-                          <Link
-                            to={`/post/${seriesNavigation.next.id}`}
-                            className="inline-flex min-h-11 items-center gap-1.5 text-zinc-500 transition-colors hover:text-content dark:text-zinc-400"
-                          >
-                            下一章
-                            <ArrowRight size={15} aria-hidden="true" />
-                          </Link>
-                        ) : (
-                          <span />
-                        )}
-                      </div>
-                    )}
+                          ) : (
+                            <span />
+                          )}
+                          {seriesNavigation.next ? (
+                            <Link
+                              to={`/post/${seriesNavigation.next.id}`}
+                              className="inline-flex min-h-11 items-center gap-1.5 text-content-muted transition-colors hover:text-content"
+                            >
+                              下一章
+                              <ArrowRight size={15} aria-hidden="true" />
+                            </Link>
+                          ) : (
+                            <span />
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </section>
                 )}
 
-                <nav aria-label="文章导航" className="post-navigation mt-12 border-t border-line pt-8">
-                  <div className="grid gap-5 sm:grid-cols-2 sm:gap-10">
+                <nav aria-label="文章导航" className="post-navigation mt-12">
+                  <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                     {adjacentPosts.prev ? (
                       <Link
                         to={`/post/${adjacentPosts.prev.id}`}
-                        className="group flex min-h-11 min-w-0 items-start gap-3 py-1 text-left"
+                        className="group flex min-h-[5rem] min-w-0 flex-col justify-center gap-1 rounded-surface bg-surface-muted px-4 py-3.5 transition-colors hover:bg-surface"
                       >
-                        <ArrowLeft
-                          size={16}
-                          className="mt-0.5 flex-shrink-0 text-zinc-300 transition-colors group-hover:text-content dark:text-zinc-700"
-                        />
-                        <span className="min-w-0">
-                          <span className="mb-1 block text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
-                            上一篇
-                          </span>
-                          <span className="line-clamp-2 text-sm font-medium leading-relaxed text-zinc-700 transition-colors group-hover:text-content dark:text-zinc-300">
-                            {adjacentPosts.prev.title}
-                          </span>
+                        <span className="flex items-center gap-1.5 text-[11px] font-medium text-content-muted">
+                          <ArrowLeft size={13} aria-hidden="true" />
+                          上一篇
+                        </span>
+                        <span className="line-clamp-2 text-sm font-medium leading-relaxed text-content">
+                          {adjacentPosts.prev.title}
                         </span>
                       </Link>
                     ) : (
                       // 占位只在双列时存在：单列下它会让另一侧凭空低一个 gap
-                      <span aria-hidden="true" className="hidden sm:block" />
+                      <span aria-hidden="true" className="hidden rounded-surface bg-surface-muted sm:block" />
                     )}
                     {adjacentPosts.next ? (
                       <Link
                         to={`/post/${adjacentPosts.next.id}`}
-                        className="group flex min-h-11 min-w-0 items-start gap-3 py-1 text-left sm:justify-end sm:text-right"
+                        className="group flex min-h-[5rem] min-w-0 flex-col justify-center gap-1 rounded-surface bg-surface-muted px-4 py-3.5 text-left transition-colors hover:bg-surface sm:items-end sm:text-right"
                       >
-                        <span className="min-w-0">
-                          <span className="mb-1 block text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
-                            下一篇
-                          </span>
-                          <span className="line-clamp-2 text-sm font-medium leading-relaxed text-zinc-700 transition-colors group-hover:text-content dark:text-zinc-300">
-                            {adjacentPosts.next.title}
-                          </span>
+                        <span className="flex items-center gap-1.5 text-[11px] font-medium text-content-muted">
+                          下一篇
+                          <ArrowRight size={13} aria-hidden="true" />
                         </span>
-                        <ArrowRight
-                          size={16}
-                          className="mt-0.5 order-first flex-shrink-0 text-zinc-300 transition-colors group-hover:text-content sm:order-last dark:text-zinc-700"
-                        />
+                        <span className="line-clamp-2 text-sm font-medium leading-relaxed text-content">
+                          {adjacentPosts.next.title}
+                        </span>
                       </Link>
                     ) : (
-                      <span aria-hidden="true" className="hidden sm:block" />
+                      <span aria-hidden="true" className="hidden rounded-surface bg-surface-muted sm:block" />
                     )}
                   </div>
 
-                  <div className="mt-5 hidden text-center md:block">
-                    <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                  <div className="mt-4 hidden text-center md:block">
+                    <span className="text-[11px] text-content-muted">
                       快捷键：<kbd className="kbd">Alt</kbd> + <kbd className="kbd">←</kbd> 上一篇 ·{' '}
                       <kbd className="kbd">Alt</kbd> + <kbd className="kbd">→</kbd> 下一篇 ·{' '}
                       <kbd className="kbd">Esc</kbd> 关闭弹窗
@@ -2271,17 +2263,14 @@ export const Post = () => {
                 </nav>
 
                 {relatedPosts.length > 0 && (
-                  <section className="post-related mt-12 border-t border-line pt-8" aria-labelledby="related-heading">
-                    <div className="mb-4 flex items-baseline gap-3">
-                      <h2
-                        id="related-heading"
-                        className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500"
-                      >
+                  <section className="post-related mt-12" aria-labelledby="related-heading">
+                    <div className="mb-4 flex items-baseline justify-between gap-3">
+                      <h2 id="related-heading" className="text-sm font-semibold text-content">
                         你可能还喜欢
                       </h2>
-                      <span aria-hidden="true" className="h-px min-w-0 flex-1 bg-line" />
+                      <span className="text-[11px] tabular-nums text-content-muted">{relatedPosts.length} 篇</span>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+                    <div className="grid gap-4 sm:grid-cols-3">
                       {relatedPosts.map((relatedPost) => (
                         <CompactPostCard key={relatedPost.id} post={relatedPost} />
                       ))}

@@ -57,22 +57,23 @@ describe('CapsuleNav（桌面胶囊文章导航）', () => {
     } as DOMRect);
   });
 
-  it('默认收缩：迷你轨可见，展开面板隐藏（visibility）', () => {
+  it('默认收缩：右侧只有一枚小目录按钮，展开面板隐藏（visibility）', () => {
     renderCapsule();
-    const rail = portalHost().querySelector('.capsule-rail');
+    const toggle = screen.getByRole('button', { name: '展开文章导航' });
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
     const panel = portalHost().querySelector('.capsule-panel') as HTMLElement;
-    expect(rail).toBeInTheDocument();
     expect(panel).toBeInTheDocument();
     const container = portalHost().querySelector('.capsule-container');
     expect(container?.getAttribute('data-expanded')).toBeNull();
-    // 收起态面板不占位也不可见（CSS visibility 由 data-expanded 驱动）
-    expect(getComputedStyle(panel).visibility === 'visible' || panel.hasAttribute('hidden')).toBe(true);
+    // 收缩态也保留阅读进度语义（进度环的 sr-only 文本）。
+    expect(portalHost().textContent).toContain('阅读进度');
   });
 
   it('点击展开按钮进入展开态，再点击收起', async () => {
     const user = userEvent.setup();
     renderCapsule();
-    const toggle = portalHost().querySelector('.capsule-rail .capsule-rail-btn') as HTMLButtonElement;
+    const toggle = screen.getByRole('button', { name: '展开文章导航' });
     await user.click(toggle);
     expect(portalHost().querySelector('.capsule-container')?.getAttribute('data-expanded')).toBe('true');
     expect(screen.getByText('文章目录')).toBeInTheDocument();
@@ -86,18 +87,18 @@ describe('CapsuleNav（桌面胶囊文章导航）', () => {
   it('固定（Pin）后 aria-pressed 为真，收起按钮保留（取消固定路径）', async () => {
     const user = userEvent.setup();
     renderCapsule();
-    const toggle = portalHost().querySelector('.capsule-rail .capsule-rail-btn') as HTMLButtonElement;
+    const toggle = screen.getByRole('button', { name: '展开文章导航' });
     await user.click(toggle);
     const pinButton = screen.getByRole('button', { name: '固定导航面板' });
     await user.click(pinButton);
     expect(screen.getByRole('button', { name: '取消固定导航面板' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('迷你轨展示章节序号并支持跳转（更新 URL hash）', async () => {
+  it('展开面板展示目录并可跳转到章节（更新 URL hash）', async () => {
     const user = userEvent.setup();
     renderCapsule();
-    const sectionBtn = screen.getByRole('button', { name: /跳转到章节 1：介绍/ });
-    await user.click(sectionBtn);
+    await user.click(screen.getByRole('button', { name: '展开文章导航' }));
+    await user.click(screen.getByRole('button', { name: '介绍' }));
     expect(window.location.hash).toBe('#intro');
   });
 

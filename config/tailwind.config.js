@@ -65,13 +65,14 @@ export default {
         ],
       },
       colors: {
-        // 黑白强对比基底：paper=纯白、ink/void=近黑，旧类名保持兼容。
-        paper: '#ffffff',
-        ink: '#0a0a0a',
+        // 深色唯一：paper 作为大色块表面（#141414），ink 主文字，void 页面底色。
+        // 旧类名保留兼容，值随深色唯一基线更新。
+        paper: '#141414',
+        ink: '#fafafa',
         void: '#0a0a0a',
-        // 语义颜色（UI 重构第二阶段）：值统一来自 src/index.css 的 --color-* Token，
-        // 深色由 html.dark 覆盖同一组变量 —— 组件写 bg-surface / border-line 即可
-        // 两态自适应，不必再逐个加 dark: 变体。新增/调整配色只改 Token。
+        // 语义颜色：值统一来自 src/index.css 的 --color-* Token（本身就是深色值）。
+        // 组件写 bg-surface / border-line 即可；<html class="dark"> 只用于让既有
+        // dark: 工具类继续生效。新增/调整配色只改 Token。
         // 注意：var() 颜色不支持 Tailwind 的 /opacity 修饰符，需要透明度时改用
         // 对应 surface-muted/line 等现成 Token，或单独补一个 Token。
         background: 'var(--color-background)',

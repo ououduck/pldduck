@@ -124,6 +124,80 @@ describe('Posts', () => {
     expect(screen.getByRole('button', { name: '全部' })).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('右侧标签卡片列出全部标签与计数，点击写入 ?tag= 并过滤列表', async () => {
+    const user = userEvent.setup();
+    const [firstPost] = getInitialPosts();
+    const firstTag = firstPost.tags[0];
+    const expectedCount = getInitialPosts().filter((post) => post.tags.includes(firstTag)).length;
+
+    const { container } = renderPosts();
+    const panel = screen.getByRole('complementary', { name: '全部标签' });
+    const tagButton = within(panel).getByRole('button', {
+      name: `筛选标签 ${firstTag}，共 ${expectedCount} 篇文章`,
+    });
+
+    await user.click(tagButton);
+    await waitFor(() => expect(probeSearch).toContain(`tag=${encodeURIComponent(firstTag)}`));
+    expect(container.querySelectorAll('article')).toHaveLength(expectedCount);
+    expect(
+      within(panel).getByRole('button', { name: `筛选标签 ${firstTag}，共 ${expectedCount} 篇文章` }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('?tag= 直访按标签过滤，清除标签后恢复完整列表', async () => {
+    const user = userEvent.setup();
+    const [firstPost] = getInitialPosts();
+    const firstTag = firstPost.tags[0];
+    const expectedCount = getInitialPosts().filter((post) => post.tags.includes(firstTag)).length;
+
+    const { container } = renderPosts(`/posts?tag=${encodeURIComponent(firstTag)}`);
+    await waitFor(() => expect(container.querySelectorAll('article')).toHaveLength(expectedCount));
+    expect(screen.getByText(firstTag, { selector: 'span.font-medium' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '清除标签' }));
+    await waitFor(() => expect(probeSearch).not.toContain('tag='));
+    await waitFor(() => expect(container.querySelectorAll('article').length).toBeGreaterThan(expectedCount));
+  });
+
+  it('分类与标签组合过滤（URL 状态同时生效）', async () => {
+    const [firstPost] = getInitialPosts();
+    const firstTag = firstPost.tags[0];
+    const expectedCount = getInitialPosts().filter(
+      (post) => post.category === firstPost.category && post.tags.includes(firstTag),
+    ).length;
+
+    const { container } = renderPosts(
+      `/posts?category=${encodeURIComponent(firstPost.category)}&tag=${encodeURIComponent(firstTag)}`,
+    );
+    await waitFor(() => expect(container.querySelectorAll('article')).toHaveLength(expectedCount));
+  });
+
+  it('移动端标签按钮打开侧面板，选标签后关闭并写入 URL；Escape 可关闭', async () => {
+    const user = userEvent.setup();
+    const [firstPost] = getInitialPosts();
+    const firstTag = firstPost.tags[0];
+    const expectedCount = getInitialPosts().filter((post) => post.tags.includes(firstTag)).length;
+
+    renderPosts();
+    await user.click(screen.getByRole('button', { name: '打开标签筛选' }));
+    const dialog = await screen.findByRole('dialog', { name: '标签' });
+    expect(dialog).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '标签' })).not.toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: '打开标签筛选' }));
+    const reopenedDialog = await screen.findByRole('dialog', { name: '标签' });
+    await user.click(
+      within(reopenedDialog).getByRole('button', {
+        name: `筛选标签 ${firstTag}，共 ${expectedCount} 篇文章`,
+      }),
+    );
+
+    await waitFor(() => expect(probeSearch).toContain(`tag=${encodeURIComponent(firstTag)}`));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: '标签' })).not.toBeInTheDocument());
+  });
+
   it('排序按钮在最新/最早间切换，并同步 URL 的 sort 参数', async () => {
     const user = userEvent.setup();
     renderPosts();

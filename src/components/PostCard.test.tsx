@@ -44,6 +44,28 @@ describe('PostCard', () => {
     expect(screen.getByRole('heading', { level: 2, name: '测试文章标题' })).toBeInTheDocument();
   });
 
+  it('横向横幅变体保留标题、摘要、标签与分享操作', async () => {
+    const user = userEvent.setup();
+    const onShare = vi.fn();
+    const { container } = renderWithRouter(
+      <PostCard
+        post={makePost({ coverImage: '/covers/test.png' })}
+        {...baseProps}
+        onShare={onShare}
+        variant="banner"
+      />,
+    );
+
+    const article = container.querySelector('article');
+    expect(article).toHaveClass('rounded-overlay', 'bg-surface-muted');
+    expect(screen.getByRole('heading', { level: 2, name: '测试文章标题' })).toBeInTheDocument();
+    expect(screen.getByText('这是一段测试摘要')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'React' })).toHaveAttribute('href', '/posts?tag=React');
+
+    await user.click(screen.getByRole('button', { name: '分享文章：测试文章标题' }));
+    expect(onShare).toHaveBeenCalledWith(expect.objectContaining({ id: 'test-post' }));
+  });
+
   it('文章标题链接指向文章详情页', () => {
     renderWithRouter(<PostCard post={makePost()} {...baseProps} />);
     // 封面图与标题各有一个同 aria-label 的链接，取其一断言 href
@@ -51,10 +73,10 @@ describe('PostCard', () => {
     expect(link).toHaveAttribute('href', '/post/test-post');
   });
 
-  it('标签最多展示 3 个，点击标签链接到筛选页', () => {
+  it('标签最多展示 3 个，点击标签链接到文章列表的标签筛选', () => {
     const post = makePost({ tags: ['React', 'TypeScript', '测试', '多余标签'] });
     renderWithRouter(<PostCard post={post} {...baseProps} />);
-    expect(screen.getByRole('link', { name: 'React' })).toHaveAttribute('href', '/tags?tag=React');
+    expect(screen.getByRole('link', { name: 'React' })).toHaveAttribute('href', '/posts?tag=React');
     expect(screen.getByRole('link', { name: 'TypeScript' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '测试' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '多余标签' })).not.toBeInTheDocument();

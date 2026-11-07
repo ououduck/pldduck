@@ -24,22 +24,23 @@
      .post-prose 的 scroll-margin-top 统一读取。6.5rem=104px 为桌面兜底。 */
   --article-heading-offset: 6.5rem;
 
-  /* ===== 语义设计 Token（UI 重构第二阶段）=====
-     颜色取当前视觉值（paper/ink 与 zinc 中性色），换成 Token 不产生突变；
-     Tailwind 侧在 config/tailwind.config.js 映射为 background/surface/... 工具类，
-     深色只覆盖颜色（见下方 html.dark），间距/圆角/动效两态共用同一套。 */
-  --color-background: #ffffff; /* 页面底色：黑白强对比的纯白 */
-  --color-surface: #ffffff; /* 外壳表面：侧栏 / 顶栏 */
-  --color-surface-muted: #f4f4f5; /* hover / 弱底块：中性浅灰 */
-  --color-text: #0a0a0a; /* 正文与主文字（= ink） */
-  --color-text-secondary: #525252; /* 次要文字：导航标签、页名、品牌身份 */
-  --color-border: #d4d4d8; /* 发丝线边框：中性灰 */
-  --color-accent: #0a0a0a; /* 强调/链接色：与正文同墨色 */
-  --color-success: #047857;
-  --color-warning: #b45309;
-  --color-danger: #b91c1c;
-  /* 焦点环：浅色黑、深色白，保持黑白强对比。 */
-  --color-focus-ring: #0a0a0a;
+  /* ===== 语义设计 Token（深色唯一）=====
+     全站只有深色一套值：:root 直接就是最终深色，不再写 html.dark 颜色覆盖。
+     Tailwind 侧在 config/tailwind.config.js 映射为 background/surface/... 工具类；
+     组件仍靠 <html class="dark"> 让既有 dark: 变体生效（首帧由模板直接给出，
+     无 JS 主题引导、无水合差异）。 */
+  --color-background: #0a0a0a; /* 页面底色 */
+  --color-surface: #141414; /* 外壳表面 / 大色块面板 */
+  --color-surface-muted: #1f1f1f; /* hover / 弱底块 */
+  --color-text: #fafafa; /* 正文与主文字 */
+  --color-text-secondary: #a3a3a3; /* 次要文字：导航标签、页名、品牌身份 */
+  --color-border: #262626; /* 发丝线边框 */
+  --color-accent: #fafafa; /* 强调/链接色：与正文同墨色 */
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  /* 焦点环：深色下纯白，保持黑白强对比。 */
+  --color-focus-ring: #fafafa;
 
   /* 字体语义：与 config/tailwind.config.js 的 fontFamily 保持一致（改一处要同步另一处）。
      font-sans / font-serif 工具类仍走 Tailwind 配置，这里供 CSS 与后续阶段引用。 */
@@ -83,22 +84,8 @@
   --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 深色主题只覆盖颜色 Token；不写任何正文/边框的 dark: 变体也能自动跟随。
-   注意：必须保持无 @layer 包裹 —— :root 的变量是无层声明，层内的 html.dark
-   会在层叠优先级上输给无层的 :root，深色值将失效。 */
-html.dark {
-  --color-background: #0a0a0a; /* = void */
-  --color-surface: #111111;
-  --color-surface-muted: #262626;
-  --color-text: #fafafa;
-  --color-text-secondary: #a3a3a3;
-  --color-border: #2a2a2a;
-  --color-accent: #fafafa;
-  --color-success: #34d399;
-  --color-warning: #fbbf24;
-  --color-danger: #f87171;
-  --color-focus-ring: #fafafa;
-}
+/* 深色唯一：不再有 light 值与 html.dark 颜色覆盖；<html class="dark"> 仅用于
+   让既有 dark: 工具类生效。 */
 
 /* 侧边导航：常驻图标条 + 鼠标移入（或键盘聚焦）时展开为浮层。
    外层 .site-sidebar 只占图标条宽度并作为定位上下文，内层 .site-sidebar-inner
@@ -169,11 +156,9 @@ html.dark {
   color: var(--color-text);
 }
 
-/* 顶栏 ghost 按钮：搜索与主题切换共用（ThemeToggle 不在本次改动范围，
-   故从容器覆盖其按钮外观 —— 不改变结构、aria-label 与切换逻辑）。
-   带 .site-navbar 前缀是为了压过 ThemeToggle 自带的 dark: 工具类；44px 点击区不变。 */
-.site-navbar .topbar-ghost-button,
-.site-navbar .topbar-theme-button > button {
+/* 顶栏 ghost 按钮：顶栏搜索入口（深色唯一后已没有主题切换按钮）。
+   44px 点击区不变。 */
+.site-navbar .topbar-ghost-button {
   display: inline-flex;
   width: 2.75rem;
   height: 2.75rem;
@@ -189,11 +174,96 @@ html.dark {
 }
 
 .site-navbar .topbar-ghost-button:hover,
-.site-navbar .topbar-theme-button > button:hover,
-.site-navbar .topbar-ghost-button:active,
-.site-navbar .topbar-theme-button > button:active {
+.site-navbar .topbar-ghost-button:active {
   background-color: var(--color-surface-muted);
   color: var(--color-text);
+}
+
+/* ===== 首页 Hero（深色唯一）=====
+   大色块替代发丝线：surface 面板 + 顶部微光。入场动画纯 CSS 驱动：
+   SSR 输出最终 DOM（类名固定，不依赖 JS / 时钟 / 存储），浏览器首帧即开始播放；
+   prefers-reduced-motion: reduce 时整段禁用，内容直接可见。 */
+.home-hero {
+  isolation: isolate;
+}
+
+.home-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(52% 58% at 50% -8%, rgba(250, 250, 250, 0.09), transparent 72%),
+    radial-gradient(42% 48% at 92% 6%, rgba(250, 250, 250, 0.05), transparent 74%);
+}
+
+@keyframes home-reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes home-reveal-title {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes home-reveal-avatar {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.home-reveal {
+  animation: home-reveal-rise 560ms var(--ease-emphasized) both;
+  animation-delay: var(--home-reveal-delay, 0ms);
+}
+
+.home-reveal[data-home-reveal='avatar'] {
+  animation-name: home-reveal-avatar;
+  animation-duration: 640ms;
+}
+
+.home-reveal[data-home-reveal='title'] {
+  animation-name: home-reveal-title;
+  animation-duration: 620ms;
+  --home-reveal-delay: 70ms;
+}
+
+.home-reveal[data-home-reveal='bio'] {
+  --home-reveal-delay: 140ms;
+}
+
+.home-reveal[data-home-reveal='search'] {
+  --home-reveal-delay: 210ms;
+}
+
+.home-reveal[data-home-reveal='contact'] {
+  --home-reveal-delay: 280ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-reveal,
+  .home-reveal[data-home-reveal] {
+    animation: none;
+  }
 }
 
 /* 触屏笔记本与大屏平板（lg 宽度以上却没有 hover 能力）没有「鼠标移入」这条路，
@@ -221,10 +291,6 @@ html.dark {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    color-scheme: light;
-  }
-
-  html.dark {
     color-scheme: dark;
   }
 
@@ -234,7 +300,7 @@ html.dark {
     color: var(--color-text);
   }
 
-  /* 深色背景/文字由 html.dark 的 Token 覆盖，这里不再重复一遍 dark 规则。 */
+  /* 深色是唯一主题：背景/文字直接来自 :root 的深色 Token。 */
 
   /* 中性焦点态（不依赖主题色的 focus 样式） */
   :focus-visible {

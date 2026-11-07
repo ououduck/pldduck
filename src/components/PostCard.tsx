@@ -16,6 +16,8 @@ import { isPinnedFeaturedPost } from '@/utils/postSelection';
 interface PostCardProps {
   post: PostMetadata;
   featured?: boolean;
+  /** card：搜索页等三列网格用的竖排卡；banner：文章列表的横向横幅。 */
+  variant?: 'card' | 'banner';
   onShare: (post: PostMetadata) => void;
 }
 
@@ -36,7 +38,7 @@ const PostCardTags: React.FC<{ tags: string[]; className?: string }> = ({ tags, 
             </span>
           )}
           <Link
-            to={`/tags?tag=${encodeURIComponent(tag)}`}
+            to={`/posts?tag=${encodeURIComponent(tag)}`}
             className="text-zinc-500 underline-offset-4 transition-colors hover:text-ink hover:underline dark:text-zinc-400 dark:hover:text-white"
             onClick={(event) => event.stopPropagation()}
           >
@@ -53,7 +55,7 @@ const PostMetaSeparator = () => (
   </span>
 );
 
-const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
+const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card', onShare }) => {
   const handleShareClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -72,6 +74,84 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, onShare }) => {
   );
 
   const pinned = isPinnedFeaturedPost(post);
+
+  if (variant === 'banner') {
+    return (
+      <article
+        className="min-w-0 overflow-hidden rounded-overlay bg-surface-muted"
+        onMouseEnter={() => preloadPage(`/post/${post.id}`)}
+      >
+        <div className="grid grid-cols-[minmax(0,38%)_minmax(0,1fr)] sm:grid-cols-[minmax(0,34%)_minmax(0,1fr)]">
+          <Link
+            to={`/post/${post.id}`}
+            className="relative block min-h-44 overflow-hidden bg-surface sm:min-h-52"
+            aria-label={`阅读文章：${post.title}`}
+          >
+            {post.coverImage ? (
+              <ProgressiveImage
+                src={assetUrl(post.coverImage)}
+                alt={post.title}
+                loading="lazy"
+                fetchPriority="auto"
+                width={post.coverWidth}
+                height={post.coverHeight}
+                sizes="(max-width: 639px) 38vw, 34vw"
+                wrapperClassName="h-full w-full"
+                className="h-full w-full object-cover"
+                effect="fade"
+              />
+            ) : (
+              <div className="flex h-full min-h-44 w-full items-center justify-center sm:min-h-52">
+                <span className="text-[11px] tracking-[0.16em] text-content-muted">无封面</span>
+              </div>
+            )}
+          </Link>
+
+          <div className="flex min-w-0 flex-col p-4 sm:p-5 md:p-6">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-content-muted">
+              <span className="font-medium text-content">{post.category}</span>
+              <PostMetaSeparator />
+              <span>{post.date}</span>
+              <PostMetaSeparator />
+              <span>{post.readTime}</span>
+              {typeof post.commentCount === 'number' && (
+                <>
+                  <PostMetaSeparator />
+                  <span title="来自 Giscus 评论区的评论数">{post.commentCount} 条评论</span>
+                </>
+              )}
+              <span className="ml-auto flex items-center gap-1">
+                {featured && <span className="font-medium text-content">精选</span>}
+                {pinned && (
+                  <span className="inline-flex items-center gap-1">
+                    <Pin size={10} aria-hidden="true" />
+                    置顶
+                  </span>
+                )}
+              </span>
+            </div>
+
+            <Link to={`/post/${post.id}`} aria-label={`阅读文章：${post.title}`} className="mt-2 block">
+              <h2
+                className={`line-clamp-2 font-serif font-bold leading-tight tracking-tight text-content decoration-line underline-offset-4 hover:underline ${
+                  featured ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'
+                }`}
+              >
+                {post.title}
+              </h2>
+            </Link>
+
+            <p className="mt-2 line-clamp-2 text-sm leading-6 text-content-muted md:line-clamp-3">{post.excerpt}</p>
+
+            <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+              <PostCardTags tags={post.tags} />
+              <span className="shrink-0">{shareButton}</span>
+            </div>
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   if (featured) {
     return (

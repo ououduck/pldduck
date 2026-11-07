@@ -16,4 +16,12 @@ describe('IssueSubscriptionCard', () => {
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
+
+  it('轻量横条：无英文眉题与重卡片外壳，用 surface 弱底承托', () => {
+    render(<IssueSubscriptionCard />);
+    expect(screen.queryByText('Article updates')).not.toBeInTheDocument();
+    const strip = screen.getByRole('complementary', { name: '订阅新文章提醒' });
+    expect(strip.className).toContain('bg-surface-muted');
+    expect(strip.className).not.toMatch(/border/);
+  });
 });

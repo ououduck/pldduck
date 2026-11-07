@@ -22,7 +22,6 @@ const ArchivePage = lazy(pageLoaders['/archive']);
 const Friends = lazy(pageLoaders['/friends']);
 const ShuoShuoPage = lazy(pageLoaders['/shuoshuo']);
 const GuestbookPage = lazy(pageLoaders['/guestbook']);
-const Tags = lazy(pageLoaders['/tags']);
 const CoverGenerator = lazy(pageLoaders['/cover']);
 const Watermark = lazy(pageLoaders['/watermark']);
 const SearchPage = lazy(pageLoaders['/search']);
@@ -43,6 +42,16 @@ const RouteFallback: React.FC = () => (
 const PostRedirect: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   return <Navigate to={`/post/${encodeURIComponent(id ?? '')}`} replace />;
+};
+
+/**
+ * 独立标签页已并入文章列表：旧 /tags?tag= 的客户端兜底，保留 tag 参数转交
+ * /posts?tag=；线上直访由 public/_redirects 的 301 先处理。
+ */
+const TagsRedirect: React.FC = () => {
+  const location = useLocation();
+  const tag = new URLSearchParams(location.search).get('tag');
+  return <Navigate to={tag ? `/posts?tag=${encodeURIComponent(tag)}` : '/posts'} replace />;
 };
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -137,7 +146,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/posts" element={<PostsPage />} />
           <Route path="/posts/:id" element={<PostRedirect />} />
           <Route path="/archive" element={<ArchivePage />} />
-          <Route path="/tags" element={<Tags />} />
+          <Route path="/tags" element={<TagsRedirect />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/shuoshuo" element={<ShuoShuoPage />} />
           {/* 旧说说详情深链 /shuoshuo/<id> 已退役，重定向回列表页；与 public/_redirects 成对。 */}

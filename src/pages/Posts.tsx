@@ -16,6 +16,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useScrollEdgeFade } from '@/hooks/useScrollEdgeFade';
 import { mergeClassName } from '@/utils/classNames';
 import { ContentStatus, LoadingStatus } from '@/components/ContentStatus';
+import { TagsPanel, type TagSummary } from '@/components/TagsPanel';
 import { sortPosts } from '@/utils/postSorting';
 import { getHeroPost } from '@/utils/postSelection';
 import { useReadingHistory } from '@/hooks/useReadingHistory';
@@ -41,42 +42,64 @@ const POSTS_PER_PAGE = 9;
 const HERO_SLOTS = 3;
 const initialPosts = getInitialPosts();
 
-/** 列表与骨架屏共用同一套网格节奏，避免加载前后列宽/行距跳动。 */
-const POSTS_GRID_CLASS = 'grid grid-cols-1 gap-x-6 gap-y-10 md:grid-cols-2 md:gap-x-8 md:gap-y-12 lg:grid-cols-3';
+/** 列表与骨架屏共用同一套竖向节奏，避免加载前后行距跳动。 */
+const POSTS_LIST_CLASS = 'flex flex-col gap-5';
 
 const getCategories = (posts: PostMetadata[]) => Array.from(new Set(posts.map((post) => post.category)));
+
+/** 从文章元数据汇总标签（去首尾空白、按文章数降序、同数按中文名排序）。 */
+const buildTagList = (posts: PostMetadata[]): TagSummary[] => {
+  const tagMap = new Map<string, number>();
+
+  posts.forEach((post) => {
+    (Array.isArray(post.tags) ? post.tags : [])
+      .map((tag) => (typeof tag === 'string' ? tag.trim() : ''))
+      .filter(Boolean)
+      .forEach((tag) => {
+        tagMap.set(tag, (tagMap.get(tag) ?? 0) + 1);
+      });
+  });
+
+  return Array.from(tagMap.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN'));
+};
 
 const SkeletonBlock: React.FC<{ className?: string; shouldReduceMotion: boolean }> = ({
   className,
   shouldReduceMotion,
 }) => (
-  <div className={`bg-zinc-200 dark:bg-zinc-800 ${shouldReduceMotion ? '' : 'animate-pulse'} ${className || ''}`} />
+  <div className={`bg-zinc-200 dark:bg-zinc-700 ${shouldReduceMotion ? '' : 'animate-pulse'} ${className || ''}`} />
 );
 
 const FeaturedPostSkeleton: React.FC<{ shouldReduceMotion: boolean }> = ({ shouldReduceMotion }) => (
-  <div aria-hidden="true" className="col-span-full grid gap-4 sm:grid-cols-5 sm:items-center sm:gap-6 md:gap-8">
-    <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="aspect-[16/10] rounded-media sm:col-span-2" />
-    <div className="flex min-w-0 flex-col sm:col-span-3">
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-24" />
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-3 h-7 w-4/5" />
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-4 h-3 w-full" />
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-1.5 h-3 w-2/3" />
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-6 h-3 w-32" />
+  <div aria-hidden="true" className="overflow-hidden rounded-overlay bg-surface-muted">
+    <div className="grid grid-cols-[minmax(0,38%)_minmax(0,1fr)] sm:grid-cols-[minmax(0,34%)_minmax(0,1fr)]">
+      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="min-h-44 sm:min-h-52" />
+      <div className="flex min-w-0 flex-col p-4 sm:p-5 md:p-6">
+        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-24" />
+        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-3 h-7 w-4/5" />
+        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-3 h-3 w-full" />
+        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-1.5 h-3 w-2/3" />
+        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-6 h-3 w-32" />
+      </div>
     </div>
   </div>
 );
 
 const PostCardSkeleton: React.FC<{ shouldReduceMotion: boolean }> = ({ shouldReduceMotion }) => (
-  <div aria-hidden="true" className="flex h-full min-w-0 flex-col">
-    <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="aspect-[16/10] rounded-media" />
-    <div className="flex flex-1 flex-col pt-3.5">
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-16" />
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-2.5 h-4 w-4/5" />
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-2 h-3 w-full" />
-      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-1.5 h-3 w-2/3" />
-      <div className="mt-auto flex items-center justify-between pt-4">
-        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-28" />
-        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-9 w-9 rounded-full" />
+  <div aria-hidden="true" className="overflow-hidden rounded-overlay bg-surface-muted">
+    <div className="grid grid-cols-[minmax(0,38%)_minmax(0,1fr)] sm:grid-cols-[minmax(0,34%)_minmax(0,1fr)]">
+      <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="min-h-44 sm:min-h-52" />
+      <div className="flex min-w-0 flex-col p-4 sm:p-5 md:p-6">
+        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-16" />
+        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-2.5 h-5 w-4/5" />
+        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-2 h-3 w-full" />
+        <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="mt-1.5 h-3 w-2/3" />
+        <div className="mt-auto flex items-center justify-between pt-4">
+          <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-3 w-28" />
+          <SkeletonBlock shouldReduceMotion={shouldReduceMotion} className="h-9 w-9 rounded-full" />
+        </div>
       </div>
     </div>
   </div>
@@ -92,8 +115,8 @@ const LoadingGrid: React.FC<{ heroSlots: number; label: string; hasFeatured: boo
   const regularSkeletonCount = Math.max(0, POSTS_PER_PAGE - featuredSlots);
 
   return (
-    <div className={POSTS_GRID_CLASS} aria-busy="true">
-      <LoadingStatus label={label} className="col-span-full" />
+    <div className={POSTS_LIST_CLASS} aria-busy="true">
+      <LoadingStatus label={label} />
       {hasFeatured && <FeaturedPostSkeleton shouldReduceMotion={shouldReduceMotion} />}
       {Array.from({ length: regularSkeletonCount }).map((_, index) => (
         <PostCardSkeleton key={index} shouldReduceMotion={shouldReduceMotion} />
@@ -102,9 +125,20 @@ const LoadingGrid: React.FC<{ heroSlots: number; label: string; hasFeatured: boo
   );
 };
 
-const filterAndSortPosts = (posts: PostMetadata[], selectedCategory: string, sortOrder: 'newest' | 'oldest') => {
-  const filteredPosts =
+const filterAndSortPosts = (
+  posts: PostMetadata[],
+  selectedCategory: string,
+  selectedTag: string | null,
+  sortOrder: 'newest' | 'oldest',
+) => {
+  let filteredPosts =
     selectedCategory === ALL_CATEGORY ? posts : posts.filter((post) => post.category === selectedCategory);
+
+  if (selectedTag) {
+    filteredPosts = filteredPosts.filter((post) =>
+      (Array.isArray(post.tags) ? post.tags : []).some((tag) => tag.trim() === selectedTag),
+    );
+  }
 
   return sortPosts(filteredPosts, sortOrder);
 };
@@ -172,6 +206,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ categories, selected, onSelect, s
 export const Posts = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryFromUrl = searchParams.get('category');
+  const tagFromUrl = (searchParams.get('tag') || '').trim();
   const queryFromUrl = searchParams.get('q') || '';
   // 用户最近一次通过输入框编辑的查询值：用于区分「URL 更新还在 startTransition
   // 延迟中」与「URL 确实来自导航（直访 ?q= / 浏览器前进后退）」。见下方同步 effect。
@@ -185,6 +220,7 @@ export const Posts = () => {
   // 首帧用默认值可保证带参直访时客户端首帧与服务端 HTML 一致，水合无冲突）；
   // URL 中的真实状态由下方 effect 在水合后同步（与 ?q= 搜索框的处理一致）。
   const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORY);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [loading, setLoading] = useState(initialPosts.length === 0);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -201,6 +237,9 @@ export const Posts = () => {
     });
 
   const shouldReduceMotion = useReducedMotion();
+  // 标签清单来自全量文章（右侧卡片常驻），计数不随搜索/分类变化。
+  const allTags = useMemo(() => buildTagList(allPosts), [allPosts]);
+  const tagNames = useMemo(() => new Set(allTags.map((tag) => tag.name)), [allTags]);
 
   useEffect(() => {
     let cancelled = false;
@@ -288,6 +327,25 @@ export const Posts = () => {
     }
   }, [categories, categoryFromUrl, setSearchParams]);
 
+  // URL 中的 tag 同步到状态；非法 tag 清理参数并回到全部标签。
+  useEffect(() => {
+    const nextTag = tagFromUrl && tagNames.has(tagFromUrl) ? tagFromUrl : null;
+
+    if (tagFromUrl && !nextTag && tagNames.size > 0) {
+      setSearchParams(
+        (previous) => {
+          const nextParams = new URLSearchParams(previous);
+          nextParams.delete('tag');
+          nextParams.delete('page');
+          return nextParams;
+        },
+        { replace: true },
+      );
+    }
+
+    setSelectedTag(nextTag);
+  }, [tagFromUrl, tagNames, setSearchParams]);
+
   useEffect(() => {
     // 单向同步（URL → 输入框），且仅在「URL 值不是用户最近编辑产生」时生效：
     // 生产路由启用 v7_startTransition 后 setSearchParams 的提交是异步延迟的，
@@ -308,8 +366,8 @@ export const Posts = () => {
   }, [queryFromUrl, searchQuery, setSearchQuery]);
 
   const displayedPosts = useMemo(
-    () => filterAndSortPosts(results, selectedCategory, sortOrder),
-    [results, selectedCategory, sortOrder],
+    () => filterAndSortPosts(results, selectedCategory, selectedTag, sortOrder),
+    [results, selectedCategory, selectedTag, sortOrder],
   );
   const continueReading = useMemo(() => {
     if (!latestReading || isReadingComplete(latestReading.progress)) return null;
@@ -340,7 +398,9 @@ export const Posts = () => {
   useEffect(() => {
     const categoryStateFromUrl =
       categoryFromUrl && categories.includes(categoryFromUrl) ? categoryFromUrl : ALL_CATEGORY;
-    const filtersAreSynced = selectedCategory === categoryStateFromUrl && searchQuery === queryFromUrl;
+    const tagStateFromUrl = tagFromUrl && tagNames.has(tagFromUrl) ? tagFromUrl : null;
+    const filtersAreSynced =
+      selectedCategory === categoryStateFromUrl && selectedTag === tagStateFromUrl && searchQuery === queryFromUrl;
     const initialSearchIsPending = Boolean(queryFromUrl.trim()) && results === allPosts;
 
     if (loading || isSearching || !filtersAreSynced || initialSearchIsPending || currentPage <= totalPages) {
@@ -360,7 +420,10 @@ export const Posts = () => {
     results,
     searchQuery,
     selectedCategory,
+    selectedTag,
     setSearchParams,
+    tagFromUrl,
+    tagNames,
     totalPages,
   ]);
 
@@ -375,6 +438,26 @@ export const Posts = () => {
           nextParams.delete('category');
         } else {
           nextParams.set('category', category);
+        }
+        nextParams.delete('page');
+
+        return nextParams;
+      },
+      { replace: true },
+    );
+  };
+
+  const handleSelectTag = (tag: string | null) => {
+    setSelectedTag(tag);
+    setCurrentPage(1);
+    setSearchParams(
+      (previous) => {
+        const nextParams = new URLSearchParams(previous);
+
+        if (tag) {
+          nextParams.set('tag', tag);
+        } else {
+          nextParams.delete('tag');
         }
         nextParams.delete('page');
 
@@ -473,17 +556,23 @@ export const Posts = () => {
   // 只写前缀：站点名后缀由 Seo 组件统一拼接，这里再拼一次会得到「X - 站点名 - 站点名」。
   const activeCategory = categoryFromUrl && categories.includes(categoryFromUrl) ? categoryFromUrl : null;
   const categoryPostCount = activeCategory ? allPosts.filter((post) => post.category === activeCategory).length : 0;
+  const activeTag = selectedTag;
+  const activeTagCount = activeTag ? (allTags.find((tag) => tag.name === activeTag)?.count ?? 0) : 0;
   // 默认标题刻意不用 siteConfig.title：Seo 组件对等于站点名的 title 会套用首页专属的
   // seoHomeTitle（品牌 + 关键词），/posts 与 / 会得到同一个 title，正是软重复。
   const seoTitle =
     hasSearchQuery && results.length > 0
       ? `搜索：${searchQuery}`
-      : activeCategory
-        ? `分类：${activeCategory}`
-        : PAGE_TITLE;
-  const seoDescription = activeCategory
-    ? `${siteConfig.title}「${activeCategory}」分类下的全部文章（共 ${categoryPostCount} 篇），涵盖前端开发、后端运维、AI 工具与效率软件测评等主题。`
-    : PAGE_DESCRIPTION;
+      : activeTag
+        ? `标签：${activeTag}`
+        : activeCategory
+          ? `分类：${activeCategory}`
+          : PAGE_TITLE;
+  const seoDescription = activeTag
+    ? `${siteConfig.title}「${activeTag}」标签下的全部文章（共 ${activeTagCount} 篇），涵盖前端开发、后端运维、AI 工具与效率软件测评等主题。`
+    : activeCategory
+      ? `${siteConfig.title}「${activeCategory}」分类下的全部文章（共 ${categoryPostCount} 篇），涵盖前端开发、后端运维、AI 工具与效率软件测评等主题。`
+      : PAGE_DESCRIPTION;
 
   return (
     <div className="pb-8 md:pb-12">
@@ -540,79 +629,127 @@ export const Posts = () => {
         </section>
       )}
 
-      <div className="space-y-5 md:space-y-7">
-        <FilterBar
-          categories={categories}
-          selected={selectedCategory}
-          onSelect={handleSelectCategory}
-          sortOrder={sortOrder}
-          onToggleSort={handleToggleSort}
-        />
-
-        <div className="mx-auto max-w-2xl">
-          <SearchField
-            value={searchQuery}
-            onValueChange={handleSearchChange}
-            onClear={handleClearSearch}
-            placeholder="搜索标题、摘要、分类与正文内容..."
-            aria-label="搜索文章"
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+        <div className="min-w-0 flex-1 space-y-5 md:space-y-7">
+          <FilterBar
+            categories={categories}
+            selected={selectedCategory}
+            onSelect={handleSelectCategory}
+            sortOrder={sortOrder}
+            onToggleSort={handleToggleSort}
           />
-        </div>
 
-        {loading || isSearching ? (
-          <LoadingGrid
-            heroSlots={heroSlots}
-            label={isSearching ? '正在搜索文章' : '正在加载文章列表'}
-            hasFeatured={hasFeaturedPost}
-          />
-        ) : loadError || searchError ? (
-          <div>
-            <ContentStatus
-              variant="error"
-              title={loadError ? '文章加载失败' : '搜索失败'}
-              description={loadError || searchError || undefined}
-              actionLabel={loadError ? '重新加载' : '清除搜索'}
-              onAction={loadError ? () => setLoadAttempt((attempt) => attempt + 1) : handleClearSearch}
+          <div className="mx-auto max-w-2xl">
+            <SearchField
+              value={searchQuery}
+              onValueChange={handleSearchChange}
+              onClear={handleClearSearch}
+              placeholder="搜索标题、摘要、分类与正文内容..."
+              aria-label="搜索文章"
             />
           </div>
-        ) : (
-          <div id="posts-panel" className="space-y-7" aria-live="polite" tabIndex={-1}>
-            {hasSearchQuery && results.length > 0 && (
-              <div className="flex items-center justify-end">
-                <Link
-                  to={`/search?q=${encodeURIComponent(searchQuery)}`}
-                  className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-zinc-600 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:decoration-zinc-700 dark:hover:text-white"
-                >
-                  在搜索页查看全部结果 <ChevronRight size={14} aria-hidden="true" />
-                </Link>
-              </div>
-            )}
 
-            <div id="posts-grid" className={POSTS_GRID_CLASS}>
-              {featuredPost && <PostCard key={featuredPost.id} post={featuredPost} featured onShare={setSharePost} />}
-              {remainingPosts.length > 0 ? (
-                remainingPosts.map((post) => <PostCard key={post.id} post={post} onShare={setSharePost} />)
-              ) : !featuredPost ? (
-                <div className="col-span-full border-y border-zinc-200 py-14 text-center dark:border-zinc-800">
-                  <p className="text-base text-zinc-500 dark:text-zinc-400">
-                    {hasSearchQuery ? '未找到匹配的文章' : '暂无相关文章'}
-                  </p>
-                  {hasSearchQuery && (
-                    <button
-                      onClick={handleClearSearch}
-                      className="mt-3 text-sm font-medium text-zinc-700 hover:underline dark:text-zinc-300"
-                      aria-label="清除搜索条件"
-                    >
-                      清除搜索条件
-                    </button>
-                  )}
-                </div>
-              ) : null}
+          {loading || isSearching ? (
+            <LoadingGrid
+              heroSlots={heroSlots}
+              label={isSearching ? '正在搜索文章' : '正在加载文章列表'}
+              hasFeatured={hasFeaturedPost}
+            />
+          ) : loadError || searchError ? (
+            <div>
+              <ContentStatus
+                variant="error"
+                title={loadError ? '文章加载失败' : '搜索失败'}
+                description={loadError || searchError || undefined}
+                actionLabel={loadError ? '重新加载' : '清除搜索'}
+                onAction={loadError ? () => setLoadAttempt((attempt) => attempt + 1) : handleClearSearch}
+              />
             </div>
+          ) : (
+            <div id="posts-panel" className="space-y-5" aria-live="polite" tabIndex={-1}>
+              {selectedTag && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="text-sm text-content-muted">标签</span>
+                  <span className="text-sm font-medium text-content">{selectedTag}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectTag(null)}
+                    className="inline-flex min-h-11 items-center text-sm text-content-muted transition-colors hover:text-content hover:underline"
+                  >
+                    清除标签
+                  </button>
+                </div>
+              )}
 
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={paginate} />
-          </div>
-        )}
+              {hasSearchQuery && results.length > 0 && (
+                <div className="flex items-center justify-end">
+                  <Link
+                    to={`/search?q=${encodeURIComponent(searchQuery)}`}
+                    className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-zinc-600 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:decoration-zinc-700 dark:hover:text-white"
+                  >
+                    在搜索页查看全部结果 <ChevronRight size={14} aria-hidden="true" />
+                  </Link>
+                </div>
+              )}
+
+              <div id="posts-grid" className={POSTS_LIST_CLASS}>
+                {featuredPost && (
+                  <PostCard
+                    key={featuredPost.id}
+                    post={featuredPost}
+                    featured
+                    variant="banner"
+                    onShare={setSharePost}
+                  />
+                )}
+                {remainingPosts.length > 0 ? (
+                  remainingPosts.map((post) => (
+                    <PostCard key={post.id} post={post} variant="banner" onShare={setSharePost} />
+                  ))
+                ) : !featuredPost ? (
+                  <div className="rounded-overlay bg-surface-muted px-6 py-14 text-center">
+                    <p className="text-base text-content-muted">
+                      {selectedTag
+                        ? `没有找到带有「${selectedTag}」标签的文章`
+                        : hasSearchQuery
+                          ? '未找到匹配的文章'
+                          : '暂无相关文章'}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
+                      {selectedTag && (
+                        <button
+                          onClick={() => handleSelectTag(null)}
+                          className="min-h-11 text-sm font-medium text-content-muted transition-colors hover:text-content hover:underline"
+                          aria-label="清除标签筛选"
+                        >
+                          清除标签
+                        </button>
+                      )}
+                      {hasSearchQuery && (
+                        <button
+                          onClick={handleClearSearch}
+                          className="min-h-11 text-sm font-medium text-content-muted transition-colors hover:text-content hover:underline"
+                          aria-label="清除搜索条件"
+                        >
+                          清除搜索条件
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={paginate} />
+            </div>
+          )}
+        </div>
+
+        <TagsPanel
+          tags={allTags}
+          selectedTag={selectedTag}
+          totalPosts={allPosts.length}
+          onSelectTag={handleSelectTag}
+        />
       </div>
 
       {sharePost && (

@@ -1,5 +1,5 @@
 /**
- * 内容列顶部的细顶栏：抽屉入口 + 当前页名 + 搜索与主题切换。
+ * 内容列顶部的细顶栏：抽屉入口 + 当前页名 + 站内搜索。
  *
  * 保留 `site-navbar` 类名：文章标题锚点偏移（--article-heading-offset）由
  * Layout 实测该元素高度得出，滚动定位的多个消费方都依赖这个类名。
@@ -11,7 +11,6 @@ import { Menu, Search, X } from 'lucide-react';
 import { assetUrl } from '@/utils/siteUrl';
 import { siteConfig } from '@config/site.config';
 import { resolveNavLabel } from './siteNav';
-import { ThemeToggle } from './ThemeToggle';
 
 interface SiteTopBarProps {
   pathname: string;
@@ -71,13 +70,9 @@ export const SiteTopBar: React.FC<SiteTopBarProps> = ({
         </p>
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <button onClick={onSearchNavigate} className="topbar-ghost-button" aria-label="打开搜索页">
-            <Search size={18} />
+          <button type="button" onClick={onSearchNavigate} className="topbar-ghost-button" aria-label="打开搜索页">
+            <Search size={18} aria-hidden="true" />
           </button>
-          {/* ThemeToggle 不在本次改动范围：容器只负责把按钮外观统一成 ghost 样式 */}
-          <span className="topbar-theme-button inline-flex">
-            <ThemeToggle />
-          </span>
         </div>
       </div>
     </nav>

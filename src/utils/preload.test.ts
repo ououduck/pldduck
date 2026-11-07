@@ -42,9 +42,9 @@ describe('preloadPage', () => {
   });
 
   it('同一路径只预加载一次', () => {
-    const spy = vi.spyOn(pageLoaders, '/tags').mockReturnValue(Promise.resolve({ default: (() => null) as never }));
-    preloadPage('/tags');
-    preloadPage('/tags');
+    const spy = vi.spyOn(pageLoaders, '/archive').mockReturnValue(Promise.resolve({ default: (() => null) as never }));
+    preloadPage('/archive');
+    preloadPage('/archive');
     expect(spy).toHaveBeenCalledTimes(1);
   });
 

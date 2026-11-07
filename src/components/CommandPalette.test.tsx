@@ -70,8 +70,13 @@ describe('CommandPalette', () => {
     expect(screen.getByText('快速操作')).toBeInTheDocument();
     expect(screen.getByText('操作')).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '首页' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: '切换深浅色模式' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '回到顶部' })).toBeInTheDocument();
+  });
+
+  it('深色唯一后不再提供主题切换与标签入口', () => {
+    renderPalette();
+    expect(screen.queryByRole('option', { name: /切换深浅色|切换外观主题/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: '标签' })).not.toBeInTheDocument();
   });
 
   it('无阅读历史时展示最近文章（构建期元数据）', () => {
@@ -122,16 +127,6 @@ describe('CommandPalette', () => {
     const onClose = renderPalette();
     await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalled();
-  });
-
-  it('切换深浅色命令派发主题事件', async () => {
-    const user = userEvent.setup();
-    renderPalette();
-    const handler = vi.fn();
-    window.addEventListener('dblog:toggle-theme', handler);
-    await user.click(screen.getByRole('option', { name: '切换深浅色模式' }));
-    expect(handler).toHaveBeenCalledTimes(1);
-    window.removeEventListener('dblog:toggle-theme', handler);
   });
 
   it('点击搜索结果时记录最近搜索（localStorage）', async () => {

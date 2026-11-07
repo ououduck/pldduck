@@ -6,20 +6,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ArrowRight,
-  BookOpen,
-  Clock,
-  Droplets,
-  FileSearch,
-  Github,
-  Home,
-  ImagePlus,
-  Moon,
-  Rss,
-  Search,
-  Tags,
-} from 'lucide-react';
+import { ArrowRight, BookOpen, Clock, Droplets, FileSearch, Github, Home, ImagePlus, Rss, Search } from 'lucide-react';
 import { SlideModal } from './SlideModal';
 import { usePostSearch } from '@/hooks/usePostSearch';
 import { getInitialPosts } from '@/services/posts';
@@ -29,7 +16,6 @@ import { routeUrl } from '@/utils/siteUrl';
 import { readRecentSearches, RECENT_SEARCH_EVENT, recordRecentSearch } from '@/utils/recentSearches';
 
 const SEARCH_RESULT_LIMIT = 8;
-const THEME_TOGGLE_EVENT = 'dblog:toggle-theme';
 
 interface PaletteCommand {
   id: string;
@@ -96,17 +82,10 @@ export const CommandPalette: React.FC<{ onClose: () => void }> = ({ onClose }) =
       { id: 'nav-home', label: '首页', icon: <Home size={15} />, run: () => closeAndNavigate('/') },
       { id: 'nav-posts', label: '文章', icon: <BookOpen size={15} />, run: () => closeAndNavigate('/posts') },
       { id: 'nav-archive', label: '归档', icon: <Clock size={15} />, run: () => closeAndNavigate('/archive') },
-      { id: 'nav-tags', label: '标签', icon: <Tags size={15} />, run: () => closeAndNavigate('/tags') },
       { id: 'nav-shuoshuo', label: '说说', icon: <BookOpen size={15} />, run: () => closeAndNavigate('/shuoshuo') },
     ];
 
     const actionCommands: PaletteCommand[] = [
-      {
-        id: 'action-theme',
-        label: '切换深浅色模式',
-        icon: <Moon size={15} />,
-        run: () => window.dispatchEvent(new CustomEvent(THEME_TOGGLE_EVENT)),
-      },
       {
         id: 'action-top',
         label: '回到顶部',

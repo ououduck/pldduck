@@ -11,9 +11,7 @@ import {
   Image as ImageIcon,
   MessageCircle,
   MessageSquareText,
-  Search,
   Stamp,
-  Tag,
   TrainFront,
   Users,
 } from 'lucide-react';
@@ -58,7 +56,6 @@ export const navGroups: NavGroup[] = [
       { key: 'posts', path: '/posts', label: '文章', hint: '全部文章', icon: BookOpen },
       { key: 'shuoshuo', path: '/shuoshuo', label: '说说', hint: '朋友圈式动态', icon: MessageCircle },
       { key: 'archive', path: '/archive', label: '归档', hint: '时间归档', icon: Archive },
-      { key: 'tags', path: '/tags', label: '标签', hint: '主题筛选', icon: Tag },
       { key: 'friends', path: '/friends', label: '友链', hint: '友情链接', icon: Users },
       { key: 'guestbook', path: '/guestbook', label: '留言', hint: '留言互动', icon: MessageSquareText },
       {
@@ -73,7 +70,6 @@ export const navGroups: NavGroup[] = [
   {
     label: '工具',
     items: [
-      { key: 'search', path: '/search', label: '站内搜索', hint: '全站检索', icon: Search },
       { key: 'cover', path: '/cover', label: '封面生成器', hint: '制作文章封面', icon: ImageIcon },
       { key: 'watermark', path: '/watermark', label: '水印工具', hint: '给图片加文字水印', icon: Stamp },
     ],

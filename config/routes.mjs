@@ -72,13 +72,12 @@ export const ROUTES = [
     sitemap: { changefreq: 'daily', priority: '0.9' },
   },
   {
+    // 独立标签页已并入 /posts（右侧标签卡片 / 移动端标签弹层）。这里只保留
+    // SPA 重定向兜底：不预渲染、不预加载、不进 sitemap，旧 /tags 与 /tags/* 由
+    // public/_redirects 301；App.tsx 的 TagsRedirect 会把 ?tag= 转交 /posts?tag=。
     path: '/tags',
     segment: 'tags',
-    preload: true,
     sw: true,
-    ssg: 'static',
-    seo: { schemaType: 'CollectionPage', schemaFromSeo: true },
-    sitemap: { changefreq: 'weekly', priority: '0.8' },
   },
   {
     path: '/friends',

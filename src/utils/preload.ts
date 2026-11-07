@@ -27,7 +27,6 @@ const canPreload = () => {
 const pageLoaders: Record<string, ModuleLoader> = {
   '/posts': () => import('../pages/Posts').then((m) => ({ default: m.Posts })),
   '/archive': () => import('../pages/Archive').then((m) => ({ default: m.ArchivePage })),
-  '/tags': () => import('../pages/Tags').then((m) => ({ default: m.Tags })),
   '/friends': () => import('../pages/Friends').then((m) => ({ default: m.Friends })),
   '/shuoshuo': () => import('../pages/ShuoShuo').then((m) => ({ default: m.ShuoShuo })),
   '/guestbook': () => import('../pages/Guestbook').then((m) => ({ default: m.Guestbook })),

@@ -19,6 +19,8 @@ UI 重构第二阶段起，全站颜色/字体/间距/圆角/布局宽度/动效
 
 `body` 的背景/文字、`:focus-visible` 的焦点环已直接使用 Token；`html.dark` **只覆盖颜色**，间距/圆角/动效两态共用同一套。既有品牌色类 `paper` / `ink` / `void` 保留兼容，新代码优先语义类。
 
+**文章正文与阅读模式**：`.post-prose.prose` 的字号/行高/颜色/间距全部由 `index.css` 的 `.post-prose` 区块与 Token 提供（移动 17px / 桌面 18px / 行高 1.95 / 46rem 列宽）；阅读模式在 `.reading-mode-article` 下覆盖为 19px / 1.95 / 44rem，段落间距用 `--space-5` / `--space-6`。新增正文或阅读模式排版只改这两处并复用 `--space-*` / `--radius-*` / `--color-*`，不要在 `Post.tsx` 里写死 px 或颜色。
+
 ## 关键文件
 
 - `src/index.css`（`:root` / `html.dark` 的设计 Token、`body` 与 `:focus-visible` 基础样式、侧栏与顶栏组件样式）
@@ -57,6 +59,7 @@ UI 重构第二阶段起，全站颜色/字体/间距/圆角/布局宽度/动效
 - 写 `bg-surface/50`、`border-line/70` 之类的透明度修饰：`var()` 颜色不支持 `/opacity`，类名照常生成但不会按预期变透明；需要弱底就新增专用 Token。
 - 只改 `--font-sans` / `--font-serif` 而不同步 `config/tailwind.config.js` 的 `fontFamily`（或反之）：CSS 与工具类会落到两套字体链。
 - 在组件里逐处补 `dark:bg-zinc-900 dark:text-zinc-100` 复制 Token 已有语义：深色主题调整时这些硬编码会脱队；优先改 Token 或使用语义类。
+- 文章正文/阅读模式排版只改 Tailwind 工具类或 `Post.tsx` 内联样式：正文排版以 `index.css` 的 `.post-prose` / `.reading-mode-article` 为准（`prose` 插件选择器特异性更高），绕过去会出现深浅两态或两种模式各错一半。
 
 ## 破例条款
 

@@ -50,12 +50,12 @@ const FriendEntry = ({ friend, unavailable = false }: FriendEntryProps) => {
       href={friend.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`group flex h-32 min-w-0 items-start gap-4 overflow-hidden rounded-overlay bg-surface-muted p-4 transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-content ${
+      className={`group flex h-28 min-w-0 items-start gap-3 overflow-hidden rounded-overlay bg-surface-muted p-3 transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-content ${
         unavailable ? 'text-content-muted' : ''
       }`}
     >
-      <span className="relative h-12 w-12 shrink-0">
-        <span className="block h-12 w-12 overflow-hidden rounded-full bg-surface-muted ring-1 ring-line">
+      <span className="relative h-10 w-10 shrink-0">
+        <span className="block h-10 w-10 overflow-hidden rounded-full bg-surface-muted ring-1 ring-line">
           <ProgressiveImage
             key={avatarSrc}
             src={avatarSrc}
@@ -89,7 +89,7 @@ const FriendEntry = ({ friend, unavailable = false }: FriendEntryProps) => {
             <span className="shrink-0 text-[11px] font-medium text-red-500/90 dark:text-red-400/90">已失联</span>
           )}
         </span>
-        <span className="mt-1 block line-clamp-2 text-sm leading-relaxed text-content-muted">{friend.description}</span>
+        <span className="mt-1 block line-clamp-1 text-sm leading-5 text-content-muted">{friend.description}</span>
         <span
           className={`mt-1.5 block truncate text-xs ${
             unavailable
@@ -614,7 +614,7 @@ export const Friends = () => {
         )}
         {loading &&
           Array.from({ length: 3 }).map((_, index) => (
-            <li key={`skeleton-${index}`} aria-hidden="true" className="h-32 rounded-overlay bg-surface p-4">
+            <li key={`skeleton-${index}`} aria-hidden="true" className="h-28 rounded-overlay bg-surface p-3">
               <div className="flex items-start gap-4">
                 <div className="h-12 w-12 shrink-0 animate-pulse rounded-full bg-surface-muted" />
                 <div className="flex-1 space-y-3">

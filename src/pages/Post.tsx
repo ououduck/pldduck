@@ -3,7 +3,7 @@
  */
 
 import React, { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -1037,6 +1037,8 @@ const createMarkdownComponents = (
 export const Post = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromContinueReading = (location.state as { continueReading?: boolean } | null)?.continueReading === true;
   // SSG 场景：构建期已把文章数据（含正文）注入 routeData，首帧同步渲染正文；
   // SPA 导航到其他文章时 routeData 无数据，回落到异步加载（loading 初始 true）。
   const ssgRouteData = useSsgRouteData();
@@ -1443,6 +1445,11 @@ export const Post = () => {
     let missingEndRefCount = 0;
     const MAX_MISSING_END_REF = 8;
     const restoreGraceUntil = performance.now() + 500;
+    // 从文章列表「继续阅读」进入时，第一次恢复位置用平滑滚动；后续布局校正仍用 auto，
+    // 避免图片/代码高亮加载后反复播放长动画。用户手动滚动会走 stopRestore 中断。
+    let hasSmoothRestored = false;
+    let smoothRestoreActive = false;
+    let smoothRestoreTimer = 0;
 
     const stopRestore = () => {
       userIntent = true;
@@ -1473,7 +1480,7 @@ export const Post = () => {
     };
     const restore = () => {
       frame = 0;
-      if (cancelled || userIntent) return;
+      if (cancelled || userIntent || smoothRestoreActive) return;
       const documentHeight = document.documentElement.scrollHeight;
       stableFrames = documentHeight === lastDocumentHeight ? stableFrames + 1 : 0;
       lastDocumentHeight = documentHeight;
@@ -1502,16 +1509,32 @@ export const Post = () => {
       );
       programmaticScroll = true;
       programmaticScrollRef.current = true;
-      window.scrollTo({ top, behavior: 'auto' });
-      if (resetProgrammaticFrame) window.cancelAnimationFrame(resetProgrammaticFrame);
-      resetProgrammaticFrame = window.requestAnimationFrame(() => {
-        resetProgrammaticFrame = window.requestAnimationFrame(() => {
+      const useSmooth = fromContinueReading && !hasSmoothRestored && !shouldReduceMotion;
+      if (useSmooth) {
+        hasSmoothRestored = true;
+        smoothRestoreActive = true;
+        window.scrollTo({ top, behavior: 'smooth' });
+        // 等平滑滚动落定后再恢复 auto 校正；期间 ResizeObserver 触发的 restore 直接跳过，
+        // 否则会在动画途中把用户位置瞬移打断。
+        smoothRestoreTimer = window.setTimeout(() => {
+          smoothRestoreActive = false;
           programmaticScroll = false;
           programmaticScrollRef.current = false;
+          smoothRestoreTimer = 0;
+          scheduleRestore();
+        }, 700);
+      } else {
+        window.scrollTo({ top, behavior: 'auto' });
+        if (resetProgrammaticFrame) window.cancelAnimationFrame(resetProgrammaticFrame);
+        resetProgrammaticFrame = window.requestAnimationFrame(() => {
+          resetProgrammaticFrame = window.requestAnimationFrame(() => {
+            programmaticScroll = false;
+            programmaticScrollRef.current = false;
+          });
         });
-      });
-      // 布局稳定后重新应用（图片、代码高亮、数学公式会改变文章高度）。
-      if (stableFrames < 2) scheduleRestore();
+        // 布局稳定后重新应用（图片、代码高亮、数学公式会改变文章高度）。
+        if (stableFrames < 2) scheduleRestore();
+      }
     };
     const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(scheduleLayoutRestore) : null;
 
@@ -1538,9 +1561,10 @@ export const Post = () => {
       resizeObserver?.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
       if (restoreDelay) window.clearTimeout(restoreDelay);
+      if (smoothRestoreTimer) window.clearTimeout(smoothRestoreTimer);
       if (resetProgrammaticFrame) window.cancelAnimationFrame(resetProgrammaticFrame);
     };
-  }, [post, headings.length]);
+  }, [fromContinueReading, headings.length, post, shouldReduceMotion]);
 
   useEffect(() => {
     const target = articleBodyRef.current;

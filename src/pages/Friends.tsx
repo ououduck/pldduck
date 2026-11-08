@@ -50,7 +50,7 @@ const FriendEntry = ({ friend, unavailable = false }: FriendEntryProps) => {
       href={friend.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`group flex min-w-0 items-start gap-4 rounded-overlay bg-surface-muted p-4 transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-content ${
+      className={`group flex h-36 min-w-0 items-start gap-4 overflow-hidden rounded-overlay bg-surface-muted p-4 transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-content ${
         unavailable ? 'text-content-muted' : ''
       }`}
     >
@@ -602,7 +602,7 @@ export const Friends = () => {
         {!loading &&
           !loadError &&
           activeFriends.map((friend) => (
-            <li key={`${friend.url}-${friend.name}`}>
+            <li key={`${friend.url}-${friend.name}`} className="h-full">
               <FriendEntry friend={friend} />
             </li>
           ))}
@@ -614,7 +614,7 @@ export const Friends = () => {
         )}
         {loading &&
           Array.from({ length: 3 }).map((_, index) => (
-            <li key={`skeleton-${index}`} aria-hidden="true" className="rounded-overlay bg-surface p-4">
+            <li key={`skeleton-${index}`} aria-hidden="true" className="h-36 rounded-overlay bg-surface p-4">
               <div className="flex items-start gap-4">
                 <div className="h-12 w-12 shrink-0 animate-pulse rounded-full bg-surface-muted" />
                 <div className="flex-1 space-y-3">
@@ -690,7 +690,7 @@ export const Friends = () => {
                 {unavailableFriends.length > 0 ? (
                   <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {unavailableFriends.map((friend) => (
-                      <li key={`${friend.url}-${friend.name}`}>
+                      <li key={`${friend.url}-${friend.name}`} className="h-full">
                         <FriendEntry friend={friend} unavailable />
                       </li>
                     ))}

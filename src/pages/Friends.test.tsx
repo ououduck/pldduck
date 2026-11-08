@@ -84,7 +84,8 @@ describe('Friends', () => {
   it('友链页头与条目使用大色块卡片', async () => {
     renderFriends();
     const entry = await screen.findByRole('link', { name: /示例博客/ });
-    expect(entry).toHaveClass('rounded-overlay', 'bg-surface-muted');
+    expect(entry).toHaveClass('rounded-overlay', 'bg-surface-muted', 'h-36', 'overflow-hidden');
+    expect(within(entry).getByText('前端技术分享')).toHaveClass('line-clamp-2');
 
     const header = screen.getByRole('heading', { level: 1, name: '友情链接' }).closest('header');
     expect(header).toHaveClass('rounded-overlay', 'bg-surface');

@@ -15,7 +15,7 @@ const guestbookPageDescription =
 
 export const Guestbook = () => {
   return (
-    <div className="mx-auto max-w-4xl pb-10 pt-6 md:pb-16 md:pt-10">
+    <div className="mx-auto max-w-3xl pb-10 pt-6 md:pb-16 md:pt-10">
       <Seo
         title="留言板"
         description={guestbookPageDescription}
@@ -40,15 +40,18 @@ export const Guestbook = () => {
         ]}
       />
 
-      {/* 编辑式页头：只保留衬线标题与一条发丝线，不输出英文眉题/图标。 */}
-      <header className="mb-8 border-b border-line pb-7 md:mb-10 md:pb-9">
+      {/* 与说说页一致的卡片结构：页头与评论区各一块大色块，不再使用跨页发丝线。 */}
+      <header className="rounded-overlay bg-surface p-6 md:p-8">
         <h1 className="font-serif text-4xl font-bold tracking-tight text-content md:text-5xl">留言板</h1>
       </header>
 
       {siteConfig.giscusEnabled ? (
-        <GiscusComments mapping="number" term={siteConfig.guestbook.discussionId} />
+        <GiscusComments mapping="number" term={siteConfig.guestbook.discussionId} card />
       ) : (
-        <Surface className="flex flex-col items-center gap-3 p-8 text-center sm:p-10">
+        <Surface
+          variant="panel"
+          className="mt-4 flex flex-col items-center gap-3 rounded-overlay p-8 text-center sm:p-10"
+        >
           <MessageSquareText size={24} className="text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
           <p className="text-sm leading-6 text-zinc-500 dark:text-zinc-400">留言功能暂未开启，敬请期待。</p>
         </Surface>

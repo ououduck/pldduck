@@ -608,6 +608,7 @@ export const Posts = () => {
             <div className="flex shrink-0 items-center gap-1">
               <Link
                 to={`/post/${continueReading.post.id}`}
+                state={{ continueReading: true }}
                 className="inline-flex min-h-11 items-center gap-0.5 px-1 text-sm font-medium text-content-muted underline-offset-4 transition-colors hover:text-content hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
                 aria-label={`继续阅读：${continueReading.post.title}`}
               >

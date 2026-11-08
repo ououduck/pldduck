@@ -40,6 +40,7 @@ import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { sendFeishuWebhookMessage } from './lib/feishu-webhook.mjs';
 import { createActionLogger, formatError, installGlobalErrorHandlers } from './lib/gh-actions-logger.mjs';
+import { loadCommentSurfaceConfig, resolveCommentSurface } from './lib/comment-surface.mjs';
 
 const logger = createActionLogger('feishu-webhook');
 
@@ -176,8 +177,18 @@ const buildCommentMessage = (event) => {
   const author = comment.user?.login || event.sender?.login || 'unknown';
   const body = oneLine(truncate(comment.body, MAX_BODY_PREVIEW_CHARS));
   const url = comment.html_url || discussion.html_url;
+  const surfaceConfig = loadCommentSurfaceConfig();
+  const surface = resolveCommentSurface({
+    discussionNumber: discussion.number,
+    categoryName: discussion.category?.name,
+    guestbookDiscussionId: surfaceConfig?.guestbookDiscussionId,
+    shuoshuoDiscussionId: surfaceConfig?.shuoshuoDiscussionId,
+    articleCategoryName: surfaceConfig?.articleCategoryName,
+  });
+  const surfaceLabel = { shuoshuo: '说说', guestbook: '留言板', article: '文章评论' }[surface] || '讨论区';
 
   const lines = ['💬 pldduck 新评论', ''];
+  lines.push(`区域: ${surfaceLabel}`);
   lines.push(`位置: ${escapeHtml(truncate(title, MAX_TITLE_CHARS))}`);
   lines.push(`作者: ${escapeHtml(author)}`);
   if (body) lines.push(`评论: ${escapeHtml(body)}`);

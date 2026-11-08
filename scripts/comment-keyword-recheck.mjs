@@ -29,6 +29,7 @@ import { pathToFileURL } from 'node:url';
 import { fetchWithRetry, createTimeoutSignal, readResponseText } from './lib/http.mjs';
 import { createActionLogger, formatError, installGlobalErrorHandlers } from './lib/gh-actions-logger.mjs';
 import { loadConfig, matchContent, isExemptAuthor } from './lib/keyword-filter-core.mjs';
+import { loadCommentSurfaceConfig, resolveCommentSurface } from './lib/comment-surface.mjs';
 
 const logger = createActionLogger('keyword-recheck');
 
@@ -56,7 +57,7 @@ const LIST_DISCUSSIONS_QUERY = `query ListDiscussions($owner: String!, $repo: St
   repository(owner: $owner, name: $repo) {
     discussions(first: 100, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
       pageInfo { hasNextPage endCursor }
-      nodes { id title url }
+      nodes { id title url number category { name } }
     }
   }
 }`;
@@ -195,7 +196,13 @@ const listAllDiscussions = async (owner, repo) => {
     }
     for (const node of connection.nodes ?? []) {
       if (node?.id && node?.title) {
-        discussions.push({ id: node.id, title: node.title, url: node.url ?? 'unknown' });
+        discussions.push({
+          id: node.id,
+          title: node.title,
+          url: node.url ?? 'unknown',
+          number: node.number,
+          categoryName: node.category?.name,
+        });
       }
     }
     if (!connection.pageInfo?.hasNextPage || !connection.pageInfo?.endCursor) break;
@@ -302,6 +309,7 @@ const main = async () => {
     return;
   }
 
+  const surfaceConfig = loadCommentSurfaceConfig();
   let scanned = 0;
   let exemptCount = 0;
   let matched = 0;
@@ -311,7 +319,18 @@ const main = async () => {
 
   for (const discussion of discussions) {
     const comments = await listDiscussionComments(discussion.id);
-    logger.info('Discussion loaded', { title: discussion.title, comments: comments.length });
+    const surface = resolveCommentSurface({
+      discussionNumber: discussion.number,
+      categoryName: discussion.categoryName,
+      guestbookDiscussionId: surfaceConfig?.guestbookDiscussionId,
+      shuoshuoDiscussionId: surfaceConfig?.shuoshuoDiscussionId,
+      articleCategoryName: surfaceConfig?.articleCategoryName,
+    });
+    logger.info('Discussion loaded', {
+      title: discussion.title,
+      surface,
+      comments: comments.length,
+    });
 
     for (const comment of comments) {
       scanned += 1;
@@ -352,6 +371,7 @@ const main = async () => {
         failed += 1;
       }
       rows.push({
+        区域: surface,
         讨论: discussion.title,
         作者: comment.author || '-',
         命中: `${hit.type}:${hit.value}`,

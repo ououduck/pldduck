@@ -30,6 +30,7 @@ import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { fetchWithRetry, createTimeoutSignal, readResponseText, RetryableHttpError } from './lib/http.mjs';
 import { createActionLogger, formatError, installGlobalErrorHandlers } from './lib/gh-actions-logger.mjs';
+import { loadCommentSurfaceConfig, resolveCommentSurface } from './lib/comment-surface.mjs';
 
 const logger = createActionLogger('akismet');
 
@@ -277,8 +278,19 @@ const main = async () => {
 
   const commentAuthor = sanitizeForAkismet(comment.user?.login);
   const commentBody = sanitizeForAkismet(comment.body);
+  const surfaceConfig = loadCommentSurfaceConfig();
+  const surface = resolveCommentSurface({
+    discussionNumber: discussion.number,
+    categoryName: discussion.category?.name,
+    guestbookDiscussionId: surfaceConfig?.guestbookDiscussionId,
+    shuoshuoDiscussionId: surfaceConfig?.shuoshuoDiscussionId,
+    articleCategoryName: surfaceConfig?.articleCategoryName,
+  });
+  logger.info('Comment surface resolved', { surface, discussion: discussion.number ?? 'unknown' });
 
-  logger.startGroup(`Akismet check: @${commentAuthor || 'unknown'} (${discussion.html_url || 'discussion'})`);
+  logger.startGroup(
+    `Akismet check [${surface}]: @${commentAuthor || 'unknown'} (${discussion.html_url || 'discussion'})`,
+  );
   try {
     const result = await checkWithAkismet({
       blog: repository.html_url || '',

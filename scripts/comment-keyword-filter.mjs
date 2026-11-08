@@ -29,6 +29,7 @@ import { pathToFileURL } from 'node:url';
 import { fetchWithRetry, createTimeoutSignal, readResponseText } from './lib/http.mjs';
 import { createActionLogger, formatError, installGlobalErrorHandlers } from './lib/gh-actions-logger.mjs';
 import { loadConfig, matchContent, isExemptAuthor } from './lib/keyword-filter-core.mjs';
+import { loadCommentSurfaceConfig, resolveCommentSurface } from './lib/comment-surface.mjs';
 
 const logger = createActionLogger('keyword');
 
@@ -74,6 +75,8 @@ const loadEventPayload = () => {
       author: payload.comment.user?.login || '',
       text: payload.comment.body || '',
       url: payload.comment.html_url || 'unknown',
+      discussionNumber: payload.discussion.number,
+      categoryName: payload.discussion.category?.name,
     };
   } else if (eventName === 'discussion' && payload.discussion) {
     subject = {
@@ -82,6 +85,8 @@ const loadEventPayload = () => {
       author: payload.discussion.user?.login || '',
       text: `${payload.discussion.title || ''}\n${payload.discussion.body || ''}`,
       url: payload.discussion.html_url || 'unknown',
+      discussionNumber: payload.discussion.number,
+      categoryName: payload.discussion.category?.name,
     };
   }
 
@@ -222,8 +227,18 @@ const main = async () => {
     return;
   }
 
+  const surfaceConfig = loadCommentSurfaceConfig();
+  const surface = resolveCommentSurface({
+    discussionNumber: subject.discussionNumber,
+    categoryName: subject.categoryName,
+    guestbookDiscussionId: surfaceConfig?.guestbookDiscussionId,
+    shuoshuoDiscussionId: surfaceConfig?.shuoshuoDiscussionId,
+    articleCategoryName: surfaceConfig?.articleCategoryName,
+  });
+  logger.info('Comment surface resolved', { surface, discussion: subject.discussionNumber ?? 'unknown' });
+
   const hit = matchContent(config, subject.text);
-  logger.startGroup(`Keyword filter: @${subject.author || 'unknown'} (${subject.kind}, ${subject.url})`);
+  logger.startGroup(`Keyword filter [${surface}]: @${subject.author || 'unknown'} (${subject.kind}, ${subject.url})`);
   try {
     if (!hit) {
       logger.info('No keyword matched; content left as is');

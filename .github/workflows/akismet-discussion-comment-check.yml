@@ -1,3 +1,6 @@
+# 覆盖文章评论、留言板与说说（Announcements Discussion）的新评论；
+# discussion_comment 事件本身不带分类限制，脚本会按 comments.config.json
+# 的 discussionId 识别 surface，日志/飞书通知中标注区域。
 name: Akismet Discussion Comment Checker
 
 on:

@@ -1,7 +1,7 @@
 # comment-keyword-filter.yml — 评论/讨论关键词过滤（自建审核层，与 Akismet 互补）。
 #
 # 触发：
-#   - discussion_comment: created → 检查新评论（文章评论、留言板留言）；
+#   - discussion_comment: created → 检查新评论（文章评论、留言板留言、说说评论）；
 #   - discussion: created        → 检查新讨论（防直接在 Discussions 灌水）。
 # 命中 config/comment-keywords.json 中的关键词/正则后按配置处理：
 #   - 评论：minimize（默认，折叠隐藏、可撤销）/ delete / none（仅记录）

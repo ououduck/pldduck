@@ -7,7 +7,7 @@
 #
 # 触发：
 #   - push: main 分支提交（.pages.yml 保存内容等都会走到这里）；
-#   - discussion_comment: created（giscus 评论）；
+#   - discussion_comment: created（giscus 文章评论 / 留言板 / 说说评论）；
 #   - discussion: created（新建讨论）；
 #   - issues: opened（新 Issue）；
 #   - workflow_run: completed（白名单内 workflow 的运行结果；白名单不含本工作流自身，

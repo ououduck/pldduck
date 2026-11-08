@@ -46,8 +46,9 @@ const profilePageSchema = {
 };
 
 // 联系方式是轻量文字链接，不是三个大按钮：统一的次要文字色 + 悬停弱底/下划线。
+// 移动端由 index.css 的 `home-contact-grid` 改为 2 列紧凑网格，字号同步收紧。
 const contactItemClassName =
-  'inline-flex min-h-11 items-center gap-2 rounded-control px-2.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-content';
+  'inline-flex min-h-11 items-center gap-2 rounded-control px-2.5 text-[12px] text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-content sm:text-[13px] md:text-sm';
 
 const contactIconClassName = 'shrink-0 opacity-70';
 
@@ -112,10 +113,10 @@ export const Home = () => {
         ]}
       />
 
-      <div className="mx-auto w-full max-w-3xl py-10 md:py-16">
-        <section className="home-hero relative overflow-hidden rounded-overlay bg-surface px-6 py-10 sm:px-10 sm:py-14 md:px-12 md:py-16">
+      <div className="home-page mx-auto w-full max-w-3xl py-10 md:py-16">
+        <section className="home-hero relative overflow-hidden rounded-overlay bg-surface px-5 py-6 sm:px-10 sm:py-14 md:px-12 md:py-16">
           <div aria-hidden="true" className="home-hero-glow" />
-          <div className="relative mx-auto max-w-xl text-center">
+          <div className="relative mx-auto w-full max-w-xl text-center">
             <img
               src={assetUrl(siteConfig.author.avatar)}
               alt={siteConfig.author.name}
@@ -123,19 +124,19 @@ export const Home = () => {
               height={96}
               decoding="async"
               data-home-reveal="avatar"
-              className="home-reveal home-reveal-avatar mx-auto h-24 w-24 rounded-full bg-surface-muted object-cover ring-1 ring-line"
+              className="home-reveal home-reveal-avatar mx-auto h-16 w-16 rounded-full bg-surface-muted object-cover ring-1 ring-line sm:h-20 sm:w-20 md:h-24 md:w-24"
             />
 
             <h1
               data-home-reveal="title"
-              className="home-reveal home-reveal-title mt-8 font-serif text-4xl font-bold tracking-tight text-content [overflow-wrap:anywhere] sm:text-5xl"
+              className="home-reveal home-reveal-title mt-5 font-serif text-[1.75rem] font-bold tracking-tight text-content [overflow-wrap:anywhere] sm:mt-8 sm:text-4xl md:text-5xl"
             >
               {siteConfig.author.name}
             </h1>
 
             <p
               data-home-reveal="bio"
-              className="home-reveal mx-auto mt-6 max-w-lg text-[15px] leading-8 text-content-muted sm:text-base sm:leading-9"
+              className="home-reveal mx-auto mt-3 max-w-lg text-[13px] leading-6 text-content-muted sm:mt-4 sm:text-sm sm:leading-7 md:mt-6 md:text-base md:leading-9"
             >
               {siteConfig.author.bio}
             </p>
@@ -144,7 +145,7 @@ export const Home = () => {
               role="search"
               onSubmit={handleSearchSubmit}
               data-home-reveal="search"
-              className="home-reveal mx-auto mt-10 max-w-md"
+              className="home-reveal mx-auto mt-6 max-w-md sm:mt-7 md:mt-10"
             >
               <label htmlFor="home-search" className="sr-only">
                 搜索全站
@@ -158,7 +159,7 @@ export const Home = () => {
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="搜索文章、标签与分类…"
                   autoComplete="off"
-                  className="min-h-12 min-w-0 flex-1 bg-transparent text-sm text-content outline-none placeholder:text-content-muted"
+                  className="min-h-11 min-w-0 flex-1 bg-transparent text-base text-content outline-none placeholder:text-content-muted sm:text-sm md:min-h-12"
                 />
                 <button
                   type="submit"
@@ -172,7 +173,7 @@ export const Home = () => {
             <nav
               aria-label="联系方式"
               data-home-reveal="contact"
-              className="home-reveal mt-8 flex flex-wrap items-center justify-center gap-1 text-sm"
+              className="home-contact-grid home-reveal mt-5 flex flex-wrap items-center justify-center gap-1 text-sm sm:mt-6 md:mt-8"
             >
               <a
                 href={siteConfig.social.github}
@@ -238,7 +239,7 @@ export const Home = () => {
             <p
               role="status"
               aria-live="polite"
-              className={`mt-3 min-h-5 text-xs ${qqFeedback === 'error' ? 'text-danger' : 'text-content-muted'}`}
+              className={`mt-2 min-h-5 text-[11px] md:mt-3 md:text-xs ${qqFeedback === 'error' ? 'text-danger' : 'text-content-muted'}`}
             >
               {copyStatusMessage}
             </p>

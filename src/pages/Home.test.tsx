@@ -109,6 +109,34 @@ describe('Home', () => {
     expect(screen.queryByRole('button', { name: /切换外观主题|切换深浅色/ })).not.toBeInTheDocument();
   });
 
+  it('桌面保留 Hero 卡片，移动端用全屏/紧凑网格的 class 钩子', () => {
+    renderHome();
+
+    const page = document.querySelector('.home-page');
+    const hero = page?.querySelector('.home-hero');
+    expect(page).not.toBeNull();
+    expect(hero).not.toBeNull();
+    // 桌面卡片外观仍由这些类提供；<768px 的媒体查询再把背景/圆角覆盖为透明无卡片。
+    expect(hero?.className).toContain('rounded-overlay');
+    expect(hero?.className).toContain('bg-surface');
+
+    const contactGrid = document.querySelector('.home-contact-grid');
+    expect(contactGrid).not.toBeNull();
+    expect(contactGrid?.querySelectorAll('a, button').length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('移动端无滚动规则由 CSS :has 限定在首页（离开路由自动恢复）', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
+
+    expect(css).toContain('html:has(.home-page)');
+    expect(css).toContain('body:has(.home-page)');
+    expect(css).toContain('@media (max-width: 767.98px)');
+    expect(css).toContain('.home-page .home-hero');
+    expect(css).toContain('.home-page .home-contact-grid');
+    // 首次访问的 Cookie 提示条不遮挡联系方式：移动端高度预算里预留其高度。
+    expect(css).toContain('var(--cookie-notice-height');
+  });
+
   it('首页承载联系方式与订阅入口：GitHub / 邮箱 / RSS / 更新订阅 / 项目仓库', () => {
     renderHome();
 

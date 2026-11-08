@@ -90,6 +90,27 @@ describe('Post', () => {
     expect(screen.getByText('正文内容段落。')).toBeInTheDocument();
   });
 
+  it('移动端顶部重排：封面在标题前（order）、标题字号收敛；桌面顺序还原', async () => {
+    vi.mocked(postsService.getPostById).mockResolvedValue(makePost({ coverImage: '/posts-img/cover.png' }) as never);
+    renderPost();
+    await screen.findByText('测试文章标题');
+
+    // 面包屑仍在标题区之前（独立的 46rem 列），封面通过 order 在移动端提前。
+    expect(screen.getByRole('navigation', { name: 'Breadcrumb' })).toBeInTheDocument();
+    const cover = screen.getByRole('button', { name: '预览文章封面：测试文章标题' });
+    expect(cover).toHaveClass('post-cover', 'order-1', 'sm:order-none');
+
+    const header = document.querySelector('.post-header') as HTMLElement;
+    expect(header).toHaveClass('order-2', 'sm:order-none');
+
+    const heading = screen.getByRole('heading', { level: 1, name: '测试文章标题' });
+    expect(heading).toHaveClass('text-[1.75rem]', 'md:text-[2.5rem]');
+
+    // 重排不丢功能：封面点击仍打开图片查看器（懒加载 chunk 冷启动放宽超时）。
+    fireEvent.click(cover);
+    await waitFor(() => expect(screen.getByTestId('mock-viewer')).toBeInTheDocument(), { timeout: 4000 });
+  });
+
   it('渲染代码块工具栏（复制/下载）', async () => {
     renderPost();
     await screen.findByText('测试文章标题');

@@ -165,6 +165,22 @@ describe('Archive', () => {
     expect(row).toHaveTextContent('5 条评论');
   });
 
+  it('年份/月份/文章列表以大色块卡片呈现，文章行不再依赖分隔线', async () => {
+    renderArchive('/archive?year=2026');
+
+    const yearButton = await screen.findByRole('button', { name: '折叠 2026年的文章' });
+    const yearCard = yearButton.closest('section');
+    expect(yearCard).toHaveClass('rounded-overlay', 'bg-surface-muted');
+
+    const monthButton = screen.getByRole('button', { name: /折叠 .*月的文章/ });
+    expect(monthButton.closest('div')).toHaveClass('rounded-control', 'bg-surface');
+
+    const title = await screen.findByText('2026 年文章');
+    const row = title.closest('a');
+    expect(row).toHaveClass('rounded-control');
+    expect(row?.className).not.toContain('border');
+  });
+
   it('全部展开/折叠按钮切换全部年份与月份，并同步 aria-pressed', async () => {
     const user = userEvent.setup();
     renderArchive();

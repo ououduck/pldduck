@@ -587,35 +587,37 @@ export const Posts = () => {
 
       {continueReading && (
         <section
-          className="continue-reading mb-6 border-t border-zinc-200 dark:border-zinc-800 md:mb-8"
+          className="continue-reading mb-6 rounded-overlay bg-surface-muted p-4 md:mb-8 md:p-5"
           aria-labelledby="continue-reading-heading"
         >
-          <div className="flex items-center gap-3 py-1.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <div className="min-w-0 flex-1">
-              <p className="flex flex-wrap items-center gap-x-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+              <p className="flex flex-wrap items-center gap-x-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-muted">
                 <span id="continue-reading-heading">继续阅读</span>
-                <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
+                <span aria-hidden="true" className="text-line">
                   /
                 </span>
                 <span className="text-[11px] font-medium normal-case tracking-normal">
                   {continueReading.post.category} · 已阅读 {continueReadingProgress}%
                 </span>
               </p>
-              <h2 className="truncate text-sm font-medium text-ink dark:text-zinc-100">{continueReading.post.title}</h2>
+              <h2 className="mt-0.5 line-clamp-2 text-base font-semibold text-content md:text-lg">
+                {continueReading.post.title}
+              </h2>
             </div>
-            <div className="flex shrink-0 items-center gap-0.5">
+            <div className="flex shrink-0 items-center gap-1">
               <Link
                 to={`/post/${continueReading.post.id}`}
-                className="inline-flex min-h-11 items-center gap-0.5 px-1 text-xs font-medium text-zinc-600 underline-offset-4 transition-colors hover:text-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-400 dark:hover:text-white dark:focus-visible:outline-zinc-100"
+                className="inline-flex min-h-11 items-center gap-0.5 px-1 text-sm font-medium text-content-muted underline-offset-4 transition-colors hover:text-content hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
                 aria-label={`继续阅读：${continueReading.post.title}`}
               >
                 继续阅读
-                <ChevronRight size={14} aria-hidden="true" />
+                <ChevronRight size={15} aria-hidden="true" />
               </Link>
               <button
                 type="button"
                 onClick={handleAbandonReading}
-                className="inline-flex min-h-11 w-11 items-center justify-center text-zinc-400 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-500 dark:hover:text-white dark:focus-visible:outline-zinc-100"
+                className="inline-flex min-h-11 w-11 items-center justify-center text-content-muted transition-colors hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
                 aria-label={`放弃阅读：${continueReading.post.title}`}
                 title="放弃阅读"
               >
@@ -623,8 +625,8 @@ export const Posts = () => {
               </button>
             </div>
           </div>
-          <div className="h-px overflow-hidden bg-zinc-200 dark:bg-zinc-800" aria-hidden="true">
-            <div className="h-full bg-zinc-900 dark:bg-zinc-100" style={{ width: `${continueReadingProgress}%` }} />
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-surface" aria-hidden="true">
+            <div className="h-full rounded-full bg-content" style={{ width: `${continueReadingProgress}%` }} />
           </div>
         </section>
       )}

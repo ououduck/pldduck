@@ -27,10 +27,7 @@ const mockPost: PostMetadata = {
 };
 
 vi.mock('@/components/PostCard', () => ({
-  PostCard: () => <div data-testid="mock-post-card" />,
-}));
-vi.mock('@/components/CompactPostCard', () => ({
-  CompactPostCard: () => <div data-testid="mock-compact-post-card" />,
+  PostCard: ({ variant }: { variant?: string }) => <div data-testid="mock-post-card" data-variant={variant} />,
 }));
 vi.mock('@/services/busuanzi', () => ({
   pingBusuanzi: vi.fn(),
@@ -150,19 +147,20 @@ describe('Search', () => {
     });
   });
 
-  it('搜索结果同时渲染移动端横置卡片与桌面端卡片网格', async () => {
+  it('搜索结果统一渲染横幅卡片（不再同时渲染移动/桌面两套卡片）', async () => {
     vi.mocked(searchPosts).mockResolvedValue([{ ...mockPost, searchMatch: undefined }]);
     const user = userEvent.setup();
     renderSearch();
     const input = screen.getByRole('searchbox', { name: '搜索文章' });
 
     await user.type(input, 'react');
-    // 防抖（300ms）后 searchPosts 返回结果：移动端 CompactPostCard 与
-    // 桌面端 PostCard 网格各渲染一份（CSS 断点控制显隐）。
+    // 防抖（300ms）后 searchPosts 返回结果：全部结果都走 PostCard variant="banner"，
+    // 移动端的 CompactPostCard 分支与桌面卡片网格均已移除。
     await waitFor(() => {
-      expect(screen.getAllByTestId('mock-compact-post-card')).toHaveLength(1);
+      expect(screen.getAllByTestId('mock-post-card')).toHaveLength(1);
     });
-    expect(screen.getAllByTestId('mock-post-card')).toHaveLength(1);
+    expect(screen.getByTestId('mock-post-card')).toHaveAttribute('data-variant', 'banner');
+    expect(screen.queryByTestId('mock-compact-post-card')).not.toBeInTheDocument();
     expect(await screen.findByText('找到 1 条结果')).toBeInTheDocument();
     expect(searchPosts).toHaveBeenCalledWith('react', { scope: 'all' });
   });

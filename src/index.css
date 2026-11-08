@@ -266,6 +266,97 @@
   }
 }
 
+/* ===== 首页移动端全屏（<768px）=====
+   桌面（≥768px）继续用 Hero 大色块卡片；移动端去掉卡片外观、内容铺满可用视口。
+   `:has(.home-page)` 把「禁止上下滚动」限定在首页挂载期间：离开首页后选择器
+   自动失效，滚动自然恢复，不需要 JS 写/清 body 样式，也不会留下路由切换残留。 */
+@media (max-width: 767.98px) {
+  html:has(.home-page),
+  body:has(.home-page) {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .site-shell:has(.home-page) {
+    height: 100vh; /* 老浏览器回退 */
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .site-shell:has(.home-page) main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  /* Layout 的路由内容容器：让它和 main 一起撑满剩余高度。 */
+  .site-shell:has(.home-page) main > div {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+  }
+
+  .home-page {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .home-page .home-hero {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 1.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px) + var(--cookie-notice-height, 0px));
+    overflow: hidden;
+  }
+
+  /* 联系方式：移动端 2 列紧凑网格（桌面仍是横向 flex 行）。 */
+  .home-page .home-contact-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.125rem 0.25rem;
+    margin-top: 1.25rem;
+  }
+
+  .home-page .home-contact-grid > * {
+    justify-content: flex-start;
+    padding-inline: 0.4rem;
+    white-space: nowrap;
+  }
+
+  .home-page .home-contact-grid svg {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  /* 首页移动端禁用滚动后，常驻返回顶部没有可用目标，隐藏以避免浮层噪音。 */
+  .site-shell:has(.home-page) .back-to-top-btn {
+    display: none;
+  }
+}
+
 /* 触屏笔记本与大屏平板（lg 宽度以上却没有 hover 能力）没有「鼠标移入」这条路，
    去掉折叠按钮后便再无展开手段，故这类设备直接常驻展开态：整栏按展开宽度参与布局。 */
 @media (hover: none) {

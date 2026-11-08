@@ -9,7 +9,6 @@ import { SearchField } from '@/components/SearchField';
 import { usePostSearch } from '@/hooks/usePostSearch';
 import type { PostSearchScope } from '@/services/posts';
 import { PostCard } from '@/components/PostCard';
-import { CompactPostCard } from '@/components/CompactPostCard';
 import type { PostMetadata } from '../types';
 import { Seo, buildSiteSchemas } from '../components/Seo';
 import { ContentStatus, LoadingStatus } from '@/components/ContentStatus';
@@ -243,21 +242,21 @@ export const Search = () => {
         {isSearching && results.length === 0 ? (
           <div aria-busy="true" className="mt-2">
             <LoadingStatus label="正在搜索文章" />
-            {/* 轻量骨架：只保留面积与节奏，不再用带边框/底色的重卡片块 */}
-            <div className="grid gap-2 sm:hidden" aria-hidden="true">
+            {/* 轻量骨架：与最终横幅卡片同构（封面块 + 文字条），不再用重卡片网格 */}
+            <div className="mt-4 flex flex-col gap-4" aria-hidden="true">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-16 animate-pulse rounded-micro bg-surface-muted motion-reduce:animate-none"
-                />
-              ))}
-            </div>
-            <div className="hidden grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 sm:grid" aria-hidden="true">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-44 animate-pulse rounded-surface bg-surface-muted motion-reduce:animate-none"
-                />
+                  className="flex animate-pulse flex-col overflow-hidden rounded-overlay bg-surface-muted motion-reduce:animate-none sm:grid sm:grid-cols-[minmax(0,34%)_minmax(0,1fr)]"
+                >
+                  <div className="aspect-[16/9] w-full bg-surface sm:aspect-auto sm:min-h-52" />
+                  <div className="space-y-2.5 p-4 sm:p-5">
+                    <div className="h-3 w-24 bg-surface" />
+                    <div className="h-5 w-2/3 bg-surface" />
+                    <div className="h-3 w-full bg-surface" />
+                    <div className="h-3 w-4/5 bg-surface" />
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -282,16 +281,11 @@ export const Search = () => {
             ) : hasSearchQuery ? (
               results.length > 0 ? (
                 <div aria-live="polite">
-                  {/* 移动端：横置扁形卡片（与阅读页「你可能还喜欢」一致的排版） */}
-                  <div className="grid gap-3 sm:hidden">
+                  {/* 统一横幅卡片：移动端封面在上、桌面图左文右（与文章列表一致），
+                      不再同时渲染两套卡片网格。 */}
+                  <div className="flex flex-col gap-4">
                     {results.map((post) => (
-                      <CompactPostCard key={post.id} post={post} />
-                    ))}
-                  </div>
-                  {/* sm 及以上：三列文章卡片网格（含分享操作） */}
-                  <div className="hidden grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 sm:grid">
-                    {results.map((post) => (
-                      <PostCard key={post.id} post={post} onShare={setSharePost} />
+                      <PostCard key={post.id} post={post} variant="banner" onShare={setSharePost} />
                     ))}
                   </div>
                 </div>

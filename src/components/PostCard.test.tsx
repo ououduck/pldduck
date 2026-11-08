@@ -58,6 +58,11 @@ describe('PostCard', () => {
 
     const article = container.querySelector('article');
     expect(article).toHaveClass('rounded-overlay', 'bg-surface-muted');
+    // 移动端：封面在上、信息在下（flex-col）；sm 起：图左文右（grid 34%/1fr）。
+    const bannerGrid = article?.firstElementChild as HTMLElement;
+    expect(bannerGrid).toHaveClass('flex', 'flex-col', 'sm:grid', 'sm:grid-cols-[minmax(0,34%)_minmax(0,1fr)]');
+    const coverLink = screen.getAllByRole('link', { name: '阅读文章：测试文章标题' })[0];
+    expect(coverLink).toHaveClass('aspect-[16/9]', 'w-full');
     expect(screen.getByRole('heading', { level: 2, name: '测试文章标题' })).toBeInTheDocument();
     expect(screen.getByText('这是一段测试摘要')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'React' })).toHaveAttribute('href', '/posts?tag=React');

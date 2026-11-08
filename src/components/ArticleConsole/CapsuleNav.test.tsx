@@ -87,11 +87,36 @@ describe('CapsuleNav（桌面胶囊文章导航）', () => {
   it('固定（Pin）后 aria-pressed 为真，收起按钮保留（取消固定路径）', async () => {
     const user = userEvent.setup();
     renderCapsule();
-    const toggle = screen.getByRole('button', { name: '展开文章导航' });
-    await user.click(toggle);
-    const pinButton = screen.getByRole('button', { name: '固定导航面板' });
-    await user.click(pinButton);
+    await user.click(screen.getByRole('button', { name: '展开文章导航' }));
+    await user.click(screen.getByRole('button', { name: '固定导航面板' }));
     expect(screen.getByRole('button', { name: '取消固定导航面板' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('再次点击同一目录按钮可关闭面板（focusWithin/hoverPreview 不再阻止）', async () => {
+    const user = userEvent.setup();
+    renderCapsule();
+    const toggle = screen.getByRole('button', { name: '展开文章导航' });
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(portalHost().querySelector('.capsule-container')?.getAttribute('data-expanded')).toBe('true');
+
+    // 同一个按钮（展开后 aria-label 变为「收起文章导航」）：第二次点击必须整体收起。
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(portalHost().querySelector('.capsule-container')?.getAttribute('data-expanded')).toBeNull();
+  });
+
+  it('面板内关闭按钮在已固定（Pin）时同样整体收起并解除固定', async () => {
+    const user = userEvent.setup();
+    renderCapsule();
+    await user.click(screen.getByRole('button', { name: '展开文章导航' }));
+    await user.click(screen.getByRole('button', { name: '固定导航面板' }));
+    expect(screen.getByRole('button', { name: '取消固定导航面板' })).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(screen.getByRole('button', { name: '收起导航面板' }));
+    expect(portalHost().querySelector('.capsule-container')?.getAttribute('data-expanded')).toBeNull();
+    expect(screen.getByRole('button', { name: '展开文章导航' })).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('展开面板展示目录并可跳转到章节（更新 URL hash）', async () => {

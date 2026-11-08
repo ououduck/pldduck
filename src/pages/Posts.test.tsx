@@ -214,17 +214,18 @@ describe('Posts', () => {
     expect(oldestButton).toHaveTextContent('最早');
   });
 
-  it('继续阅读以轻量横条呈现，保留继续/放弃操作与进度', async () => {
+  it('继续阅读以卡片式呈现，保留继续/放弃操作与进度', async () => {
     const user = userEvent.setup();
     const [firstPost] = getInitialPosts();
     vi.mocked(getReadingHistory).mockReturnValue([{ postId: firstPost.id, progress: 0.42, updatedAt: 1 }]);
 
     renderPosts();
 
-    const strip = await screen.findByRole('region', { name: '继续阅读' });
-    expect(strip).toHaveTextContent('已阅读 42%');
-    // 列表首卡也使用 h2，与横条标题同名；这里必须限定在「继续阅读」区域内。
-    expect(within(strip).getByRole('heading', { level: 2, name: firstPost.title })).toBeInTheDocument();
+    const card = await screen.findByRole('region', { name: '继续阅读' });
+    expect(card).toHaveClass('rounded-overlay', 'bg-surface-muted');
+    expect(card).toHaveTextContent('已阅读 42%');
+    // 列表首卡也使用 h2，与卡片标题同名；这里必须限定在「继续阅读」区域内。
+    expect(within(card).getByRole('heading', { level: 2, name: firstPost.title })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: `继续阅读：${firstPost.title}` })).toHaveAttribute(
       'href',
       `/post/${firstPost.id}`,

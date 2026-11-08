@@ -73,6 +73,13 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
   const [focusWithin, setFocusWithin] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<CopyFeedback>(null);
   const hoverTimerRef = useRef<number | null>(null);
+  /**
+   * 主动收起后的 hover 抑制：点击目录按钮/面板关闭按钮收起时，图标会在指针
+   * 下方替换（X ↔ List），React 会因此再触发一次容器 onMouseEnter，
+   * 250ms 后又把面板顶开（表现为「第二次点击关不掉」）。收起后抑制 hover 预览，
+   * 直到指针真正离开容器（onMouseLeave）再恢复。
+   */
+  const hoverSuppressedRef = useRef(false);
   const copyTimerRef = useRef<number | null>(null);
   const railRef = useRef<HTMLElement | null>(null);
   const railToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -125,7 +132,7 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
 
   // hover 意图延迟：防止路过的鼠标误展开。
   const scheduleHoverPreview = useCallback(() => {
-    if (pinned || userExpanded) {
+    if (hoverSuppressedRef.current || pinned || userExpanded) {
       return;
     }
     if (hoverTimerRef.current !== null) {
@@ -150,20 +157,38 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
 
   // 收起胶囊（未固定时）：指针/焦点状态与模块级记忆同步复位。
   const collapseCapsule = useCallback(() => {
+    hoverSuppressedRef.current = true;
     cancelHoverPreview();
     setFocusWithin(false);
     setUserExpanded(false);
     setCapsuleState({ userExpanded: false });
   }, [cancelHoverPreview]);
 
-  const toggleUserExpanded = useCallback(() => {
+  /**
+   * 完全收起：一次清掉 pin / 用户展开 / focusWithin / hoverPreview 四种展开来源。
+   * 目录按钮与面板关闭按钮共用 —— 否则「点击按钮后 focusWithin 仍为 true」会让
+   * 第二次点击看似无效（面板关不掉）。
+   */
+  const collapseConsole = useCallback(() => {
+    // 图标替换会在指针下触发一次容器 mouseenter：先抑制 hover，直到指针离开。
+    hoverSuppressedRef.current = true;
     cancelHoverPreview();
-    setUserExpanded((current) => {
-      const next = !current;
-      setCapsuleState({ userExpanded: next });
-      return next;
-    });
+    setFocusWithin(false);
+    setPinned(false);
+    setUserExpanded(false);
+    setCapsuleState({ pinned: false, userExpanded: false });
   }, [cancelHoverPreview]);
+
+  /** 目录入口按钮：已展开（固定或用户点开）时整体收起，否则展开。 */
+  const toggleConsole = useCallback(() => {
+    if (pinned || userExpanded) {
+      collapseConsole();
+      return;
+    }
+    cancelHoverPreview();
+    setUserExpanded(true);
+    setCapsuleState({ userExpanded: true });
+  }, [cancelHoverPreview, collapseConsole, pinned, userExpanded]);
 
   const togglePinned = useCallback(() => {
     setPinned((current) => {
@@ -285,7 +310,11 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
       // 容器级 mouseenter/mouseleave 以 DOM 归属判定，指针在轨/面板间移动
       // （含 wrapper 内置的 0.5rem 过渡桥）不会触发收起，杜绝抽搐循环。
       onMouseEnter={scheduleHoverPreview}
-      onMouseLeave={cancelHoverPreview}
+      onMouseLeave={() => {
+        // 指针真正离开后恢复 hover 预览能力（主动收起期间的抑制到此解除）。
+        hoverSuppressedRef.current = false;
+        cancelHoverPreview();
+      }}
       onFocusCapture={() => {
         if (suppressFocusExpandRef.current) {
           return;
@@ -303,7 +332,7 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
         <button
           ref={railToggleRef}
           type="button"
-          onClick={toggleUserExpanded}
+          onClick={toggleConsole}
           className="relative flex h-11 w-11 items-center justify-center rounded-full bg-surface text-content-muted shadow-lg transition-colors hover:bg-surface-muted hover:text-content"
           aria-label={isExpanded ? '收起文章导航' : '展开文章导航'}
           aria-expanded={isExpanded}
@@ -336,7 +365,22 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
               strokeDashoffset={PROGRESS_RING_CIRCUMFERENCE * (1 - Math.min(100, Math.max(0, percentage)) / 100)}
             />
           </svg>
-          {isExpanded ? <X size={16} aria-hidden="true" /> : <List size={16} aria-hidden="true" />}
+          {/* 图标双层常驻：展开态只切换透明度，不替换指针下的 DOM 节点。
+              否则 focus→展开 会在 mousedown 与 mouseup 之间换掉图标，
+              浏览器无法派发 click —— 第一次点击只走 focus 展开、第二次点击
+              反而执行「展开」分支，表现为按钮关不掉。 */}
+          <span className="pointer-events-none relative block h-4 w-4">
+            <List
+              size={16}
+              aria-hidden="true"
+              className={`absolute inset-0 transition-opacity duration-150 ${isExpanded ? 'opacity-0' : 'opacity-100'}`}
+            />
+            <X
+              size={16}
+              aria-hidden="true"
+              className={`absolute inset-0 transition-opacity duration-150 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}
+            />
+          </span>
         </button>
         <span className="sr-only">阅读进度 {percentage}%</span>
       </nav>
@@ -361,7 +405,7 @@ export const CapsuleNav: React.FC<CapsuleNavProps> = ({
             </button>
             <button
               type="button"
-              onClick={toggleUserExpanded}
+              onClick={collapseConsole}
               className={PANEL_ICON_BUTTON_CLASS}
               aria-label="收起导航面板"
             >

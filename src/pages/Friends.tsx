@@ -50,7 +50,9 @@ const FriendEntry = ({ friend, unavailable = false }: FriendEntryProps) => {
       href={friend.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex min-w-0 items-start gap-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-content"
+      className={`group flex min-w-0 items-start gap-4 rounded-overlay bg-surface-muted p-4 transition-colors hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-content ${
+        unavailable ? 'text-content-muted' : ''
+      }`}
     >
       <span className="relative h-12 w-12 shrink-0">
         <span className="block h-12 w-12 overflow-hidden rounded-full bg-surface-muted ring-1 ring-line">
@@ -438,7 +440,7 @@ export const Friends = () => {
     <div className="pb-12 pt-8 md:pb-20 md:pt-12">
       <Seo title="友链" description={friendsPageDescription} structuredData={friendsStructuredData} />
 
-      <header className="mb-10 md:mb-12">
+      <header className="mb-6 rounded-overlay bg-surface p-5 md:mb-8 md:p-7">
         <div className="flex items-center justify-between gap-4">
           <h1 className="font-serif text-4xl font-bold tracking-tight text-content md:text-5xl">友情链接</h1>
           <button
@@ -454,14 +456,14 @@ export const Friends = () => {
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-content-muted md:text-base">
           这里汇集了一些优秀的技术博客和有趣的网站。如果你也想交换友链，可以在下方填好资料，一键带到 GitHub Issue。
         </p>
-        <p className="mt-3 text-xs text-zinc-400 dark:text-zinc-500">以下排名不分先后，每次刷新都会随机排序</p>
+        <p className="mt-3 text-xs text-content-muted">以下排名不分先后，每次刷新都会随机排序</p>
       </header>
 
-      <div className="mb-10 border-y border-line">
+      <div className="mb-6 overflow-hidden rounded-overlay bg-surface md:mb-8">
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex w-full items-center justify-between gap-4 py-4 text-left transition-colors hover:text-content"
+          className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-surface-muted"
           aria-expanded={isExpanded}
           aria-controls="friend-link-panel"
         >
@@ -476,7 +478,7 @@ export const Friends = () => {
             transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: easeOut }}
             className="flex-shrink-0"
           >
-            <ChevronDown size={18} className="text-zinc-400 dark:text-zinc-500" />
+            <ChevronDown size={18} className="text-content-muted" />
           </motion.div>
         </button>
 
@@ -491,98 +493,98 @@ export const Friends = () => {
               transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.28, ease: easeOut }}
               className="overflow-hidden"
             >
-              <div className="border-t border-line pb-8 pt-6">
-                <div className="space-y-8">
-                  <motion.div
-                    initial={shouldReduceMotion ? false : { opacity: 0 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+              <div className="space-y-4 px-5 pb-5">
+                <motion.div
+                  initial={shouldReduceMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+                >
+                  <section
+                    aria-labelledby="friend-link-site-info"
+                    className="rounded-overlay bg-surface-muted p-4 md:p-5"
                   >
-                    <section aria-labelledby="friend-link-site-info">
-                      <h2
-                        id="friend-link-site-info"
-                        className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500"
-                      >
-                        本站友链信息
-                      </h2>
-                      <div className="mt-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-                        <ProgressiveImage
-                          src={siteInfo.avatar}
-                          alt={siteInfo.name}
-                          wrapperClassName="h-12 w-12 flex-shrink-0 overflow-hidden rounded-full bg-surface-muted ring-1 ring-line"
-                          className="h-12 w-12 object-cover object-center"
-                        />
-                        <div className="w-full min-w-0 flex-1 space-y-1">
-                          <div className="text-[15px] font-medium text-content">{siteInfo.name}</div>
-                          <p className="text-sm leading-relaxed text-content-muted">{siteInfo.description}</p>
-                          <div className="break-all pt-0.5 font-mono text-xs leading-relaxed text-zinc-500 select-all dark:text-zinc-400">
-                            链接：{siteInfo.url}
-                          </div>
-                          <div className="break-all font-mono text-xs leading-relaxed text-zinc-500 select-all dark:text-zinc-400">
-                            LOGO：{siteInfo.avatar}
-                          </div>
+                    <h2 id="friend-link-site-info" className="text-xs font-semibold text-content-muted">
+                      本站友链信息
+                    </h2>
+                    <div className="mt-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                      <ProgressiveImage
+                        src={siteInfo.avatar}
+                        alt={siteInfo.name}
+                        wrapperClassName="h-12 w-12 flex-shrink-0 overflow-hidden rounded-full bg-surface ring-1 ring-line"
+                        className="h-12 w-12 object-cover object-center"
+                      />
+                      <div className="w-full min-w-0 flex-1 space-y-1">
+                        <div className="text-[15px] font-medium text-content">{siteInfo.name}</div>
+                        <p className="text-sm leading-relaxed text-content-muted">{siteInfo.description}</p>
+                        <div className="select-all break-all pt-0.5 font-mono text-xs leading-relaxed text-content-muted">
+                          链接：{siteInfo.url}
+                        </div>
+                        <div className="select-all break-all font-mono text-xs leading-relaxed text-content-muted">
+                          LOGO：{siteInfo.avatar}
                         </div>
                       </div>
-                      <a
-                        href={siteConfig.friendsPage.repoFriendsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-2 inline-flex min-h-11 items-center text-sm text-content-muted transition-colors hover:text-content"
-                      >
-                        查看友链目录
-                      </a>
-                    </section>
-                  </motion.div>
-                  <motion.div
-                    initial={shouldReduceMotion ? false : { opacity: 0 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={shouldReduceMotion ? undefined : { opacity: 0 }}
-                    className="border-t border-line pt-8"
-                  >
-                    <FriendApplyForm />
-                  </motion.div>
-                  <motion.div
-                    initial={shouldReduceMotion ? false : { opacity: 0 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={shouldReduceMotion ? undefined : { opacity: 0 }}
-                  >
-                    <aside className="border-l-2 border-amber-400/70 pl-4 text-sm leading-relaxed text-amber-900 dark:border-amber-400/50 dark:text-amber-100">
-                      <p className="flex items-start gap-2">
-                        <Mail
-                          size={16}
-                          className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
-                          aria-hidden="true"
-                        />
-                        <span>
-                          如果有修改友链信息的需求，请联系邮箱{' '}
-                          <a
-                            href={`mailto:${FRIEND_EDIT_CONTACT_EMAIL}`}
-                            className="break-words underline decoration-amber-400/70 underline-offset-2 transition-colors hover:text-amber-950 dark:hover:text-white"
-                          >
-                            {FRIEND_EDIT_CONTACT_EMAIL}
-                          </a>
-                        </span>
-                      </p>
-                    </aside>
-                  </motion.div>
-                </div>
+                    </div>
+                    <a
+                      href={siteConfig.friendsPage.repoFriendsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex min-h-11 items-center text-sm text-content-muted transition-colors hover:text-content"
+                    >
+                      查看友链目录
+                    </a>
+                  </section>
+                </motion.div>
+                <motion.div
+                  initial={shouldReduceMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+                  className="rounded-overlay bg-surface-muted p-4 md:p-5"
+                >
+                  <FriendApplyForm />
+                </motion.div>
+                <motion.div
+                  initial={shouldReduceMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+                >
+                  <aside className="rounded-overlay bg-amber-500/10 p-4 text-sm leading-relaxed text-amber-900 md:p-5 dark:text-amber-100">
+                    <p className="flex items-start gap-2">
+                      <Mail
+                        size={16}
+                        className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
+                        aria-hidden="true"
+                      />
+                      <span>
+                        如果有修改友链信息的需求，请联系邮箱{' '}
+                        <a
+                          href={`mailto:${FRIEND_EDIT_CONTACT_EMAIL}`}
+                          className="break-words underline decoration-amber-400/70 underline-offset-2 transition-colors hover:text-amber-950 dark:hover:text-white"
+                        >
+                          {FRIEND_EDIT_CONTACT_EMAIL}
+                        </a>
+                      </span>
+                    </p>
+                  </aside>
+                </motion.div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      <div className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <SearchField
-          value={searchQuery}
-          onValueChange={setSearchQuery}
-          onClear={() => setSearchQuery('')}
-          clearLabel="清除友链搜索"
-          placeholder="按站点名称、简介或域名搜索友链..."
-          aria-label="搜索友链"
-          containerClassName="w-full sm:max-w-sm"
-        />
-        {searchQuery && <p className="text-sm text-content-muted">找到 {filteredFriends.length} 个匹配站点</p>}
+      <div className="mb-6 rounded-overlay bg-surface p-4 md:mb-8">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <SearchField
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            onClear={() => setSearchQuery('')}
+            clearLabel="清除友链搜索"
+            placeholder="按站点名称、简介或域名搜索友链..."
+            aria-label="搜索友链"
+            containerClassName="w-full sm:max-w-sm"
+          />
+          {searchQuery && <p className="text-sm text-content-muted">找到 {filteredFriends.length} 个匹配站点</p>}
+        </div>
       </div>
 
       {loadError && !loading && (
@@ -592,30 +594,27 @@ export const Friends = () => {
           description={loadError}
           actionLabel="重新加载"
           onAction={() => setLoadAttempt((attempt) => attempt + 1)}
-          className="mb-8"
+          className="mb-6"
         />
       )}
 
-      <ul
-        className="grid grid-cols-1 border-b border-line md:grid-cols-2 md:gap-x-10 lg:grid-cols-3"
-        aria-busy={loading}
-      >
+      <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3" aria-busy={loading}>
         {!loading &&
           !loadError &&
           activeFriends.map((friend) => (
-            <li key={`${friend.url}-${friend.name}`} className="border-t border-line py-5">
+            <li key={`${friend.url}-${friend.name}`}>
               <FriendEntry friend={friend} />
             </li>
           ))}
 
         {loading && (
-          <li className="col-span-full border-t border-line py-6">
+          <li className="col-span-full rounded-overlay bg-surface p-5">
             <LoadingStatus label="正在加载友情链接" />
           </li>
         )}
         {loading &&
           Array.from({ length: 3 }).map((_, index) => (
-            <li key={`skeleton-${index}`} aria-hidden="true" className="border-t border-line py-5">
+            <li key={`skeleton-${index}`} aria-hidden="true" className="rounded-overlay bg-surface p-4">
               <div className="flex items-start gap-4">
                 <div className="h-12 w-12 shrink-0 animate-pulse rounded-full bg-surface-muted" />
                 <div className="flex-1 space-y-3">
@@ -628,13 +627,13 @@ export const Friends = () => {
           ))}
 
         {!loading && !loadError && filteredFriends.length > 0 && activeFriends.length === 0 && (
-          <li className="col-span-full border-t border-line py-10 text-center text-sm text-red-500/90 dark:text-red-400/90">
+          <li className="col-span-full rounded-overlay bg-surface p-8 text-center text-sm text-red-500/90 dark:text-red-400/90">
             匹配的友链均位于下方「已失联的博客」板块中。
           </li>
         )}
 
         {!loading && !loadError && filteredFriends.length === 0 && (
-          <li className="col-span-full border-t border-line py-10 text-center text-sm text-content-muted">
+          <li className="col-span-full rounded-overlay bg-surface p-8 text-center text-sm text-content-muted">
             没有找到匹配的友链，试试更短的关键词。
           </li>
         )}
@@ -642,11 +641,11 @@ export const Friends = () => {
 
       {/* 已失联的博客：失联状态由友链失联巡检每日写入 friends/*.json（探测不可达即置
           unavailable: true，恢复后自动移回上方板块），Pages CMS 的手动勾选会被覆写。 */}
-      <div className="mb-3 mt-12 border-y border-line">
+      <div className="mt-8 overflow-hidden rounded-overlay bg-surface md:mt-10">
         <button
           type="button"
           onClick={() => setIsDeadExpanded(!isDeadExpanded)}
-          className="flex w-full items-center justify-between gap-4 py-4 text-left transition-colors hover:text-content"
+          className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-surface-muted"
           aria-expanded={isDeadExpanded}
           aria-controls="dead-friend-link-panel"
         >
@@ -672,7 +671,7 @@ export const Friends = () => {
             transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.22, ease: easeOut }}
             className="flex-shrink-0"
           >
-            <ChevronDown size={18} className="text-zinc-400 dark:text-zinc-500" />
+            <ChevronDown size={18} className="text-content-muted" />
           </motion.div>
         </button>
 
@@ -687,11 +686,11 @@ export const Friends = () => {
               transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.28, ease: easeOut }}
               className="overflow-hidden"
             >
-              <div className="border-t border-line pb-6 pt-6">
+              <div className="px-5 pb-5">
                 {unavailableFriends.length > 0 ? (
-                  <ul className="grid grid-cols-1 border-b border-line md:grid-cols-2 md:gap-x-10 lg:grid-cols-3">
+                  <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {unavailableFriends.map((friend) => (
-                      <li key={`${friend.url}-${friend.name}`} className="border-t border-line py-5">
+                      <li key={`${friend.url}-${friend.name}`}>
                         <FriendEntry friend={friend} unavailable />
                       </li>
                     ))}
@@ -707,7 +706,7 @@ export const Friends = () => {
         </AnimatePresence>
       </div>
 
-      <p className="mb-12 mt-10 text-sm text-content-muted">
+      <p className="mt-6 rounded-overlay bg-surface p-5 text-sm text-content-muted">
         如果有任何疑问，请联系邮箱{' '}
         <a
           href={siteConfig.social.email}

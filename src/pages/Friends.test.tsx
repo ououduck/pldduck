@@ -81,6 +81,19 @@ describe('Friends', () => {
     expect(screen.getByRole('button', { name: '随机前往' })).toBeEnabled();
   });
 
+  it('友链页头与条目使用大色块卡片', async () => {
+    renderFriends();
+    const entry = await screen.findByRole('link', { name: /示例博客/ });
+    expect(entry).toHaveClass('rounded-overlay', 'bg-surface-muted');
+
+    const header = screen.getByRole('heading', { level: 1, name: '友情链接' }).closest('header');
+    expect(header).toHaveClass('rounded-overlay', 'bg-surface');
+
+    await userEvent.setup().click(screen.getByRole('button', { name: /申请友链/ }));
+    const siteInfo = screen.getByText('本站友链信息').closest('section');
+    expect(siteInfo).toHaveClass('rounded-overlay', 'bg-surface-muted');
+  });
+
   it('失联友链归入「已失联的博客」折叠板块，展开后可见', async () => {
     const user = userEvent.setup();
     renderFriends();
@@ -89,7 +102,7 @@ describe('Friends', () => {
     // 展开失联板块。
     await user.click(screen.getByRole('button', { name: /已失联的博客/ }));
     expect(await screen.findByText('失联站点')).toBeInTheDocument();
-    // 轻量条目仍保留红色弱提示与失联圆点。
+    // 卡片条目仍保留红色弱提示与失联圆点。
     expect(screen.getByText('已失联')).toBeInTheDocument();
     expect(document.querySelectorAll('.friend-dead-dot')).toHaveLength(1);
   });

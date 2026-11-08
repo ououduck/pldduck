@@ -1969,119 +1969,125 @@ export const Post = () => {
           structuredData={[...buildSiteSchemas(post.excerpt), postStructuredData, breadcrumbData]}
         />
 
-        <header className="post-header mx-auto mb-10 w-full max-w-5xl px-3 pt-4 md:mb-14 md:pt-8">
-          {/* 内层与正文列同宽：左对齐后标题、署名与正文首字严格对齐；
-              阅读模式下 index.css 会另行收窄 post-header，内层仍与正文同轴 */}
-          <div className="mx-auto max-w-[46rem]">
-            {!isReadingMode && (
-              <div className="print-hidden mb-6 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                <Link
-                  to="/posts"
-                  className="inline-flex min-h-11 items-center gap-1.5 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
-                >
-                  <ArrowLeft size={14} aria-hidden="true" />
-                  返回文章
+        {/* 文章视觉顺序：移动端 封面 → 标题/署名；桌面 标题/署名 → 封面（order 控制，
+            不复制 DOM）。标题是 LCP，首帧即最终可见状态，不加入场动画。 */}
+        <div className="post-intro mx-auto w-full max-w-5xl px-3 pt-3 md:pt-8">
+          {!isReadingMode && (
+            <div className="print-hidden mx-auto mb-3 flex max-w-[46rem] flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-content-muted sm:mb-6">
+              <Link
+                to="/posts"
+                className="inline-flex min-h-11 items-center gap-1.5 transition-colors hover:text-content"
+              >
+                <ArrowLeft size={14} aria-hidden="true" />
+                返回文章
+              </Link>
+              <span aria-hidden="true" className="opacity-50">
+                /
+              </span>
+              <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5">
+                <Link to="/" className="transition-colors hover:text-content">
+                  首页
                 </Link>
-                <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
-                  /
-                </span>
-                <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5">
-                  <Link to="/" className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">
-                    首页
-                  </Link>
-                  <ChevronRight size={12} aria-hidden="true" className="text-zinc-300 dark:text-zinc-700" />
-                  <Link
-                    to={`/posts?category=${encodeURIComponent(post.category)}`}
-                    className="truncate transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
-                  >
-                    {post.category}
-                  </Link>
-                </nav>
+                <ChevronRight size={12} aria-hidden="true" className="opacity-50" />
+                <Link
+                  to={`/posts?category=${encodeURIComponent(post.category)}`}
+                  className="truncate transition-colors hover:text-content"
+                >
+                  {post.category}
+                </Link>
+              </nav>
+            </div>
+          )}
+
+          <div className="flex flex-col">
+            <header className="post-header order-2 mx-auto mb-8 w-full sm:order-none md:mb-14">
+              {/* 内层与正文列同宽：左对齐后标题、署名与正文首字严格对齐；
+                  阅读模式下 index.css 会另行收窄 post-header，内层仍与正文同轴 */}
+              <div className="mx-auto max-w-[46rem]">
+                {/* LCP 元素首帧即渲染最终可见状态，不设入场动画（避免 SSR 输出 opacity:0） */}
+                <h1 className="mb-3 break-words text-balance text-[1.75rem] font-bold leading-[1.24] tracking-[-0.015em] text-content [overflow-wrap:anywhere] sm:mb-4 md:mb-5 md:text-[2.5rem] lg:text-[2.75rem]">
+                  {post.title}
+                </h1>
+
+                {/* 编辑式署名行：作者/日期/阅读时长/阅读量在左，编辑·分享在右（移动端换行） */}
+                {!isReadingMode && (
+                  <div className="print-hidden flex flex-wrap items-center justify-between gap-x-8 gap-y-2 sm:gap-y-3">
+                    <div className="post-meta flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] leading-6 text-content-muted">
+                      <span className="font-medium text-content">{authorsLabel}</span>
+                      <span className="inline-flex items-center gap-2.5">
+                        <PostMetaDivider />
+                        <span>发布于 {formatMetaDate(post.date)}</span>
+                      </span>
+                      {post.updatedAt && post.updatedAt !== post.date && (
+                        <span className="inline-flex items-center gap-2.5">
+                          <PostMetaDivider />
+                          <span>更新于 {formatMetaDate(post.updatedAt)}</span>
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-2.5">
+                        <PostMetaDivider />
+                        <span>{post.readTime}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-2.5 tabular-nums" title="由不蒜子提供本页阅读量">
+                        <PostMetaDivider />
+                        <span>
+                          <span id="busuanzi_page_pv">加载中</span> 次阅读
+                        </span>
+                      </span>
+                    </div>
+
+                    <div className="-ml-2.5 flex shrink-0 items-center gap-1">
+                      {post.filePath && (
+                        <a
+                          href={getPostEditUrl(post.filePath)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`在 GitHub 上编辑此文：${post.title}`}
+                          className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2.5 text-[13px] font-medium text-content-muted transition-colors hover:bg-surface-muted hover:text-content"
+                        >
+                          <Github size={15} aria-hidden="true" />
+                          编辑
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShareModalOpen(true)}
+                        className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2.5 text-[13px] font-medium text-content-muted transition-colors hover:bg-surface-muted hover:text-content"
+                        aria-label={`分享文章：${post.title}`}
+                      >
+                        <Share2 size={15} aria-hidden="true" />
+                        分享
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </header>
 
-            {/* LCP 元素首帧即渲染最终可见状态，不设入场动画（避免 SSR 输出 opacity:0） */}
-            <h1 className="mb-4 break-words text-balance text-[1.875rem] font-bold leading-[1.22] tracking-[-0.015em] text-content [overflow-wrap:anywhere] md:mb-5 md:text-[2.5rem] lg:text-[2.75rem]">
-              {post.title}
-            </h1>
-
-            {/* 编辑式署名行：作者/日期/阅读时长/阅读量在左，编辑·分享在右（移动端换行） */}
-            {!isReadingMode && (
-              <div className="print-hidden flex flex-wrap items-center justify-between gap-x-8 gap-y-3">
-                <div className="post-meta flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] leading-6 text-zinc-500 dark:text-zinc-400">
-                  <span className="font-medium text-zinc-800 dark:text-zinc-200">{authorsLabel}</span>
-                  <span className="inline-flex items-center gap-2.5">
-                    <PostMetaDivider />
-                    <span>发布于 {formatMetaDate(post.date)}</span>
-                  </span>
-                  {post.updatedAt && post.updatedAt !== post.date && (
-                    <span className="inline-flex items-center gap-2.5">
-                      <PostMetaDivider />
-                      <span>更新于 {formatMetaDate(post.updatedAt)}</span>
-                    </span>
-                  )}
-                  <span className="inline-flex items-center gap-2.5">
-                    <PostMetaDivider />
-                    <span>{post.readTime}</span>
-                  </span>
-                  <span className="inline-flex items-center gap-2.5 tabular-nums" title="由不蒜子提供本页阅读量">
-                    <PostMetaDivider />
-                    <span>
-                      <span id="busuanzi_page_pv">加载中</span> 次阅读
-                    </span>
-                  </span>
+            {post.coverImage && (
+              <button
+                type="button"
+                className="post-cover print-hidden order-1 mx-auto mb-6 block w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-zinc-900 sm:order-none sm:mb-8 md:mb-12 dark:focus-visible:outline-zinc-100"
+                onClick={() => setPreviewImage({ src: resolveBrowserAsset(post.coverImage!)!, alt: post.title })}
+                aria-label={`预览文章封面：${post.title}`}
+              >
+                <div className="aspect-[16/10] cursor-zoom-in overflow-hidden rounded-micro bg-surface sm:aspect-[16/8] lg:aspect-[21/9]">
+                  <ProgressiveImage
+                    src={resolveBrowserAsset(post.coverImage)}
+                    alt={post.title}
+                    loading="eager"
+                    fetchPriority="high"
+                    width={post.coverWidth}
+                    height={post.coverHeight}
+                    sizes="(max-width: 767px) 100vw, (max-width: 1279px) 80vw, 1024px"
+                    wrapperClassName="h-full w-full"
+                    className="h-full w-full object-cover"
+                  />
                 </div>
-
-                <div className="-ml-2.5 flex shrink-0 items-center gap-1">
-                  {post.filePath && (
-                    <a
-                      href={getPostEditUrl(post.filePath)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`在 GitHub 上编辑此文：${post.title}`}
-                      className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2.5 text-[13px] font-medium text-zinc-500 transition-colors hover:bg-surface-muted hover:text-content dark:text-zinc-400"
-                    >
-                      <Github size={15} aria-hidden="true" />
-                      编辑
-                    </a>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setShareModalOpen(true)}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2.5 text-[13px] font-medium text-zinc-500 transition-colors hover:bg-surface-muted hover:text-content dark:text-zinc-400"
-                    aria-label={`分享文章：${post.title}`}
-                  >
-                    <Share2 size={15} aria-hidden="true" />
-                    分享
-                  </button>
-                </div>
-              </div>
+              </button>
             )}
           </div>
-        </header>
-
-        {post.coverImage && (
-          <button
-            type="button"
-            className="post-cover print-hidden mx-auto block w-full max-w-5xl px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100 sm:px-4 lg:px-0"
-            onClick={() => setPreviewImage({ src: resolveBrowserAsset(post.coverImage!)!, alt: post.title })}
-            aria-label={`预览文章封面：${post.title}`}
-          >
-            <div className="mb-8 aspect-[16/10] cursor-zoom-in overflow-hidden rounded-micro bg-zinc-100 dark:bg-zinc-900 sm:aspect-[16/8] md:mb-12 lg:aspect-[21/9]">
-              <ProgressiveImage
-                src={resolveBrowserAsset(post.coverImage)}
-                alt={post.title}
-                loading="eager"
-                fetchPriority="high"
-                width={post.coverWidth}
-                height={post.coverHeight}
-                sizes="(max-width: 767px) 100vw, (max-width: 1279px) 80vw, 1024px"
-                wrapperClassName="h-full w-full"
-                className="h-full w-full object-cover"
-              />
-            </div>
-          </button>
-        )}
+        </div>
 
         <div ref={articleBodyRef} className="post-body mx-auto w-full max-w-5xl px-3 pb-12 sm:px-4 md:pb-20 lg:px-0">
           <div className="mx-auto max-w-[46rem]">

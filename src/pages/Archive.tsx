@@ -363,23 +363,27 @@ export const ArchivePage = () => {
         </div>
 
         {loading || isSearching ? (
-          <div className="space-y-8" aria-busy="true">
+          <div className="space-y-4 md:space-y-5" aria-busy="true">
             <LoadingStatus label={isSearching ? '正在搜索归档文章' : '正在加载归档文章'} />
-            {/* 骨架与最终时间线同构：发丝线分隔的轻量行，不使用重卡片 */}
-            <div aria-hidden="true" className="border-t border-line">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="grid gap-x-5 gap-y-2 border-b border-line py-4 md:grid-cols-[4.5rem_minmax(0,1fr)]"
-                >
-                  <div className={`h-3 w-12 bg-surface-muted ${shouldReduceMotion ? '' : 'animate-pulse'}`} />
-                  <div className="min-w-0">
-                    <div className={`h-4 w-2/3 bg-surface-muted ${shouldReduceMotion ? '' : 'animate-pulse'}`} />
-                    <div className={`mt-2.5 h-3 w-1/3 bg-surface-muted ${shouldReduceMotion ? '' : 'animate-pulse'}`} />
+            {Array.from({ length: 2 }).map((_, yearIndex) => (
+              <div key={yearIndex} aria-hidden="true" className="rounded-overlay bg-surface-muted p-4 md:p-5">
+                <div className="flex items-end justify-between gap-4">
+                  <div className={`h-9 w-32 rounded-control bg-surface ${shouldReduceMotion ? '' : 'animate-pulse'}`} />
+                  <div className={`h-3 w-16 bg-surface ${shouldReduceMotion ? '' : 'animate-pulse'}`} />
+                </div>
+                <div className="mt-4 rounded-control bg-surface p-2">
+                  <div className={`h-8 w-36 ${shouldReduceMotion ? '' : 'animate-pulse'}`} />
+                  <div className="mt-2 space-y-1.5">
+                    {Array.from({ length: 3 }).map((__, rowIndex) => (
+                      <div
+                        key={rowIndex}
+                        className={`h-10 rounded-control bg-surface-muted ${shouldReduceMotion ? '' : 'animate-pulse'}`}
+                      />
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         ) : loadError || searchError ? (
           <ContentStatus
@@ -400,7 +404,7 @@ export const ArchivePage = () => {
           />
         ) : (
           <div aria-live="polite">
-            <div className="space-y-12 md:space-y-14">
+            <div className="space-y-4 md:space-y-5">
               {groups.map((group) => {
                 const isYearExpanded = expandedYears.has(group.year);
                 // 展示层把「2026年」拆成大字年份 + 小字「年」：数字是视觉锚点，
@@ -409,11 +413,11 @@ export const ArchivePage = () => {
                 const hasLocalizedYearSuffix = yearDigits !== group.year;
 
                 return (
-                  <section key={group.year}>
+                  <section key={group.year} className="rounded-overlay bg-surface-muted p-4 md:p-5">
                     <button
                       type="button"
                       onClick={() => toggleYear(group.year)}
-                      className="group flex min-h-11 w-full items-end justify-between gap-4 border-b border-line pb-3 text-left transition-colors hover:border-content-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
+                      className="group flex min-h-11 w-full items-end justify-between gap-4 text-left transition-colors hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
                       aria-expanded={isYearExpanded}
                       aria-label={`${isYearExpanded ? '折叠' : '展开'} ${group.year}的文章`}
                     >
@@ -446,17 +450,20 @@ export const ArchivePage = () => {
                           transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.18, ease: easeOut }}
                           className="overflow-hidden"
                         >
-                          <div className="pt-5 md:pt-6">
+                          <div className="pt-4 md:pt-5">
                             {group.months.map((monthGroup, monthIndex) => {
                               const monthKey = getMonthKey(group.year, monthGroup.monthNum);
                               const isMonthExpanded = expandedMonths.has(monthKey);
 
                               return (
-                                <div key={monthKey} className={monthIndex > 0 ? 'mt-6' : undefined}>
+                                <div
+                                  key={monthKey}
+                                  className={`rounded-control bg-surface p-2 ${monthIndex > 0 ? 'mt-2' : ''}`}
+                                >
                                   <button
                                     type="button"
                                     onClick={() => toggleMonth(group.year, monthGroup.monthNum)}
-                                    className="group flex min-h-11 w-full items-center gap-2 text-left text-content-muted transition-colors hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
+                                    className="group flex min-h-11 w-full items-center gap-2 rounded-control px-2 text-left text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
                                     aria-expanded={isMonthExpanded}
                                     aria-label={`${isMonthExpanded ? '折叠' : '展开'} ${monthGroup.month}的文章`}
                                   >
@@ -484,12 +491,12 @@ export const ArchivePage = () => {
                                         }
                                         className="overflow-hidden"
                                       >
-                                        <div className="divide-y divide-line border-t border-line">
+                                        <ul className="mt-1 space-y-0.5 px-0.5 pb-0.5">
                                           {monthGroup.posts.map((post) => (
-                                            <div key={post.id}>
+                                            <li key={post.id}>
                                               <Link
                                                 to={`/post/${post.id}`}
-                                                className="group grid min-w-0 gap-x-5 gap-y-1 py-3.5 transition-colors md:grid-cols-[4.5rem_minmax(0,1fr)_auto] md:items-baseline md:py-4"
+                                                className="group grid min-w-0 gap-x-5 gap-y-1 rounded-control px-3 py-3 transition-colors hover:bg-surface-muted md:grid-cols-[4.5rem_minmax(0,1fr)_auto] md:items-baseline md:py-3.5"
                                               >
                                                 <time className="font-mono text-[11px] font-medium tracking-wide text-content-muted tabular-nums md:pt-0.5">
                                                   {formatDay(post.date)}
@@ -525,9 +532,9 @@ export const ArchivePage = () => {
                                                   )}
                                                 </p>
                                               </Link>
-                                            </div>
+                                            </li>
                                           ))}
-                                        </div>
+                                        </ul>
                                       </motion.div>
                                     )}
                                   </AnimatePresence>

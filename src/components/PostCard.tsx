@@ -81,10 +81,11 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
         className="min-w-0 overflow-hidden rounded-overlay bg-surface-muted"
         onMouseEnter={() => preloadPage(`/post/${post.id}`)}
       >
-        <div className="grid grid-cols-[minmax(0,38%)_minmax(0,1fr)] sm:grid-cols-[minmax(0,34%)_minmax(0,1fr)]">
+        {/* 移动端：封面在上（16/9 全宽）、信息在下；sm 起：图左文右的横向横幅。 */}
+        <div className="flex flex-col sm:grid sm:grid-cols-[minmax(0,34%)_minmax(0,1fr)]">
           <Link
             to={`/post/${post.id}`}
-            className="relative block min-h-44 overflow-hidden bg-surface sm:min-h-52"
+            className="relative block aspect-[16/9] w-full overflow-hidden bg-surface sm:aspect-auto sm:min-h-52"
             aria-label={`阅读文章：${post.title}`}
           >
             {post.coverImage ? (
@@ -95,7 +96,7 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
                 fetchPriority="auto"
                 width={post.coverWidth}
                 height={post.coverHeight}
-                sizes="(max-width: 639px) 38vw, 34vw"
+                sizes="(max-width: 639px) 100vw, 34vw"
                 wrapperClassName="h-full w-full"
                 className="h-full w-full object-cover"
                 effect="fade"

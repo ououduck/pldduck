@@ -6,12 +6,17 @@ import { siteConfig } from '@config/site.config';
 
 // GiscusComments 会在视口接近时注入脚本与 iframe，测试环境不需要联网：
 // mock 成 data-testid 桩，直接暴露 props 便于断言 mapping / term。
-const giscusMock = vi.hoisted(() => ({ mapping: '', term: undefined as string | number | undefined }));
+const giscusMock = vi.hoisted(() => ({
+  mapping: '',
+  term: undefined as string | number | undefined,
+  card: false,
+}));
 
 vi.mock('@/components/GiscusComments', () => ({
-  GiscusComments: ({ mapping, term }: { mapping?: string; term?: string | number }) => {
+  GiscusComments: ({ mapping, term, card }: { mapping?: string; term?: string | number; card?: boolean }) => {
     giscusMock.mapping = mapping ?? '';
     giscusMock.term = term;
+    giscusMock.card = card ?? false;
     return <div data-testid="mock-giscus" />;
   },
 }));
@@ -32,6 +37,7 @@ describe('ShuoShuo', () => {
     expect(heading).toBeInTheDocument();
     expect(heading).toHaveClass('font-serif');
     expect(screen.getByText('这里是一块类似 PLDDUCK 朋友圈的短动态小天地。')).toBeInTheDocument();
+    expect(heading.closest('header')).toHaveClass('rounded-overlay', 'bg-surface');
     expect(screen.queryByText('ShuoShuo · Moments')).not.toBeInTheDocument();
   });
 
@@ -43,5 +49,6 @@ describe('ShuoShuo', () => {
     expect(screen.getByTestId('mock-giscus')).toBeInTheDocument();
     expect(giscusMock.mapping).toBe('number');
     expect(giscusMock.term).toBe(siteConfig.shuoshuo.discussionId);
+    expect(giscusMock.card).toBe(true);
   });
 });

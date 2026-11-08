@@ -355,6 +355,11 @@
   .site-shell:has(.home-page) .back-to-top-btn {
     display: none;
   }
+
+  /* 文章入口贴底时给安全区留白，避免 CTA 与浏览器底栏相贴。 */
+  .home-page .home-articles-cta {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* 触屏笔记本与大屏平板（lg 宽度以上却没有 hover 能力）没有「鼠标移入」这条路，

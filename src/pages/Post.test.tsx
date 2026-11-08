@@ -294,6 +294,10 @@ describe('Post', () => {
 
     // 不蒜子阅读量回填锚点必须保留（Layout 的 pingBusuanzi 依赖该 id）。
     expect(document.getElementById('busuanzi_page_pv')).toBeInTheDocument();
+
+    // 移动端作者单独一行、日期/时长/阅读量在下一行；桌面恢复单行。
+    const meta = document.querySelector('.post-meta');
+    expect(meta).toHaveClass('flex-col', 'sm:flex-row');
   });
 
   it('文末尾区顺序：许可 → 作者/改进本文 → 订阅卡 → 相邻导航 → 相关文章 → 评论', async () => {

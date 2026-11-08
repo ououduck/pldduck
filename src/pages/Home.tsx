@@ -6,12 +6,13 @@
  * 时钟、随机值或客户端 API，SSG 与水合首帧严格一致。
  */
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Bell, Check, Copy, Github, Mail, Rss, Search } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Bell, Check, Copy, Github, Mail, Rss, Search } from 'lucide-react';
 import { siteConfig } from '@config/site.config';
 import { Seo, buildSiteSchemas } from '@/components/Seo';
 import { ISSUE_SUBSCRIPTION_URL } from '@/components/IssueSubscriptionCard';
+import { getInitialPosts } from '@/services/posts';
 import { useResetTimer } from '@/hooks/useResetTimer';
 import { copyTextToClipboard } from '@/utils/clipboard';
 import { absoluteSiteUrl, assetUrl } from '@/utils/siteUrl';
@@ -57,6 +58,14 @@ export const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [qqFeedback, setQqFeedback] = useState<CopyFeedback>('idle');
   const { schedule: scheduleFeedbackReset } = useResetTimer();
+  const latestPosts = useMemo(
+    () =>
+      getInitialPosts()
+        .slice()
+        .sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date))
+        .slice(0, 2),
+    [],
+  );
   // 复制是异步的：组件若在 promise 落地前卸载，不得再 setState。
   const isMountedRef = useRef(true);
 
@@ -124,12 +133,12 @@ export const Home = () => {
               height={96}
               decoding="async"
               data-home-reveal="avatar"
-              className="home-reveal home-reveal-avatar mx-auto h-16 w-16 rounded-full bg-surface-muted object-cover ring-1 ring-line sm:h-20 sm:w-20 md:h-24 md:w-24"
+              className="home-reveal home-reveal-avatar mx-auto h-20 w-20 rounded-full bg-surface-muted object-cover ring-1 ring-line sm:h-20 sm:w-20 md:h-24 md:w-24"
             />
 
             <h1
               data-home-reveal="title"
-              className="home-reveal home-reveal-title mt-5 font-serif text-[1.75rem] font-bold tracking-tight text-content [overflow-wrap:anywhere] sm:mt-8 sm:text-4xl md:text-5xl"
+              className="home-reveal home-reveal-title mt-5 font-serif text-[2.1rem] font-bold tracking-tight text-content [overflow-wrap:anywhere] sm:mt-8 sm:text-4xl md:text-5xl"
             >
               {siteConfig.author.name}
             </h1>
@@ -245,6 +254,47 @@ export const Home = () => {
             </p>
           </div>
         </section>
+
+        <div className="home-articles-cta mx-auto mt-4 w-full max-w-3xl px-5 sm:mt-6 sm:px-0 md:mt-8">
+          {/* 移动端：与搜索框同款的紧凑跳转按钮；桌面端：独立大卡片 + 最新两篇。 */}
+          <Link
+            to="/posts"
+            className="flex min-h-12 items-center justify-between gap-3 rounded-control bg-surface-muted px-4 text-sm font-medium text-content transition-colors hover:bg-surface sm:hidden"
+          >
+            <span>看看文章</span>
+            <ArrowRight size={16} aria-hidden="true" className="text-content-muted" />
+          </Link>
+
+          <section className="hidden rounded-overlay bg-surface p-6 md:block md:p-7">
+            <Link to="/posts" className="group flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-medium tracking-[0.16em] text-content-muted">JOURNAL</p>
+                <h2 className="mt-1 font-serif text-2xl font-bold tracking-tight text-content">看看文章</h2>
+              </div>
+              <ArrowRight
+                size={22}
+                aria-hidden="true"
+                className="mb-1 shrink-0 text-content-muted transition-transform group-hover:translate-x-1 group-hover:text-content"
+              />
+            </Link>
+
+            {latestPosts.length > 0 && (
+              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-3 text-xs text-content-muted">
+                <span className="shrink-0">最新发布</span>
+                {latestPosts.map((post) => (
+                  <Link
+                    key={post.id}
+                    to={`/post/${post.id}`}
+                    className="max-w-[18rem] truncate transition-colors hover:text-content"
+                    title={post.title}
+                  >
+                    {post.title}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     </>
   );

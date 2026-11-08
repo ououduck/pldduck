@@ -70,9 +70,11 @@ interface GiscusCommentsProps {
   mapping?: 'pathname' | 'specific' | 'number';
   /** mapping=specific/number 时的固定 Discussion 编号。 */
   term?: string | number;
+  /** 独立内容页使用卡片容器；文章页保持无外壳的评论分区。 */
+  card?: boolean;
 }
 
-export const GiscusComments = ({ postId, mapping = 'pathname', term }: GiscusCommentsProps) => {
+export const GiscusComments = ({ postId, mapping = 'pathname', term, card = false }: GiscusCommentsProps) => {
   const sectionRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -274,7 +276,11 @@ export const GiscusComments = ({ postId, mapping = 'pathname', term }: GiscusCom
   return (
     <section
       ref={sectionRef}
-      className="giscus-comments mt-12 border-t border-zinc-200 pt-8 dark:border-zinc-800 md:mt-16 md:pt-10"
+      className={
+        card
+          ? 'giscus-comments mt-4 rounded-overlay bg-surface p-5 md:p-6'
+          : 'giscus-comments mt-12 border-t border-zinc-200 pt-8 dark:border-zinc-800 md:mt-16 md:pt-10'
+      }
       aria-labelledby="comments-heading"
     >
       <div className="mb-6 flex items-center gap-2">

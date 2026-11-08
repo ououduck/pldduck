@@ -17,7 +17,7 @@ const SHUOSHUO_DESCRIPTION =
 
 export const ShuoShuo = () => {
   return (
-    <div className="mx-auto max-w-2xl pb-12 pt-6 md:pb-20 md:pt-10">
+    <div className="mx-auto max-w-3xl pb-12 pt-6 md:pb-20 md:pt-10">
       <Seo
         title="说说"
         description={SHUOSHUO_DESCRIPTION}
@@ -42,8 +42,8 @@ export const ShuoShuo = () => {
         ]}
       />
 
-      {/* 编辑式页头：只保留衬线标题、介绍与一条发丝线，不再输出英文眉题/图标。 */}
-      <header className="mb-8 border-b border-line pb-7 md:mb-10 md:pb-9">
+      {/* 说说页整体卡片化：页头与动态区各是一块大色块，不再用贯穿全页的发丝线。 */}
+      <header className="rounded-overlay bg-surface p-6 md:p-8">
         <h1 className="font-serif text-4xl font-bold tracking-tight text-content md:text-5xl">说说</h1>
         <p className="mt-3 max-w-xl text-sm leading-7 text-content-muted md:text-base">
           这里是一块类似 PLDDUCK 朋友圈的短动态小天地。
@@ -51,9 +51,12 @@ export const ShuoShuo = () => {
       </header>
 
       {siteConfig.giscusEnabled ? (
-        <GiscusComments mapping="number" term={siteConfig.shuoshuo.discussionId} />
+        <GiscusComments mapping="number" term={siteConfig.shuoshuo.discussionId} card />
       ) : (
-        <Surface variant="panel" className="flex flex-col items-center gap-3 p-8 text-center sm:p-10">
+        <Surface
+          variant="panel"
+          className="mt-4 flex flex-col items-center gap-3 rounded-overlay p-8 text-center sm:p-10"
+        >
           <MessageCircle size={24} className="text-zinc-400 dark:text-zinc-500" aria-hidden="true" />
           <p className="text-sm leading-6 text-zinc-500 dark:text-zinc-400">说说功能暂未开启，敬请期待。</p>
         </Surface>

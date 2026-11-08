@@ -9,6 +9,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Home } from './Home';
 import { siteConfig } from '@config/site.config';
 import { ISSUE_SUBSCRIPTION_URL } from '@/components/IssueSubscriptionCard';
+import { getInitialPosts } from '@/services/posts';
 import { copyTextToClipboard } from '@/utils/clipboard';
 import { assetUrl } from '@/utils/siteUrl';
 
@@ -137,6 +138,24 @@ describe('Home', () => {
     expect(css).toContain('var(--cookie-notice-height');
   });
 
+  it('首页下方有“看看文章”跳转：移动端同款按钮 + 桌面卡片与最新两篇文章', () => {
+    renderHome();
+
+    const articleLinks = screen.getAllByRole('link', { name: /看看文章/ });
+    expect(articleLinks.length).toBeGreaterThanOrEqual(2);
+    articleLinks.forEach((link) => expect(link).toHaveAttribute('href', '/posts'));
+
+    const latest = getInitialPosts()
+      .slice()
+      .sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date))
+      .slice(0, 2);
+    latest.forEach((post) => {
+      expect(screen.getByRole('link', { name: post.title })).toHaveAttribute('href', `/post/${post.id}`);
+    });
+
+    expect(document.querySelector('.home-articles-cta')).not.toBeNull();
+  });
+
   it('首页承载联系方式与订阅入口：GitHub / 邮箱 / RSS / 更新订阅 / 项目仓库', () => {
     renderHome();
 
@@ -201,7 +220,10 @@ describe('Home', () => {
   it('不再渲染任何门户内容：无站点入口、开源项目、关于本站与订阅卡', () => {
     renderHome();
 
-    expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
+    // 唯一允许的 h2 是首页下方的「看看文章」入口，不恢复门户区块标题。
+    const h2s = screen.queryAllByRole('heading', { level: 2 });
+    expect(h2s).toHaveLength(1);
+    expect(h2s[0]).toHaveTextContent('看看文章');
     expect(screen.queryAllByRole('article')).toHaveLength(0);
 
     ['站点入口', '开源项目', '关于本站', '订阅新文章提醒', '站内搜索'].forEach((text) => {

@@ -2012,26 +2012,32 @@ export const Post = () => {
                 {/* 编辑式署名行：作者/日期/阅读时长/阅读量在左，编辑·分享在右（移动端换行） */}
                 {!isReadingMode && (
                   <div className="print-hidden flex flex-wrap items-center justify-between gap-x-8 gap-y-2 sm:gap-y-3">
-                    <div className="post-meta flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] leading-6 text-content-muted">
+                    <div className="post-meta flex min-w-0 flex-col gap-1 text-[13px] leading-6 text-content-muted sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2.5 sm:gap-y-1">
                       <span className="font-medium text-content">{authorsLabel}</span>
-                      <span className="inline-flex items-center gap-2.5">
-                        <PostMetaDivider />
-                        <span>发布于 {formatMetaDate(post.date)}</span>
+                      <span aria-hidden="true" className="hidden text-content-muted sm:inline">
+                        ·
                       </span>
-                      {post.updatedAt && post.updatedAt !== post.date && (
+                      {/* 移动端作者单独一行，日期/时长/阅读量在下一行；桌面仍保持一行署名。 */}
+                      <span className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <span>发布于 {formatMetaDate(post.date)}</span>
+                        {post.updatedAt && post.updatedAt !== post.date && (
+                          <span className="inline-flex items-center gap-2.5">
+                            <PostMetaDivider />
+                            <span>更新于 {formatMetaDate(post.updatedAt)}</span>
+                          </span>
+                        )}
                         <span className="inline-flex items-center gap-2.5">
                           <PostMetaDivider />
-                          <span>更新于 {formatMetaDate(post.updatedAt)}</span>
+                          <span>{post.readTime}</span>
                         </span>
-                      )}
-                      <span className="inline-flex items-center gap-2.5">
-                        <PostMetaDivider />
-                        <span>{post.readTime}</span>
-                      </span>
-                      <span className="inline-flex items-center gap-2.5 tabular-nums" title="由不蒜子提供本页阅读量">
-                        <PostMetaDivider />
-                        <span>
-                          <span id="busuanzi_page_pv">加载中</span> 次阅读
+                        <span className="inline-flex items-center gap-2.5 tabular-nums" title="由不蒜子提供本页阅读量">
+                          {/* 移动端换行到这一项时不要留下行首分隔点；桌面单行仍保留。 */}
+                          <span className="hidden sm:inline">
+                            <PostMetaDivider />
+                          </span>
+                          <span>
+                            <span id="busuanzi_page_pv">加载中</span> 次阅读
+                          </span>
                         </span>
                       </span>
                     </div>

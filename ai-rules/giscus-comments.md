@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-Giscus 评论区（文章评论 + 留言板）：懒加载、多来源回退链（同源代理 → 官方）、超时重试、深色主题（全站固定 dark）、评论数构建期快照。
+Giscus 评论区（文章评论 + 留言板 + 说说）：懒加载、多来源回退链（同源代理 → 官方）、超时重试、深色主题（全站固定 dark）、评论数构建期快照。三个区域的评论都走同一套 GitHub Discussions 审核链路。
 
 ## 关键文件
 
@@ -20,6 +20,7 @@ Giscus 评论区（文章评论 + 留言板）：懒加载、多来源回退链�
 5. **mapping 语义**：pathname（文章自动建讨论）/ number（留言板精确锁定）语义不可混淆；缺 term 时禁止静默注入。
 6. **构建期评论数**：fetch-giscus-comments 用 fetchWithRetry（防抖动），失败优雅降级（不阻塞构建）。
 7. **BASE_PATH 匹配口径**：discussion 标题（页面 URL pathname）与文章路由匹配必须叠加 BASE_PATH（withBasePath）—— 子路径部署时硬编码 `/post/<id>` 匹配不上，评论数会静默全缺。
+8. **三个区域审核一致**：文章评论、留言板、说说评论都通过 `discussion_comment` 事件进入 Akismet / 关键词过滤 / 全量复查；`scripts/lib/comment-surface.mjs` 按 `comments.config.json` 的 discussionId 识别区域并写入日志/飞书通知。**不得**按 Announcements 分类或 `giscus[bot]` 把说说评论整体排除；机器人豁免只针对机器人账号自身。
 
 ## 常见陷阱
 

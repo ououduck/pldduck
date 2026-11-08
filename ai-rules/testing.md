@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-Vitest 测试体系：103 个测试文件 / 1132 个用例；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
+Vitest 测试体系：104 个测试文件 / 1136 个用例；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
 
 ## 关键文件
 
@@ -30,7 +30,9 @@ Vitest 测试体系：103 个测试文件 / 1132 个用例；jsdom（src）与 n
 16. **首页 Hero/搜索/联系/CTA 与移动全屏**：`Home.test` 断言 Hero（`home-hero`）、`role="search"` + sr-only label + 空查询跳 `/search`、非空跳 `/search?q=<encoded>`（用 `useNavigate` mock 或 Router 探针，禁止断言 `window.location`）；联系方式区断言 GitHub/邮箱/RSS/更新订阅/项目仓库与 QQ 复制反馈；「看看文章」CTA 断言移动端 pill 链接与桌面 `bg-surface` 卡片、`最新发布` 恰好两篇文章标题且按 `updatedAt || date` 降序（数据来自构建期 `getInitialPosts`，无 fetch/随机）；Hero 的 `.home-reveal`/`data-home-reveal` 与 reduced-motion 分支用结构/类名断言。移动端全屏滚动锁属于 CSS（`html:has(.home-page), body:has(.home-page)` + `.home-page` 100dvh），jsdom 不加载 CSS，**不得写「已锁滚动」的计算断言**；只能断言 `.home-page`/`home-contact-grid`/`.home-articles-cta` 结构与「没有 JS 写 body.style.overflow」。`siteNav.ts`/Layout 断言侧栏没有「订阅与联系」「标签」「站内搜索」入口。
 17. **剩余页面视觉回归（Friends / ShuoShuo / Guestbook / NotFound / Cover / Watermark）**：统一断言无英文大写眉题与 `h1.font-serif`；友链断言页头/搜索/申请/提示/友链主列表与失联列表均为卡片式（`rounded-overlay bg-surface` / `bg-surface-muted`，1/2/3 列 `gap-3` 网格），不再断言 `border-t`/`divide-y`；说说断言页头 `rounded-overlay bg-surface` 卡片、`GiscusComments` 带 `card` prop（`rounded-overlay bg-surface` 容器），留言板断言轻页头 + giscus 容器仍在；404 断言 `Page Missing` 不存在、`404` 水印 `aria-hidden`、ghost 返回按钮与最近文章列表；封面/水印断言页头与 Cover 的 `role="tab"` 文字 tab（`aria-selected`/方向键）保留。**这些断言锁结构与可访问语义，不锁整段 className。**
 18. **退役的 `/tags` 与标签筛选契约**：`public/_redirects` 仍须把 `/tags` 与 `/tags/*` 301 到 `/posts`；`App.tsx` 的 `TagsRedirect` 仍须把 `?tag=` 转交 `/posts?tag=`；全站标签链接一律 `/posts?tag=`。改标签能力时断言「非法 tag 从 URL 清理并回退全部文章」「点击标签写入 /posts?tag=」「移动标签 dialog 可 Escape 关闭且焦点回到入口」，**不得**恢复 `/tags` 的 SSG/sitemap 或页面测试。
-19. **文章阅读控制台减负回归**：桌面 `CapsuleNav` 收缩态断言 44px 圆形目录按钮（`h-11 w-11` 量级）与展开浮层，不得恢复高胶囊轨/常驻大面板；**目录按钮二次点击必须收起**（断言点击两次后 `aria-expanded=false`，且按钮内 `List`/`X` 两层图标全程存在、只切换透明度——防止条件替换导致 click 丢失的回归）；移动 `ArticleToolbar` 断言只有目录/进度/分享/阅读模式四个按钮、没有「更多」菜单；文末断言顺序「许可 → 作者/改进 → 订阅 → 系列 → 相邻 → 相关 → 评论」，且使用 `surface`/`surface-muted` 色块（不再强制 `border-t`/`divide-y`）；系列当前篇保留 `aria-current="page"`。
+19. **说说评论审核覆盖**：`scripts/lib/comment-surface.test.mjs` 断言 `comments.config.json` 的 `shuoshuo.discussionId` 被识别为 `surface=shuoshuo`、留言板为 `guestbook`、文章分类为 `article`，未知 discussion 为 `unknown`；改说说 Discussion ID 必须同步 `config/comments.config.json`，并让 Akismet/关键词过滤/全量复查/飞书通知都通过 `comment-surface.mjs` 标注区域。**不得**在 workflow 里按 Announcements 分类排除说说评论。
+
+20. **文章阅读控制台减负回归**：桌面 `CapsuleNav` 收缩态断言 44px 圆形目录按钮（`h-11 w-11` 量级）与展开浮层，不得恢复高胶囊轨/常驻大面板；**目录按钮二次点击必须收起**（断言点击两次后 `aria-expanded=false`，且按钮内 `List`/`X` 两层图标全程存在、只切换透明度——防止条件替换导致 click 丢失的回归）；移动 `ArticleToolbar` 断言只有目录/进度/分享/阅读模式四个按钮、没有「更多」菜单；文末断言顺序「许可 → 作者/改进 → 订阅 → 系列 → 相邻 → 相关 → 评论」，且使用 `surface`/`surface-muted` 色块（不再强制 `border-t`/`divide-y`）；系列当前篇保留 `aria-current="page"`。
 
 ## 常见陷阱
 

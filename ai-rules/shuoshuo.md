@@ -26,12 +26,15 @@
 5. **详情页契约已退役**：`/shuoshuo/:splat → /shuoshuo` 的 301 成对（`_redirects` + `App.tsx`）是外部已索引 URL 的兜底，不得单边删除；若二次改造需要新详情路由，须重新走 `config/routes.mjs` 单一真源流程并同步 `routes-consistency.test.mjs`。
 6. **编辑式页头与卡片化**：页头是 `rounded-overlay bg-surface p-6 md:p-8` 的卡片（`h1` `font-serif text-4xl md:text-5xl` + 低对比介绍），**不再使用跨页 `border-b` 发丝线**；giscus 区通过 `<GiscusComments ... card />` 使用 `rounded-overlay bg-surface p-5 md:p-6` 的卡片容器。说说的数据源/`discussionId`/schema 不变，**不得**为卡片化改动 giscus mapping。删除英文大写眉题/图标。
 
+7. **评论审核（与文章/留言板同链路）**：说说的 Giscus 评论同样由 `.github/workflows/akismet-discussion-comment-check.yml`、`comment-keyword-filter.yml` 处理，并可被 `comment-keyword-recheck.yml` 全量复查。`scripts/lib/comment-surface.mjs` 会按 `config/comments.config.json` 的 `shuoshuo.discussionId` 识别 `surface=shuoshuo`，Akismet/关键词/复查日志与飞书评论通知必须显示该区域；**不得**在 workflow 或脚本里按 Announcements 分类排除说说评论。审核动作（Akismet 删除、关键词 `minimize/delete`）沿用全局配置，不要为说说单独写一套删除逻辑。
+
 ## 常见陷阱
 
 - 评论图片以绝对 URL 存在正文中（`https://img.pldduck.com/...`），giscus 会原样渲染；无需站点侧九宫格逻辑。
 - 说说的 SEO 只走**页面级** `<Seo>` + `CollectionPage` schema，**不再枚举 ItemList 子页**；若未来接入自建渲染列表，须同步 `generate-site-data.mjs` 的 sitemap/llms 分支。
 - `giscusEnabled=false` 时页面回落占位面板，此时说说内容整站不可见——这是刻意降级路径，勿静默改成「仍然尝试加载」。
 - 恢复跨页 `border-b` 页头或去掉 `GiscusComments card`：说说页已整体卡片化（页头 `bg-surface` 卡片、评论区 `bg-surface` 卡片），`ShuoShuo.test` 会断言页头结构与 `card` prop。
+- 在审核 workflow/脚本里用 `Announcements` 分类或 `giscus[bot]` 把说说评论排除掉：说说的每条评论都应由 `comment-surface.mjs` 识别为 `shuoshuo` 后进入同一套 Akismet/关键词审核；机器人账号豁免只针对机器人自身生成的评论，不是整个讨论。
 
 ## 破例条款
 

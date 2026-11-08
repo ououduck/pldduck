@@ -36,7 +36,7 @@ URL 约定：列表 `/posts`（可带 `?category=` / `?tag=` / `?q=` / `?sort=` 
 11. **横幅列表视觉**：条目是 `PostCard variant="banner"`——`bg-surface-muted` 大色块 + `rounded-overlay`，`<sm` 封面上（16/9 全宽）、信息在下，`sm+` 图左文右（封面 34% 宽、`min-h-52`）；标题用 `font-serif`（精选更大），元信息/标签低对比。**不得**恢复旧的竖排卡片网格、整块边框/白底/阴影或分类胶囊；标签链接一律 `/posts?tag=<encoded>`（不再是 `/tags?tag=`）。
 12. **标签卡与移动标签弹窗**：桌面右侧 `TagsPanel` 是 `lg:sticky` 的 `w-64` surface-muted 卡片（标题「标签」+ 标签数 + 可滚动列表，`max-h-[calc(100vh-7rem)]`）；移动端是贴右侧中部的「标签」按钮（`aria-expanded`/`aria-controls`，点击打开 `role="dialog"` 侧板，`useModalOverlay` 负责滚动锁、Escape 关闭与焦点陷阱，选完标签后关闭）。标签项是同一页面内的筛选 toggle，`aria-pressed` 合法且应保留；激活项 `bg-content text-background`，计数用 `tabular-nums`。**不得**把弹窗改成 navigate 到独立标签页，也不得去掉 Escape/焦点管理。
 13. **PostCard 双 variant 与搜索一致性**：`variant="banner"` 同时用于 `/posts` 列表与 `/search` 结果（Search 也是单列横幅，移动端封面在上）；`variant="card"` 竖排变体保留（测试/未来场景），但生产搜索结果**不得**再切回 `CompactPostCard` 或三列网格。两 variant 必须保持相同信息层级（分类/标题/摘要/日期/阅读时长/分享），`card` 仍要 `h-full` 且由父容器控制列宽；**不得**把 `PostCard` 改成只支持 banner。
-14. **筛选栏、继续阅读与骨架**：分类仍是文字 tab（底部细线），排序收成一个切换按钮（`aria-pressed`）；继续阅读是 `rounded-overlay bg-surface-muted p-4 md:p-5` 的卡片（顶部小标题/进度 + 继续/放弃操作 + 细进度线），**不得**退回无底色的细横条；横幅列表骨架与 banner 同构（封面块 + 文字条）；加载/搜索中不得整块闪回骨架（旧结果保留）。
+14. **筛选栏、继续阅读与骨架**：分类仍是文字 tab（底部细线），排序收成一个切换按钮（`aria-pressed`）；继续阅读是 `rounded-overlay bg-surface-muted p-4 md:p-5` 的卡片（顶部小标题/进度 + 继续/放弃操作 + 细进度线），**不得**退回无底色的细横条；继续阅读 Link 必须传 `state={{ continueReading: true }}`，文章页据此对首次阅读位置恢复使用平滑滚动（减少「跳转即瞬移」的割裂）；横幅列表骨架与 banner 同构（封面块 + 文字条）；加载/搜索中不得整块闪回骨架（旧结果保留）。
 
 ## 常见陷阱
 

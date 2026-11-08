@@ -31,15 +31,17 @@
 
 1. **失联分组**：`friend.unavailable === true` 的友链必须归入「已失联的博客」折叠板块，不混入主列表；缺键视为 false。该键由 **B 道巡检**维护 —— 站长可以在 Pages CMS 勾选「已失联」作为临时处置，但下一轮巡检会按探测结论**双向覆写**（判定可达就移回上方），这是 2026-10 用户明确授权的既定行为，不是 bug。前端两条路径都只读。
 2. **申请入口 = GitHub Issue**：申请友链（面板标题「申请友链」）只有 GitHub Issue 一条路，页面**不发任何请求、不落任何数据**：`FriendApplyForm` 把资料拼成 `<repoUrl>/issues/new?...` 由 `window.open` 打开（`buildFriendIssueUrl`），并保留「改用空白 Issue 表单」链接指向 `siteConfig.friendsPage.applyUrl`（`friend-link-application.yml` 模板，`target="_blank" rel="noopener noreferrer"`）。**关键约束**：预填链接**不得带 `template=` 参数** —— 走 Issue 表单时 GitHub 会忽略 `body`，正文填不进去；因此正文要自己复刻模板渲染出的 `### <label>` 分段与 `- [X]` 勾选项，段标题/顺序/文案的一致性由 `src/utils/friendIssue.test.ts` 同时用解析器往返 + 读模板做漂移守卫。两步向导的步骤状态（`currentApplicationStep`）与本站信息卡（`siteInfo`）保留在组件内。**不得再引入 Tally 等外部表单**（2026-10 用户授权把站内资料卡定位为「预填」而非「采集」，故「不得在站内自建提交表单」按“不得另建采集面”理解）。**已收录条目的信息修改走站长邮箱**（2026-10 用户授权：面板第三张卡片固定写「如果有修改友链信息的需求，请联系邮箱 pldduck@outlook.com」，为组件内常量 `FRIEND_EDIT_CONTACT_EMAIL`，**不为它新增配置键**）；「申请类型」字段已于 2026-10 经用户授权从页面、预填正文与 Issue 模板整链路删除，本流程只做**新增收录**，改信息与下架一律走站长邮箱（第三张卡片是 amber 高亮块，要显眼）。
-3. **自动检测仅供参考**：反链检测（`opened`/`edited`/`reopened`/申请人评论触发的 `findBacklink`）**只产出证据评论 + 标签 + 飞书「待审核」**，任何情况下都不得凭检测结果自动写文件。**在 A 道内，`friend-approved` 标签是唯一写入触发器**（本条不约束 B 道巡检，见规则 5 的 B 段 —— 也不要拿「检测不自动写」去回滚巡检的单键写入，两者不是一回事）；人工放行时即使检测未命中也照样入库，但评论必须写明「反链未检测到（人工放行）」并附上最后一次证据。**唯一允许机器人自己下的结论是可达性闸门**（2026-10 用户授权）：检测前先探申报的站点地址与头像，任一在 Actions 出口（境外 IP）拿不到 2xx/3xx —— 连接超时/被拒、DNS 失败、4xx（含 403 的禁海外/反爬）、5xx —— 即回复固定话术 `UNREACHABLE_NOTICE`、打 `friend-unreachable`、**关闭 Issue**、推飞书「已驳回」，并跳过反链检测。闸门只驳回不入库，且**对所有申请一视同仁**（旧的「下架申请不受闸门约束」豁免已随「申请类型」字段一起删除，2026-10 用户授权）。站长不认同自动驳回时，重开 Issue 再打 `friend-approved` 即可正常入库。**`friend-rejected` 分支**：回复固定拒绝文案（邮箱取 `REJECT_CONTACT_EMAIL`，现与站点公开邮箱 `pldduck@outlook.com` 一致，有漂移测试守着）→ 关闭 Issue → 飞书「已拒绝」，不写文件、不 dispatch、不追加审核页脚（避免被读成「补打标签就能上架」）；重新申请要开新 Issue。
-4. **反链判定口径**（改动必须同步本节，不得只写在代码注释里）：
+3. **友链卡片固定尺寸**：主列表/失联列表的 `FriendEntry` 必须使用固定高度 `h-36`（另加 `h-full`/`min-h-0` 防网格拉伸），简介保持 `line-clamp-2` 两行省略，标题与域名保持 `truncate`；不得让长简介把单个卡片撑高、破坏 1/2/3 列网格的等高节奏。加载骨架也保持同高卡片。
+
+4. **自动检测仅供参考**：反链检测（`opened`/`edited`/`reopened`/申请人评论触发的 `findBacklink`）**只产出证据评论 + 标签 + 飞书「待审核」**，任何情况下都不得凭检测结果自动写文件。**在 A 道内，`friend-approved` 标签是唯一写入触发器**（本条不约束 B 道巡检，见规则 5 的 B 段 —— 也不要拿「检测不自动写」去回滚巡检的单键写入，两者不是一回事）；人工放行时即使检测未命中也照样入库，但评论必须写明「反链未检测到（人工放行）」并附上最后一次证据。**唯一允许机器人自己下的结论是可达性闸门**（2026-10 用户授权）：检测前先探申报的站点地址与头像，任一在 Actions 出口（境外 IP）拿不到 2xx/3xx —— 连接超时/被拒、DNS 失败、4xx（含 403 的禁海外/反爬）、5xx —— 即回复固定话术 `UNREACHABLE_NOTICE`、打 `friend-unreachable`、**关闭 Issue**、推飞书「已驳回」，并跳过反链检测。闸门只驳回不入库，且**对所有申请一视同仁**（旧的「下架申请不受闸门约束」豁免已随「申请类型」字段一起删除，2026-10 用户授权）。站长不认同自动驳回时，重开 Issue 再打 `friend-approved` 即可正常入库。**`friend-rejected` 分支**：回复固定拒绝文案（邮箱取 `REJECT_CONTACT_EMAIL`，现与站点公开邮箱 `pldduck@outlook.com` 一致，有漂移测试守着）→ 关闭 Issue → 飞书「已拒绝」，不写文件、不 dispatch、不追加审核页脚（避免被读成「补打标签就能上架」）；重新申请要开新 Issue。
+5. **反链判定口径**（改动必须同步本节，不得只写在代码注释里）：
    - 只认 `<a href>` 解析出的绝对 http(s) 地址；host 必须**精确等于或为子域**于 `www.pldduck.com` / `pldduck.com`（`pldduck.com.evil.net`、`evil-pldduck.com` 不算命中）。
    - 判定前先剥离 HTML 注释（主题里注释掉的友链是最可能的假阳性来源）；`<img src>`、`rel=canonical`、`meta refresh`、JS 字符串里的链接一律不算。
    - 抓取后的最终落地 host ≠ 申报 host → 判 `offsite`（防「把域名 301 到 pldduck.com」骗过检测）。
    - 401/403/405/406/407/429 归 `restricted`（可达但拒绝自动化），措辞是「证据不足」而不是「没挂链」。
    - **三处判定，两套严格度，不许「顺手统一」**：同一个 403，在反链侧只说明「拿不到证据」（所以不能判他没挂链），在**申请闸门**侧算「这里打不开」（所以自动驳回 —— 站点屏蔽海外确实没法长期合作），在**失联巡检**侧算「可达但受限」（所以不动开关 —— 已收录的友链被反爬挡住不等于对方下线）。入口分别是 `buildTransportVerdict`、`classifyReachability`（A 道，严格）与 `checkUrl` + `classifyAuditVerdict`（B 道，宽容，401/403/405/406/407/429 → `RESTRICTED` 冻结）。`friend-availability-core.test.mjs` 用同一组状态码同时断言两套结论，谁把它们改成一致就会红。
    - **假阴性便宜**（申请人可改正文重测、站长可人工放行），**假阳性只影响证据质量**（不再有自动上架），所以口径宁严不误，但任何 verdict 都不能替站长做决定。
-5. **写入护栏**（A/B 两条路径各一套，全部为硬约束）：
+6. **写入护栏**（A/B 两条路径各一套，全部为硬约束）：
    - **A 段 · `friend-approved` 入库**：
    - 目录**硬编码 `friends/`**，不读 `siteConfig.friendsPage.repoFriendsDir`（CMS 可改的配置值不能指挥机器人往哪写；有漂移测试守着）。
    - 文件名只从 `issue.user.login` 派生，断言 `^[A-Za-z0-9_-]{1,64}$` 且路径归一化后不变；禁止任何来自正文的文本参与文件名。
@@ -54,14 +56,14 @@
    - 判定不可达必须**等 30s 复测一次、两次都失败才动开关**；`RESTRICTED` / `BLOCKED` / 记录解析失败一律**冻结不动**，只进报告。
    - **不可达占比 ≥50%（且样本 ≥4）判为「是我们出不去，不是它们挂了」，整轮熔断**：丢弃全部写入（含恢复），只报告。单靠 3 个上限挡不住出口 IP 被封 —— 每晚标 3 个、五晚就清空友链，所以主力护栏是熔断 + 冻结，上限只是最后一道。
    - 只认 dispatch `payload.repository.ref == main` 且 `GITHUB_REF` 为 `refs/heads/main`；有实际提交才 `workflow_dispatch` 调 `deploy.yml` 一次。
-6. **机制事实**：**GITHUB_TOKEN 的 push 不会触发任何 workflow**（GitHub 防自循环）。所以机器人提交 `friends/*.json` 后 `ci.yml` 与 `push: main` 的飞书通知都不会跑 —— 记录校验必须在写入前完成（`generate-site-data.mjs` 对坏记录只 warn+skip，靠 CI 兜不住），收录通知必须由机器人自己发，部署必须由机器人 `workflow_dispatch` 调 `deploy.yml`（该能力自 2022-09 起官方支持，需 `actions: write`）。
-7. **防自循环**：`labeled` 分支要求 `sender.type != 'Bot'`；机器人评论正文嵌 `<!-- pldduck-friend-bot:v1 -->` 标记，带标记的评论一律跳过；评论重测只认 Issue 作者或 `author_association ∈ {OWNER,MEMBER,COLLABORATOR}`；机器人永不编辑 Issue 正文（否则自触发 `edited`）。
-8. **搜索过滤**：`getFriendDomain`（new URL 解析）结果必须预计算 Map 缓存（禁止每次击键对全部友链重复解析）；大小写统一用 toLowerCase（非 toLocaleLowerCase，locale 无关）。
-9. **SSG 确定性**：友链列表与失联分组首帧由 `getInitialFriends()` 渲染。
-10. **无卡片光效**：友链已改为卡片式条目（surface/surface-muted 色块，见规则 13），历史 `useSpotlight` / `SpotlightLayer` 已删除；**不得**恢复 pointermove 光斑、卡片高亮层或重边框，交互反馈只靠 hover 色块/文字色（见规则 12/13）。
-11. **日志与评论安全**：Issue 标题/正文/用户字段进 Actions 日志或 Issue 评论前必须过 `sanitizeLogValue`，URL 必须过 `sanitizeUrlForLogs`；拒绝文案是固定串 + 常量邮箱，不掺任何用户输入。
-12. **编辑式页头**：删除英文大写眉题；页头是 `rounded-overlay bg-surface p-5 md:p-7` 的卡片，`h1` 用 `font-serif text-4xl font-bold md:text-5xl`、文案「友情链接」，描述低对比文字；右侧「随机前往」是 ghost 按钮（`min-h-11`、hover `surface-muted`、无可访问友链时 `disabled`），**不得**改回实底/描边按钮或恢复英文眉题。
-13. **卡片化视觉（2026-11 更新）**：页头、搜索区、申请面板、本站信息、表单、提示、失联面板、友链主列表与失联列表全部改为卡片式：页头/搜索/面板用 `rounded-overlay bg-surface`，内部分节用 `rounded-overlay bg-surface-muted p-4 md:p-5`，友链条目本身是 `rounded-overlay bg-surface-muted p-4`（hover `bg-surface`），主列表/失联列表为 1 / md:2 / lg:3 列 `gap-3` 网格。**不得**恢复旧的 `border-t`/`divide-y` 细线列表、三张独立卡片或重边框；amber 的「信息修改联系」块仍保留（`bg-amber-500/10` + `warning` 语义色，必须显眼）。
+7. **机制事实**：**GITHUB_TOKEN 的 push 不会触发任何 workflow**（GitHub 防自循环）。所以机器人提交 `friends/*.json` 后 `ci.yml` 与 `push: main` 的飞书通知都不会跑 —— 记录校验必须在写入前完成（`generate-site-data.mjs` 对坏记录只 warn+skip，靠 CI 兜不住），收录通知必须由机器人自己发，部署必须由机器人 `workflow_dispatch` 调 `deploy.yml`（该能力自 2022-09 起官方支持，需 `actions: write`）。
+8. **防自循环**：`labeled` 分支要求 `sender.type != 'Bot'`；机器人评论正文嵌 `<!-- pldduck-friend-bot:v1 -->` 标记，带标记的评论一律跳过；评论重测只认 Issue 作者或 `author_association ∈ {OWNER,MEMBER,COLLABORATOR}`；机器人永不编辑 Issue 正文（否则自触发 `edited`）。
+9. **搜索过滤**：`getFriendDomain`（new URL 解析）结果必须预计算 Map 缓存（禁止每次击键对全部友链重复解析）；大小写统一用 toLowerCase（非 toLocaleLowerCase，locale 无关）。
+10. **SSG 确定性**：友链列表与失联分组首帧由 `getInitialFriends()` 渲染。
+11. **无卡片光效**：友链已改为卡片式条目（surface/surface-muted 色块，见规则 13），历史 `useSpotlight` / `SpotlightLayer` 已删除；**不得**恢复 pointermove 光斑、卡片高亮层或重边框，交互反馈只靠 hover 色块/文字色（见规则 12/13）。
+12. **日志与评论安全**：Issue 标题/正文/用户字段进 Actions 日志或 Issue 评论前必须过 `sanitizeLogValue`，URL 必须过 `sanitizeUrlForLogs`；拒绝文案是固定串 + 常量邮箱，不掺任何用户输入。
+13. **编辑式页头**：删除英文大写眉题；页头是 `rounded-overlay bg-surface p-5 md:p-7` 的卡片，`h1` 用 `font-serif text-4xl font-bold md:text-5xl`、文案「友情链接」，描述低对比文字；右侧「随机前往」是 ghost 按钮（`min-h-11`、hover `surface-muted`、无可访问友链时 `disabled`），**不得**改回实底/描边按钮或恢复英文眉题。
+14. **卡片化视觉（2026-11 更新）**：页头、搜索区、申请面板、本站信息、表单、提示、失联面板、友链主列表与失联列表全部改为卡片式：页头/搜索/面板用 `rounded-overlay bg-surface`，内部分节用 `rounded-overlay bg-surface-muted p-4 md:p-5`，友链条目本身是 `rounded-overlay bg-surface-muted p-4`（hover `bg-surface`），主列表/失联列表为 1 / md:2 / lg:3 列 `gap-3` 网格。**不得**恢复旧的 `border-t`/`divide-y` 细线列表、三张独立卡片或重边框；amber 的「信息修改联系」块仍保留（`bg-amber-500/10` + `warning` 语义色，必须显眼）。
 
 ## 常见陷阱
 

@@ -142,8 +142,8 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
               </h2>
             </Link>
 
-            {/* 移动横幅较窄：摘要与标签收在 sm+ 展示，移动端只保留标题/元信息/分享。 */}
-            <p className="mt-2 hidden line-clamp-2 text-sm leading-6 text-content-muted sm:block md:line-clamp-3">
+            {/* 移动横幅也保留一行摘要；更长的摘要与标签在 sm+ 展开。 */}
+            <p className="mt-1.5 line-clamp-1 text-xs leading-5 text-content-muted sm:mt-2 sm:line-clamp-2 sm:text-sm sm:leading-6 md:line-clamp-3">
               {post.excerpt}
             </p>
 

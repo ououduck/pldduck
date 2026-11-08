@@ -290,17 +290,11 @@ export const GiscusComments = ({ postId, mapping = 'pathname', term, card = fals
         </h2>
       </div>
       {isOffline ? (
-        <div
-          role="status"
-          className="border-y border-zinc-200 px-4 py-6 text-sm leading-6 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400"
-        >
+        <div role="status" className="rounded-control bg-surface-muted px-4 py-6 text-sm leading-6 text-content-muted">
           当前处于离线状态，恢复网络后评论区会自动加载。
         </div>
       ) : loadFailed ? (
-        <div
-          role="alert"
-          className="border-y border-zinc-200 px-4 py-6 text-sm leading-6 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400"
-        >
+        <div role="alert" className="rounded-control bg-surface-muted px-4 py-6 text-sm leading-6 text-content-muted">
           <p>评论区加载失败，请检查网络连接后重试。</p>
           <button
             type="button"
@@ -317,11 +311,11 @@ export const GiscusComments = ({ postId, mapping = 'pathname', term, card = fals
       ) : isLoaded ? null : (
         // 未加载完成前的占位：保持区块高度，避免加载开始/结束时布局跳动。
         // 加载成功后隐藏，避免加载提示常驻在评论区上方。
-        <div className="border-y border-zinc-200 dark:border-zinc-800">
+        <div className="rounded-control bg-surface-muted">
           {isNearViewport ? (
             <LoadingStatus label="正在加载评论区" />
           ) : (
-            <p role="status" aria-live="polite" className="px-4 py-6 text-sm text-zinc-500 dark:text-zinc-400">
+            <p role="status" aria-live="polite" className="px-4 py-6 text-sm text-content-muted">
               评论将在滚动到此处时自动加载。
             </p>
           )}

@@ -9,10 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useModalOverlay } from '@/hooks/useModalOverlay';
-
-const COOKIE_CONSENT_KEY = 'cookie-consent';
-/** 会话级关闭标记：「同意」永久持久化，「关闭」仅当前会话不再提示。 */
-const COOKIE_DISMISSED_KEY = 'cookie-dismissed';
+import { acceptCookieConsent, dismissCookieConsent, hasCookieDecision } from '@/services/cookieConsent';
 
 export const CookieNotice: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -21,34 +18,19 @@ export const CookieNotice: React.FC = () => {
   const acceptButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
-    try {
-      const hasConsented = localStorage.getItem(COOKIE_CONSENT_KEY);
-      const sessionDismissed = sessionStorage.getItem(COOKIE_DISMISSED_KEY);
-      if (!hasConsented && !sessionDismissed) {
-        setIsVisible(true);
-      }
-    } catch {
+    if (!hasCookieDecision()) {
       setIsVisible(true);
     }
   }, []);
 
   const handleAccept = () => {
-    try {
-      localStorage.setItem(COOKIE_CONSENT_KEY, 'accepted');
-    } catch {
-      // 浏览器存储不可用时，同意状态的持久化为尽力而为。
-    }
+    acceptCookieConsent();
     setIsVisible(false);
   };
 
   const handleClose = () => {
-    // 「关闭」≠「同意」：仅当前会话不再提示（此前每次整页加载 2 秒后重新弹窗，
-    // 用户以为已关闭却反复出现，与「同意」语义不对等）。
-    try {
-      sessionStorage.setItem(COOKIE_DISMISSED_KEY, '1');
-    } catch {
-      // 存储不可用时关闭仅本次生效，尽力而为。
-    }
+    // 「关闭」≠「同意」：仅当前会话不再提示。
+    dismissCookieConsent();
     setIsVisible(false);
   };
 

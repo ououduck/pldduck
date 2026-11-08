@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useParams, useLocatio
 import { HelmetProvider } from 'react-helmet-async';
 import { flushSync } from 'react-dom';
 import { Layout } from './components/Layout';
+import { hasCookieDecision } from './services/cookieConsent';
 import { Home } from './pages/Home';
 import { pageLoaders } from './utils/preload';
 import { getRouterBasename } from './utils/siteUrl';
@@ -166,13 +167,17 @@ const AppRoutes: React.FC = () => {
 
 const AppShell: React.FC = () => {
   const [showCookieNotice, setShowCookieNotice] = useState(false);
+  const location = useLocation();
+  const isPrivacyRoute = location.pathname === '/privacy';
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setShowCookieNotice(true);
-    }, 2000);
-    return () => window.clearTimeout(timer);
-  }, []);
+    // 隐私页本身永远不应被 Cookie 弹窗遮住；已同意/本会话已关闭时也不挂载弹窗 chunk。
+    if (isPrivacyRoute || hasCookieDecision()) {
+      setShowCookieNotice(false);
+      return;
+    }
+    setShowCookieNotice(true);
+  }, [isPrivacyRoute]);
 
   return (
     <ErrorBoundary>

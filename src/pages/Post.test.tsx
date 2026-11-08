@@ -311,6 +311,7 @@ describe('Post', () => {
     renderPost();
     await screen.findByText('测试文章标题');
     await waitFor(() => expect(document.querySelector('.post-related')).not.toBeNull());
+    expect(document.querySelector('.post-related')).toHaveClass('rounded-overlay', 'bg-surface');
 
     const orderedNodes = [
       '.post-license',

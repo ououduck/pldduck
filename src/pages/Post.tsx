@@ -2299,7 +2299,10 @@ export const Post = () => {
                 </nav>
 
                 {relatedPosts.length > 0 && (
-                  <section className="post-related mt-12" aria-labelledby="related-heading">
+                  <section
+                    className="post-related mt-12 rounded-overlay bg-surface p-5 md:p-6"
+                    aria-labelledby="related-heading"
+                  >
                     <div className="mb-4 flex items-baseline justify-between gap-3">
                       <h2 id="related-heading" className="text-sm font-semibold text-content">
                         你可能还喜欢

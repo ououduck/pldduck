@@ -2,13 +2,13 @@
 
 ## 功能概述
 
-首页 = 极简个人主页 + 全站搜索 + 联系方式/订阅入口（原 `/about` 已并入本页）。自上而下固定为：Hero 面板内的头像、名字（唯一 `h1`）、`author.bio` 原文、全站搜索表单（pill 输入 + 「搜索」按钮，回车/提交 → `/search?q=`）、联系方式区（GitHub / 邮箱 `mailto:` / QQ 一键复制 / RSS 订阅 / 更新订阅 / 项目仓库）。仍**不**承载门户入口、文章/说说/友链等内容列表、技术栈、关于本站、状态标签或订阅卡。
+首页 = 极简个人主页 + 全站搜索 + 联系方式/订阅入口 + 「看看文章」CTA（原 `/about` 已并入本页）。自上而下固定为：Hero 面板内的头像、名字（唯一 `h1`）、`author.bio` 原文、全站搜索表单（pill 输入 + 「搜索」按钮，回车/提交 → `/search?q=`）、联系方式区（GitHub / 邮箱 `mailto:` / QQ 一键复制 / RSS 订阅 / 更新订阅 / 项目仓库）、「看看文章」CTA（移动端同款 pill 按钮；桌面端独立 surface 卡片 + 「最新发布」两篇标题）。仍**不**承载门户入口、文章/说说/友链等内容列表、技术栈、关于本站、状态标签或订阅卡。
 
-视觉：桌面（≥768px）Hero 是 `home-hero` 的 surface 大色块卡片 + 低对比径向光（`home-hero-glow`），内容用 CSS staggered reveal 按 avatar → title → bio → search → contact 的顺序入场；移动端（<768px）去掉卡片外观、内容铺满可用视口且禁止上下滚动，联系方式收成 2 列紧凑网格。`prefers-reduced-motion` 下动效直接可见。
+视觉：桌面（≥768px）Hero 是 `home-hero` 的 surface 大色块卡片 + 低对比径向光（`home-hero-glow`），内容用 CSS staggered reveal 按 avatar → title → bio → search → contact 的顺序入场；移动端（<768px）去掉卡片外观、内容铺满可用视口且禁止上下滚动，头像 80px（`h-20 w-20`）、标题 2.1rem，联系方式收成 2 列紧凑网格，CTA 底部留 `safe-area-inset-bottom`。`prefers-reduced-motion` 下动效直接可见。
 
 2026-11 用户确认把侧栏「订阅与联系」分组整体迁到首页：侧栏只保留导航与工具，首页承担全站搜索与联系/订阅入口；不要因为旧规则写过「首页不得有搜索」就把它删掉或搬回侧栏。
 
-**明确禁止恢复的旧内容**：门户入口磁贴与次级链接、开源项目清单、「关于本站」与折腾记录、技术栈清单、助记词 / tagline / 状态标签、新文章订阅卡（`IssueSubscriptionCard` 组件本体）、文章 / 说说 / 友链等任何内容列表。`config/portal.config.json` 仍存在且仍由加载器合并为 `siteConfig.portal`（暂保留），但**首页不再消费**；不要因为它还在就恢复门户渲染。
+**明确禁止恢复的旧内容**：门户入口磁贴与次级链接、开源项目清单、「关于本站」与折腾记录、技术栈清单、助记词 / tagline / 状态标签、新文章订阅卡（`IssueSubscriptionCard` 组件本体）、文章 / 说说 / 友链等任何内容列表（「看看文章」CTA 的两篇标题除外）。`config/portal.config.json` 仍存在且仍由加载器合并为 `siteConfig.portal`（暂保留），但**首页不再消费**；不要因为它还在就恢复门户渲染。
 
 全站页面底部不再渲染全局 Footer（`Layout` 没有 `Footer` 组件），版权只在侧栏底部；首页不得自己补页脚、
 版权或备案信息。
@@ -16,7 +16,8 @@
 ## 关键文件
 
 - `src/pages/Home.tsx`
-- `src/index.css`（`.home-hero` / `.home-hero-glow` / `.home-reveal` 的 Hero 与 staggered reveal，含 reduced-motion 分支；`@media (max-width: 767.98px)` 的 `.home-page` 全屏、`:has(.home-page)` 滚动锁与 `.home-contact-grid` 2 列网格）
+- `src/services/posts.ts`（`getInitialPosts()`：构建期内联文章元数据；首页仅用它取「最新两篇」标题）
+- `src/index.css`（`.home-hero` / `.home-hero-glow` / `.home-reveal` 的 Hero 与 staggered reveal，含 reduced-motion 分支；`@media (max-width: 767.98px)` 的 `.home-page` 全屏、`:has(.home-page)` 滚动锁、`.home-contact-grid` 2 列网格与 `.home-articles-cta` 底部 safe-area 内边距）
 - `config/site.config.json` 的 `author.avatar` / `author.name` / `author.bio` 与 `social.github` /
   `social.email` / `social.rawEmail` / `social.qq`
 - `src/components/IssueSubscriptionCard.tsx`（只取导出的 `ISSUE_SUBSCRIPTION_URL` 常量做「更新订阅」外链，**不渲染卡片**）
@@ -27,7 +28,7 @@
 
 ## 修改规则（必须遵守）
 
-1. **允许的内容边界**：头像、名字（唯一 `h1`）、`author.bio` 原文、全站搜索表单、联系方式区（GitHub / 邮箱 / QQ 复制 / RSS / 更新订阅 / 项目仓库）。新增任何别的板块（门户磁贴、内容列表、技术栈、订阅卡等）都属于扩大首页职责，必须先获得用户明确授权并同步本文件；不得以「提高信息密度」「提升导流」为由加回旧内容。
+1. **允许的内容边界**：头像、名字（唯一 `h1`）、`author.bio` 原文、全站搜索表单、联系方式区（GitHub / 邮箱 / QQ 复制 / RSS / 更新订阅 / 项目仓库）、「看看文章」CTA 与桌面卡片下的「最新发布」两条文章标题。CTA 只是导流入口，**最多两篇标题**（不含摘要/封面/卡片/列表交互），不得把它扩成文章列表；新增任何别的板块（门户磁贴、内容列表、技术栈、订阅卡等）都必须先获得用户明确授权并同步本文件。
 2. **内容来自配置、不硬编码**：名字 / 介绍 / 头像 / 联系方式全部取自 `siteConfig.author` 与
    `siteConfig.social`；不得把个人介绍写进组件，也不得为头像加第三方兜底 —— `assetUrl(siteConfig.author.avatar)`
    已指向站内本地 `public/logo-96.png`，第三方域名（如 ui-avatars）在大陆不可达，站内资源只有构建缺件才失败。
@@ -47,12 +48,17 @@
 8. **Hero 与入场动效**：Hero 是 `home-hero` surface 大色块 + `home-hero-glow` 低对比径向光；内容用 CSS `.home-reveal` + `data-home-reveal` 按 `--home-reveal-delay` 依次入场（avatar → title → bio → search → contact）。**不得**改用 framer-motion / JS 控制显隐或延迟挂载；`@media (prefers-reduced-motion: reduce)` 下必须 `animation: none` 直接可见；动画不得让 LCP 元素长期不可见、不得引发布局位移，也不得在 SSR 首帧输出 `opacity: 0` 的内联样式。
 9. **性能**：组件内 state 仅限搜索输入与 QQ 复制反馈，不得引发整页重渲染；不得重新引入 `preloadPage` 预加载、文章搜索索引、搜索建议/结果预览或订阅卡等旧逻辑。
 10. **全站搜索行为**：表单提交时 `trim()` 查询——空查询跳 `/search`，非空跳 `/search?q=<encodeURIComponent>`；首页**只**做跳转，不请求索引、不渲染结果、不打开命令面板、不处理 `?q=` URL 参数（搜索体验在 `/search`，见 [搜索](search.md)）。搜索输入是 pill 容器内的受控输入（`bg-surface-muted`），只做受控输入，不参与首帧渲染、不做防抖/联想（那是搜索页的职责）。
-11. **移动端全屏（<768px）**：`@media (max-width: 767.98px)` 下 `.home-page` 撑满可用视口（`100dvh` + flex），`.home-hero` 去掉边框/圆角/背景并让内容居中；`html:has(.home-page)` 与 `body:has(.home-page)` 设 `overflow: hidden` + `overscroll-behavior: none`，`.site-shell:has(.home-page)` 同时固定高度与 overflow。**滚动锁只能靠 `:has` CSS**：离开首页后选择器自动失效、滚动自然恢复，**不得**用 JS 写/清 `body` overflow，也不得把 `overflow:hidden` 挂到全站 html/body；搜索、QQ 复制、复制结果播报必须仍可用。联系方式用 `.home-contact-grid` 2 列紧凑网格（桌面恢复横向 flex 行）。
+11. **移动端全屏（<768px）**：`@media (max-width: 767.98px)` 下 `.home-page` 撑满可用视口（`100dvh` + flex），`.home-hero` 去掉边框/圆角/背景并让内容居中；头像 80px（`h-20 w-20`）、标题 2.1rem（`text-[2.1rem]`）；`html:has(.home-page)` 与 `body:has(.home-page)` 设 `overflow: hidden` + `overscroll-behavior: none`，`.site-shell:has(.home-page)` 同时固定高度与 overflow。**滚动锁只能靠 `:has` CSS**：离开首页后选择器自动失效、滚动自然恢复，**不得**用 JS 写/清 `body` overflow，也不得把 `overflow:hidden` 挂到全站 html/body；搜索、QQ 复制、复制结果播报必须仍可用。联系方式用 `.home-contact-grid` 2 列紧凑网格（桌面恢复横向 flex 行），`.home-articles-cta` 底部保留 `safe-area-inset-bottom` 内边距。
+12. **看看文章 CTA**：移动端（`<768`）是与搜索框同款的 pill 链接（`rounded-control bg-surface-muted`、`min-h-12`、右侧箭头），桌面（`md+`）是独立的 `rounded-overlay bg-surface` 卡片（`JOURNAL` 眉题 + `h2`「看看文章」+ 箭头），下方 `最新发布` 行列出**两条**文章标题。最新两篇固定取 `getInitialPosts()`（构建期内联数据）按 `updatedAt || date` 降序取前 2，`useMemo` 缓存；**不得**在渲染期 fetch、读时钟/随机、按当前时间过滤或展示超过两篇。该 CTA 不得变成文章列表（无摘要/封面/分页/卡片），移动端只用 pill、不渲染桌面最新标题区。
 
 ## 常见陷阱
 
 - 觉得「首页太素」而加回门户磁贴、项目列表、技术栈或订阅卡：这正是被删除的内容，
   改回即违反规则 1（只能先请求用户授权）。
+- 把「看看文章」CTA 扩成文章列表（加摘要/封面/分页/更多篇），或在移动端也渲染「最新发布」：CTA 最多
+  两条标题、移动端只有 pill 按钮；列表能力属于 `/posts`，首页只做导流。
+- 给「最新发布」改成 fetch 文章数据、按当前时间过滤或每次渲染重新排序：必须用 `getInitialPosts()`
+  构建期内联数据 + `useMemo`，否则 SSR/水合不一致、首帧顺序漂移。
 - 把 Hero reveal 改成 framer-motion/JS 延迟挂载，或删掉 `prefers-reduced-motion` 分支：
   无 JS/弱动效用户会看到空白或错落入场；动画必须纯 CSS 且尊重 reduced-motion。
 - 恢复浅色/主题切换（ThemeToggle、localStorage.theme、`dblog:toggle-theme`）：全站已深色唯一，

@@ -50,11 +50,11 @@
     - **缓存与超时固定**：Worker 成功结果写 Cache API 60 秒、上游 5 秒超时且**不重试**、**失败不写缓存**；前端每 60 秒轮询（仅 `siteStatusStore` 一份 timer）、8 秒超时、不重试、不做结果缓存。静态资源不得进 Worker（`run_worker_first` 只允许 `/api/*`）。
     - 改这条链路必须同步 `ai-rules/site-status.md`，并跑 `worker/index.test.mjs`、`src/services/siteStatus.test.ts`、`src/services/siteStatusStore.test.ts`、`src/components/SiteStatusBadge.test.tsx`、`src/components/WorkersLimitToast.test.tsx`。
 14. **首页与全站外壳**：
-    - 首页以站主身份为主（头像、名字、`author.bio` 介绍），另含全站搜索表单与联系方式/订阅入口（GitHub / 邮箱 / QQ / RSS / 更新订阅 / 项目仓库），**不得**恢复门户入口、内容列表、开源项目、关于本站、技术栈、订阅卡或状态标签；`config/portal.config.json` 仍存在但首页不再消费，详见 `ai-rules/home.md`。
+    - 首页以站主身份为主（头像、名字、`author.bio` 介绍），另含全站搜索表单、联系方式/订阅入口（GitHub / 邮箱 / QQ / RSS / 更新订阅 / 项目仓库）与「看看文章」CTA（桌面卡片 + 最新两篇标题；移动端 pill）。**不得**恢复门户入口、内容列表、开源项目、关于本站、技术栈、订阅卡或状态标签；CTA 最多两篇标题、不是文章列表。`config/portal.config.json` 仍存在但首页不再消费，详见 `ai-rules/home.md`。
     - 全站**不再渲染页面底部 Footer**（`Layout` 无 `Footer` 组件，页面中不得出现 `contentinfo`）；版权只在侧栏底部 `SidebarFooter`，顺序固定为 导航清单 → 服务状态入口 → 版权（版权在最底）；`fillHeight` 下只有中间导航清单滚动，状态入口与版权固定在底部。侧栏分组只有 主页 / 栏目 / 工具（「订阅与联系」已删除，联系方式与订阅入口统一在首页；「标签」「站内搜索」导航项也已删除，标签筛选在文章列表、搜索在顶栏/命令面板）。
     - **Workers 上限提示**：状态请求返回 HTTP 1027/429 时，由全站唯一 store（`src/services/siteStatusStore.ts`）触发一次顶部提示，文案逐字「今日 Workers 请求次数达到上限，部分功能受限」，3 秒自动收回，**每标签页 10 分钟最多一次**；`WorkersLimitToast` 只订阅、不请求、不缓存，不得改成逐组件轮询，也不得增加关闭按钮或持续动画。
     - **移动端首页**：<768px 去掉 Hero 卡片、内容铺满视口并禁止上下滚动；滚动锁只能由 `html:has(.home-page), body:has(.home-page)` 的 CSS 提供（离开首页自动恢复），**不得**用 JS 写/清 `body.style.overflow`，也不得把 `overflow:hidden` 挂到全站；联系方式用 2 列紧凑网格。桌面 ≥768px 保持 Hero 大色块卡片。
-15. **交互细节（稳定 DOM）**：文章目录按钮在展开/收起时必须保持同一 button 与双层常驻图标（`List`/`X` 只切换透明度）；**不得**按状态条件替换图标节点（mousedown/mouseup 目标不同会丢失 click，表现为「第二次点击关不掉」）。搜索结果统一 `PostCard variant="banner"` 单列横幅，不得恢复 `CompactPostCard`/三列网格；归档时间线与友链页统一大色块卡片（1/2/3 列），不得退回 `border-t`/`divide-y` 细线列表。
+15. **交互细节（稳定 DOM）**：文章目录按钮在展开/收起时必须保持同一 button 与双层常驻图标（`List`/`X` 只切换透明度）；**不得**按状态条件替换图标节点（mousedown/mouseup 目标不同会丢失 click，表现为「第二次点击关不掉」）。搜索结果统一 `PostCard variant="banner"` 单列横幅，不得恢复 `CompactPostCard`/三列网格；归档时间线与友链页统一大色块卡片（1/2/3 列），不得退回 `border-t`/`divide-y` 细线列表。阅读页移动端 `.post-meta` 必须作者首行、元信息次行（桌面 `sm:flex-row` 单行）；说说页页头与 `GiscusComments card` 必须是 surface 卡片。
 
 ## 四、目录约定
 

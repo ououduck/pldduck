@@ -1,11 +1,14 @@
 /**
- * Cookie 同意提示条：localStorage 持久化选择，与弹层共享滚动锁，避免遮挡底部悬浮控件。
+ * Cookie 同意弹窗：屏幕中央的隐私说明，localStorage 持久化同意，
+ * 关闭仅当前会话不提示；与其它弹层共享滚动锁与焦点陷阱。
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useModalOverlay } from '@/hooks/useModalOverlay';
 
 const COOKIE_CONSENT_KEY = 'cookie-consent';
 /** 会话级关闭标记：「同意」永久持久化，「关闭」仅当前会话不再提示。 */
@@ -13,8 +16,9 @@ const COOKIE_DISMISSED_KEY = 'cookie-dismissed';
 
 export const CookieNotice: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
-  const [noticeElement, setNoticeElement] = useState<HTMLDivElement | null>(null);
   const shouldReduceMotion = useReducedMotion();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const acceptButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     try {
@@ -27,29 +31,6 @@ export const CookieNotice: React.FC = () => {
       setIsVisible(true);
     }
   }, []);
-
-  useEffect(() => {
-    const notice = noticeElement;
-    const root = document.documentElement;
-
-    if (!notice) {
-      root.style.removeProperty('--cookie-notice-height');
-      return;
-    }
-
-    const syncNoticeHeight = () => {
-      root.style.setProperty('--cookie-notice-height', `${notice.getBoundingClientRect().height}px`);
-    };
-
-    syncNoticeHeight();
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(syncNoticeHeight);
-    observer?.observe(notice);
-
-    return () => {
-      observer?.disconnect();
-      root.style.removeProperty('--cookie-notice-height');
-    };
-  }, [noticeElement]);
 
   const handleAccept = () => {
     try {
@@ -71,51 +52,89 @@ export const CookieNotice: React.FC = () => {
     setIsVisible(false);
   };
 
+  useModalOverlay({
+    isOpen: isVisible,
+    onClose: handleClose,
+    initialFocusRef: acceptButtonRef,
+    containerRef: dialogRef,
+  });
+
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          ref={setNoticeElement}
           initial={shouldReduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={shouldReduceMotion ? undefined : { opacity: 0 }}
-          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.16, ease: 'easeOut' }}
-          className="cookie-notice fixed bottom-0 left-0 right-0 z-nav editorial-sheet border border-b-0 border-zinc-300 bg-paper pb-[env(safe-area-inset-bottom,0px)] shadow-none dark:border-zinc-700 dark:bg-zinc-900 lg:left-[var(--sidebar-active-width)]"
-          role="region"
-          aria-label="Cookie 使用说明"
+          transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.18, ease: 'easeOut' }}
+          className="cookie-notice fixed inset-0 z-modal flex items-center justify-center bg-black/65 p-4"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) handleClose();
+          }}
         >
-          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-1 flex-col gap-2 pr-4 sm:flex-row sm:items-start sm:gap-4">
-                <div className="flex-shrink-0">
-                  <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Cookie 使用</span>
-                </div>
-
-                <div className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                  <p className="mb-1">
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100">我们尊重您的隐私。</span>
-                  </p>
-                  <p>
-                    如果您继续访问本站，为了帮助我们更好地改进网站，我们会使用 Clarity
-                    与不蒜子统计对您在网站上的访问和使用情况进行分析。如不同意，请您关闭本站以保护您的隐私。
-                  </p>
-                </div>
+          <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cookie-notice-title"
+            aria-describedby="cookie-notice-description"
+            initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.98, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={shouldReduceMotion ? undefined : { opacity: 0, scale: 0.98, y: 8 }}
+            transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2, ease: 'easeOut' }}
+            className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto border border-line bg-surface p-6 shadow-2xl md:p-8"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="cookie-notice-title" className="text-lg font-semibold tracking-tight text-content md:text-xl">
+                  Cookie 与隐私
+                </h2>
               </div>
-
-              <div className="flex w-full items-center gap-2 sm:w-auto sm:flex-shrink-0">
-                <button onClick={handleAccept} className="editorial-button-primary flex-1 sm:flex-initial">
-                  同意
-                </button>
-                <button
-                  onClick={handleClose}
-                  className="flex min-h-11 min-w-11 items-center justify-center rounded-icon border border-transparent text-zinc-500 transition-colors hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-700 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 dark:focus-visible:outline-zinc-100"
-                  aria-label="关闭 Cookie 使用说明"
-                >
-                  <X size={18} />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center border border-line text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-content"
+                aria-label="关闭 Cookie 使用说明"
+              >
+                <X size={18} />
+              </button>
             </div>
-          </div>
+
+            <p
+              id="cookie-notice-description"
+              className="mt-3 text-[13px] leading-6 text-content-muted md:text-sm md:leading-7"
+            >
+              本站使用必要的本地存储记住你的偏好，并使用 Clarity 与不蒜子统计了解访问情况；评论由 Giscus
+              承载。继续浏览即表示你了解上述处理方式，也可以先阅读
+              <Link
+                to="/privacy"
+                onClick={handleClose}
+                className="mx-1 font-medium text-content underline decoration-line underline-offset-4 transition-colors hover:decoration-content"
+              >
+                隐私政策
+              </Link>
+              了解数据如何处理。
+            </p>
+
+            <div className="mt-6 flex flex-col-reverse gap-2 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-end">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="inline-flex min-h-10 items-center justify-center border border-line px-4 text-sm font-medium text-content-muted transition-colors hover:bg-surface-muted hover:text-content"
+              >
+                仅浏览
+              </button>
+              <button
+                ref={acceptButtonRef}
+                type="button"
+                onClick={handleAccept}
+                className="inline-flex min-h-10 items-center justify-center bg-content px-5 text-sm font-semibold text-background transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-content"
+              >
+                同意
+              </button>
+            </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

@@ -33,6 +33,7 @@ const pageLoaders: Record<string, ModuleLoader> = {
   '/cover': () => import('../pages/CoverGenerator').then((m) => ({ default: m.CoverGenerator })),
   '/watermark': () => import('../pages/Watermark').then((m) => ({ default: m.Watermark })),
   '/search': () => import('../pages/Search').then((m) => ({ default: m.Search })),
+  '/privacy': () => import('../pages/Privacy').then((m) => ({ default: m.Privacy })),
 };
 
 export { pageLoaders };

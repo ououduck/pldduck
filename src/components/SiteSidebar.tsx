@@ -187,6 +187,12 @@ const SidebarFooter = () => (
     <p className="truncate">
       {siteConfig.footerText} · {siteConfig.author.name}
     </p>
+    <Link
+      to="/privacy"
+      className="mt-1 inline-block text-content-muted underline-offset-4 transition-colors hover:text-content hover:underline"
+    >
+      隐私政策
+    </Link>
   </div>
 );
 

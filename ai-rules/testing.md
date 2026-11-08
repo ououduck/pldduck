@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-Vitest 测试体系：104 个测试文件 / 1136 个用例；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
+Vitest 测试体系：105 个测试文件 / 1138 个用例；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
 
 ## 关键文件
 
@@ -32,7 +32,9 @@ Vitest 测试体系：104 个测试文件 / 1136 个用例；jsdom（src）与 n
 18. **退役的 `/tags` 与标签筛选契约**：`public/_redirects` 仍须把 `/tags` 与 `/tags/*` 301 到 `/posts`；`App.tsx` 的 `TagsRedirect` 仍须把 `?tag=` 转交 `/posts?tag=`；全站标签链接一律 `/posts?tag=`。改标签能力时断言「非法 tag 从 URL 清理并回退全部文章」「点击标签写入 /posts?tag=」「移动标签 dialog 可 Escape 关闭且焦点回到入口」，**不得**恢复 `/tags` 的 SSG/sitemap 或页面测试。
 19. **说说评论审核覆盖**：`scripts/lib/comment-surface.test.mjs` 断言 `comments.config.json` 的 `shuoshuo.discussionId` 被识别为 `surface=shuoshuo`、留言板为 `guestbook`、文章分类为 `article`，未知 discussion 为 `unknown`；改说说 Discussion ID 必须同步 `config/comments.config.json`，并让 Akismet/关键词过滤/全量复查/飞书通知都通过 `comment-surface.mjs` 标注区域。**不得**在 workflow 里按 Announcements 分类排除说说评论。
 
-20. **文章阅读控制台减负回归**：桌面 `CapsuleNav` 收缩态断言 44px 圆形目录按钮（`h-11 w-11` 量级）与展开浮层，不得恢复高胶囊轨/常驻大面板；**目录按钮二次点击必须收起**（断言点击两次后 `aria-expanded=false`，且按钮内 `List`/`X` 两层图标全程存在、只切换透明度——防止条件替换导致 click 丢失的回归）；移动 `ArticleToolbar` 断言只有目录/进度/分享/阅读模式四个按钮、没有「更多」菜单；文末断言顺序「许可 → 作者/改进 → 订阅 → 系列 → 相邻 → 相关 → 评论」，且使用 `surface`/`surface-muted` 色块（不再强制 `border-t`/`divide-y`）；系列当前篇保留 `aria-current="page"`。
+20. **隐私政策与 Cookie 弹窗**：`CookieNotice.test` 断言 `role="dialog"` + `aria-modal`、隐私政策链接、同意写 localStorage、关闭写 sessionStorage 且不写 consent；`Privacy.test` 断言 `h1.font-serif`、各节卡片文案、邮箱/留言板链接与 WebPage JSON-LD。改 Cookie 文案必须同步检查 `index.html` 的 Clarity 实际加载行为，不得写「关闭提示即停用统计」。
+
+21. **文章阅读控制台减负回归**：桌面 `CapsuleNav` 收缩态断言 44px 圆形目录按钮（`h-11 w-11` 量级）与展开浮层，不得恢复高胶囊轨/常驻大面板；**目录按钮二次点击必须收起**（断言点击两次后 `aria-expanded=false`，且按钮内 `List`/`X` 两层图标全程存在、只切换透明度——防止条件替换导致 click 丢失的回归）；移动 `ArticleToolbar` 断言只有目录/进度/分享/阅读模式四个按钮、没有「更多」菜单；文末断言顺序「许可 → 作者/改进 → 订阅 → 系列 → 相邻 → 相关 → 评论」，且使用 `surface`/`surface-muted` 色块（不再强制 `border-t`/`divide-y`）；系列当前篇保留 `aria-current="page"`。
 
 ## 常见陷阱
 

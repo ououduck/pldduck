@@ -829,6 +829,7 @@ const generateLlmsTxt = () => {
     `- [归档](${siteAbsoluteUrl('/archive')})`,
     `- [友链](${siteAbsoluteUrl('/friends')})`,
     `- [说说](${siteAbsoluteUrl('/shuoshuo')})`,
+    `- [隐私政策](${siteAbsoluteUrl('/privacy')})`,
     `- [RSS 订阅](${siteAbsoluteUrl('/feed.xml')})`,
     '',
     '## 文章',

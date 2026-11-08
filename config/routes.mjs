@@ -151,6 +151,15 @@ export const ROUTES = [
     sitemap: { changefreq: 'monthly', priority: '0.5' },
   },
   {
+    path: '/privacy',
+    segment: 'privacy',
+    preload: true,
+    sw: true,
+    ssg: 'static',
+    seo: { schemaType: 'WebPage', schemaFromSeo: true },
+    sitemap: { changefreq: 'yearly', priority: '0.3' },
+  },
+  {
     path: '*',
     segment: null,
     sw: false,

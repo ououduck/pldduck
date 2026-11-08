@@ -25,6 +25,7 @@ const GuestbookPage = lazy(pageLoaders['/guestbook']);
 const CoverGenerator = lazy(pageLoaders['/cover']);
 const Watermark = lazy(pageLoaders['/watermark']);
 const SearchPage = lazy(pageLoaders['/search']);
+const Privacy = lazy(pageLoaders['/privacy']);
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })));
 const CookieNotice = lazy(() => import('./components/CookieNotice').then((m) => ({ default: m.CookieNotice })));
 
@@ -155,6 +156,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/cover" element={<CoverGenerator />} />
           <Route path="/watermark" element={<Watermark />} />
           <Route path="/search" element={<SearchPage />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

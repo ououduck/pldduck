@@ -49,8 +49,8 @@ const PostCardTags: React.FC<{ tags: string[]; className?: string }> = ({ tags, 
     </div>
   ) : null;
 
-const PostMetaSeparator = () => (
-  <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
+const PostMetaSeparator = ({ className = 'text-zinc-300 dark:text-zinc-700' }: { className?: string }) => (
+  <span aria-hidden="true" className={className}>
     ·
   </span>
 );
@@ -78,81 +78,80 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
   if (variant === 'banner') {
     return (
       <article
-        className="min-w-0 overflow-hidden rounded-overlay bg-surface-muted"
+        className="relative flex min-h-48 min-w-0 flex-col overflow-hidden rounded-overlay bg-surface-muted sm:min-h-52 sm:flex-row"
         onMouseEnter={() => preloadPage(`/post/${post.id}`)}
       >
-        {/* 移动端也是横向横幅，但更矮：封面左侧 38%，信息右侧收紧；sm 起放大到 34% + 更舒展的内边距。 */}
-        <div className="flex min-h-32 sm:min-h-52">
-          <Link
-            to={`/post/${post.id}`}
-            className="relative block w-[38%] shrink-0 overflow-hidden bg-surface sm:w-[34%]"
-            aria-label={`阅读文章：${post.title}`}
-          >
-            {post.coverImage ? (
-              <ProgressiveImage
-                src={assetUrl(post.coverImage)}
-                alt={post.title}
-                loading="lazy"
-                fetchPriority="auto"
-                width={post.coverWidth}
-                height={post.coverHeight}
-                sizes="(max-width: 639px) 38vw, 34vw"
-                wrapperClassName="h-full w-full"
-                className="h-full w-full object-cover"
-                effect="fade"
-              />
-            ) : (
-              <div className="flex h-full min-h-32 w-full items-center justify-center sm:min-h-52">
-                <span className="text-[11px] tracking-[0.16em] text-content-muted">无封面</span>
-              </div>
+        <Link
+          to={`/post/${post.id}`}
+          className="absolute inset-0 z-0 block overflow-hidden bg-surface sm:relative sm:inset-auto sm:z-auto sm:w-[34%] sm:shrink-0"
+          aria-label={`阅读文章：${post.title}`}
+        >
+          {post.coverImage ? (
+            <ProgressiveImage
+              src={assetUrl(post.coverImage)}
+              alt={post.title}
+              loading="lazy"
+              fetchPriority="auto"
+              width={post.coverWidth}
+              height={post.coverHeight}
+              sizes="(max-width: 639px) 100vw, 34vw"
+              wrapperClassName="h-full w-full"
+              className="h-full w-full object-cover object-center"
+              effect="fade"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <span className="text-[11px] tracking-[0.16em] text-content-muted">无封面</span>
+            </div>
+          )}
+        </Link>
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/35 to-transparent sm:hidden"
+        />
+
+        <div className="relative z-20 mt-auto flex min-w-0 flex-col p-4 text-white sm:mt-0 sm:flex-1 sm:p-5 sm:text-content md:p-6">
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[10px] text-white/70 sm:gap-x-2 sm:text-[11px] sm:text-content-muted">
+            <span className="font-medium text-white sm:text-content">{post.category}</span>
+            <PostMetaSeparator className="text-white/40 sm:text-zinc-400" />
+            <span>{post.date}</span>
+            <PostMetaSeparator className="text-white/40 sm:text-zinc-400" />
+            <span>{post.readTime}</span>
+            {typeof post.commentCount === 'number' && (
+              <>
+                <PostMetaSeparator className="text-white/40 sm:text-zinc-400" />
+                <span title="来自 Giscus 评论区的评论数">{post.commentCount} 条评论</span>
+              </>
             )}
+            {featured && <span className="font-medium text-white sm:text-content">精选</span>}
+            {pinned && (
+              <span className="inline-flex items-center gap-1">
+                <Pin size={10} aria-hidden="true" />
+                置顶
+              </span>
+            )}
+          </div>
+
+          <Link to={`/post/${post.id}`} aria-label={`阅读文章：${post.title}`} className="mt-1.5 block sm:mt-2">
+            <h2
+              className={`line-clamp-2 font-serif font-bold leading-snug tracking-tight text-white decoration-white/40 underline-offset-4 hover:underline sm:leading-tight sm:text-content sm:decoration-line ${
+                featured ? 'text-[17px] sm:text-2xl md:text-3xl' : 'text-[17px] sm:text-xl md:text-2xl'
+              }`}
+            >
+              {post.title}
+            </h2>
           </Link>
 
-          <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-5 md:p-6">
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[10px] text-content-muted sm:gap-x-2 sm:text-[11px]">
-              <span className="font-medium text-content">{post.category}</span>
-              <PostMetaSeparator />
-              <span>{post.date}</span>
-              <PostMetaSeparator />
-              <span>{post.readTime}</span>
-              {typeof post.commentCount === 'number' && (
-                <>
-                  <PostMetaSeparator />
-                  <span title="来自 Giscus 评论区的评论数">{post.commentCount} 条评论</span>
-                </>
-              )}
-              <span className="ml-auto flex items-center gap-1">
-                {featured && <span className="font-medium text-content">精选</span>}
-                {pinned && (
-                  <span className="inline-flex items-center gap-1">
-                    <Pin size={10} aria-hidden="true" />
-                    置顶
-                  </span>
-                )}
-              </span>
+          <p className="mt-1 line-clamp-1 text-xs leading-5 text-white/75 sm:mt-2 sm:line-clamp-2 sm:text-sm sm:leading-6 sm:text-content-muted md:line-clamp-3">
+            {post.excerpt}
+          </p>
+
+          <div className="mt-auto flex items-end justify-between gap-3 pt-2 sm:pt-4">
+            <div className="hidden min-w-0 sm:block">
+              <PostCardTags tags={post.tags} />
             </div>
-
-            <Link to={`/post/${post.id}`} aria-label={`阅读文章：${post.title}`} className="mt-1.5 block sm:mt-2">
-              <h2
-                className={`line-clamp-2 font-serif font-bold leading-snug tracking-tight text-content decoration-line underline-offset-4 hover:underline sm:leading-tight ${
-                  featured ? 'text-base sm:text-2xl md:text-3xl' : 'text-[15px] sm:text-xl md:text-2xl'
-                }`}
-              >
-                {post.title}
-              </h2>
-            </Link>
-
-            {/* 移动横幅也保留一行摘要；更长的摘要与标签在 sm+ 展开。 */}
-            <p className="mt-1.5 line-clamp-1 text-xs leading-5 text-content-muted sm:mt-2 sm:line-clamp-2 sm:text-sm sm:leading-6 md:line-clamp-3">
-              {post.excerpt}
-            </p>
-
-            <div className="mt-auto flex items-end justify-between gap-3 pt-2 sm:pt-4">
-              <div className="hidden min-w-0 sm:block">
-                <PostCardTags tags={post.tags} />
-              </div>
-              <span className="ml-auto shrink-0">{shareButton}</span>
-            </div>
+            <span className="ml-auto hidden shrink-0 sm:inline-flex">{shareButton}</span>
           </div>
         </div>
       </article>

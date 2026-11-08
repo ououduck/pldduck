@@ -310,8 +310,8 @@ export const GiscusComments = ({ postId, mapping = 'pathname', term, card = fals
         </div>
       ) : isLoaded ? null : (
         // 未加载完成前的占位：保持区块高度，避免加载开始/结束时布局跳动。
-        // 加载成功后隐藏，避免加载提示常驻在评论区上方。
-        <div className="rounded-control bg-surface-muted">
+        // 加载成功后隐藏，避免加载提示常驻在评论区上方；加载态不再套内层色块/边框。
+        <div className="py-2">
           {isNearViewport ? (
             <LoadingStatus label="正在加载评论区" />
           ) : (

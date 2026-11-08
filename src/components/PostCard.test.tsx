@@ -58,11 +58,10 @@ describe('PostCard', () => {
 
     const article = container.querySelector('article');
     expect(article).toHaveClass('rounded-overlay', 'bg-surface-muted');
-    // 移动端也是横向横幅：封面左侧 38%，信息右侧；sm 起放宽到 34%。
-    const bannerGrid = article?.firstElementChild as HTMLElement;
-    expect(bannerGrid).toHaveClass('flex', 'min-h-32', 'sm:min-h-52');
+    // 单结构响应式横幅：移动端封面绝对定位铺满 + 遮罩，sm 起图左文右。
+    expect(article).toHaveClass('relative', 'flex', 'min-h-48', 'sm:flex-row');
     const coverLink = screen.getAllByRole('link', { name: '阅读文章：测试文章标题' })[0];
-    expect(coverLink).toHaveClass('w-[38%]', 'shrink-0', 'sm:w-[34%]');
+    expect(coverLink).toHaveClass('absolute', 'inset-0', 'sm:relative', 'sm:w-[34%]');
     expect(screen.getByRole('heading', { level: 2, name: '测试文章标题' })).toBeInTheDocument();
     expect(screen.getByText('这是一段测试摘要')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'React' })).toHaveAttribute('href', '/posts?tag=React');

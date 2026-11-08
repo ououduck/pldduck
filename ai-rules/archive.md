@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-按「年份 → 月份」钻取式时间线展示全部文章：年份/月份折叠、搜索过滤、`?year=` / `?q=` URL 参数联动、结构化数据（CollectionPage + ItemList）。视觉走编辑式：衬线标题 + 右侧统计、年份大数字 + 发丝线、月份轻标签、文章行细线分隔，全部展开/折叠是 ghost 操作。
+按「年份 → 月份」钻取式时间线展示全部文章：年份/月份折叠、搜索过滤、`?year=` / `?q=` URL 参数联动、结构化数据（CollectionPage + ItemList）。视觉走编辑式：衬线标题 + 右侧统计，年份/月份/文章行统一为 `bg-surface` / `bg-surface-muted` 大色块卡片（去 border/divide 发丝线），全部展开/折叠是 ghost 操作。
 
 ## 关键文件
 
@@ -18,14 +18,15 @@
 5. **无效日期**：`buildArchiveGroups` 对非法日期承诺不抛错（月份回退 1、未知年份排最后），不得移除该容错。
 6. **动画**：年份/月份展开折叠动画尊重 reducedMotion。
 7. **编辑式页头**：`header` 为「标题 + 右侧统计 + 底边发丝线」——`h1` 用 `font-serif text-3xl font-bold md:text-4xl`、文案「归档」，右侧 `共 N 篇文章 · M 年` 用 `text-content-muted tabular-nums`。**不得**恢复 `Archive` 全大写英文眉题或重边框页头。
-8. **时间线视觉**：年份按钮 = 大数字（`text-4xl md:text-5xl font-bold tabular-nums`）+ 小号「年」后缀 + 右侧篇数/chevron，底边 `border-line` 发丝线；月份按钮 = 小号 `text-xs font-semibold tracking-[0.14em]` + 篇数；文章行用 `divide-y divide-line`（外层 `border-t border-line`），桌面三列「日期 / 标题 / 分类·时长·评论」，日期 `font-mono text-[11px] tabular-nums`。全部展开/折叠是 ghost 按钮（`min-h-11`、hover `surface-muted`、`aria-pressed` 表示「全部已展开」），**不得**改回实底/描边按钮；加载骨架与时间线同构（发丝线分隔的轻量行），不得用重卡片骨架。
+8. **时间线卡片化视觉**：每个年份是 `rounded-overlay bg-surface-muted p-4 md:p-5` 的大色块卡片；月份区是 `rounded-control bg-surface p-2` 的内层块；文章行是 `rounded-control` 行，`hover:bg-surface-muted`。年份数字用 `text-4xl md:text-5xl font-bold tabular-nums`（可带小号「年」后缀），月份标题 `text-xs font-semibold tracking-[0.14em]`，日期 `font-mono text-[11px] tabular-nums`。**不得**恢复 `border-t` / `divide-y` 的细线时间线或旧的重卡片骨架：骨架也必须是 `rounded-overlay bg-surface-muted` 的同构块。全部展开/折叠仍是 ghost 按钮（`min-h-11`、hover `surface-muted`、`aria-pressed` 表示「全部已展开」）。
 
 ## 常见陷阱
 
 - 空数据 mock 会让年份相关行为零覆盖（测试必须用非空固定数据集）；
 - 钻取式交互：文章标题需要「年份 + 月份」两级都展开才可见。
 - 「全部展开/折叠」的 `aria-pressed` 是合法的（它仍在同一时间线视图内切换全部展开态）；但不要把这个模式套到已退役的标签云——标签筛选现在在文章列表的 `TagsPanel` 内，见 [文章页](posts.md)。
-- 恢复 `Archive` 大写眉题或给年份/文章行加回卡片边框/底色：与编辑式时间线定稿相反，`Archive.test` 的页头/文章行语义断言会红。
+- 恢复 `Archive` 大写眉题或把年份/文章行改回 `border-t`/`divide-y` 细线时间线：与卡片化定稿相反，`Archive.test` 的页头/卡片结构断言会红。
+- 只给年份加卡片而月份/文章行仍用细线：时间线要求年份、月份、文章行统一大色块卡片 + `rounded-control` 内层，混排会回到旧视觉效果。
 
 ## 破例条款
 

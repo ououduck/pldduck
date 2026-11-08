@@ -4,8 +4,7 @@
 
 首页 = 极简个人主页 + 全站搜索 + 联系方式/订阅入口（原 `/about` 已并入本页）。自上而下固定为：Hero 面板内的头像、名字（唯一 `h1`）、`author.bio` 原文、全站搜索表单（pill 输入 + 「搜索」按钮，回车/提交 → `/search?q=`）、联系方式区（GitHub / 邮箱 `mailto:` / QQ 一键复制 / RSS 订阅 / 更新订阅 / 项目仓库）。仍**不**承载门户入口、文章/说说/友链等内容列表、技术栈、关于本站、状态标签或订阅卡。
 
-视觉：Hero 是 `home-hero` 的 surface 大色块 + 低对比径向光（`home-hero-glow`），内容用 CSS staggered reveal
-按 avatar → title → bio → search → contact 的顺序入场；`prefers-reduced-motion` 下直接可见。
+视觉：桌面（≥768px）Hero 是 `home-hero` 的 surface 大色块卡片 + 低对比径向光（`home-hero-glow`），内容用 CSS staggered reveal 按 avatar → title → bio → search → contact 的顺序入场；移动端（<768px）去掉卡片外观、内容铺满可用视口且禁止上下滚动，联系方式收成 2 列紧凑网格。`prefers-reduced-motion` 下动效直接可见。
 
 2026-11 用户确认把侧栏「订阅与联系」分组整体迁到首页：侧栏只保留导航与工具，首页承担全站搜索与联系/订阅入口；不要因为旧规则写过「首页不得有搜索」就把它删掉或搬回侧栏。
 
@@ -17,7 +16,7 @@
 ## 关键文件
 
 - `src/pages/Home.tsx`
-- `src/index.css`（`.home-hero` / `.home-hero-glow` / `.home-reveal` 的 Hero 与 staggered reveal，含 reduced-motion 分支）
+- `src/index.css`（`.home-hero` / `.home-hero-glow` / `.home-reveal` 的 Hero 与 staggered reveal，含 reduced-motion 分支；`@media (max-width: 767.98px)` 的 `.home-page` 全屏、`:has(.home-page)` 滚动锁与 `.home-contact-grid` 2 列网格）
 - `config/site.config.json` 的 `author.avatar` / `author.name` / `author.bio` 与 `social.github` /
   `social.email` / `social.rawEmail` / `social.qq`
 - `src/components/IssueSubscriptionCard.tsx`（只取导出的 `ISSUE_SUBSCRIPTION_URL` 常量做「更新订阅」外链，**不渲染卡片**）
@@ -48,6 +47,7 @@
 8. **Hero 与入场动效**：Hero 是 `home-hero` surface 大色块 + `home-hero-glow` 低对比径向光；内容用 CSS `.home-reveal` + `data-home-reveal` 按 `--home-reveal-delay` 依次入场（avatar → title → bio → search → contact）。**不得**改用 framer-motion / JS 控制显隐或延迟挂载；`@media (prefers-reduced-motion: reduce)` 下必须 `animation: none` 直接可见；动画不得让 LCP 元素长期不可见、不得引发布局位移，也不得在 SSR 首帧输出 `opacity: 0` 的内联样式。
 9. **性能**：组件内 state 仅限搜索输入与 QQ 复制反馈，不得引发整页重渲染；不得重新引入 `preloadPage` 预加载、文章搜索索引、搜索建议/结果预览或订阅卡等旧逻辑。
 10. **全站搜索行为**：表单提交时 `trim()` 查询——空查询跳 `/search`，非空跳 `/search?q=<encodeURIComponent>`；首页**只**做跳转，不请求索引、不渲染结果、不打开命令面板、不处理 `?q=` URL 参数（搜索体验在 `/search`，见 [搜索](search.md)）。搜索输入是 pill 容器内的受控输入（`bg-surface-muted`），只做受控输入，不参与首帧渲染、不做防抖/联想（那是搜索页的职责）。
+11. **移动端全屏（<768px）**：`@media (max-width: 767.98px)` 下 `.home-page` 撑满可用视口（`100dvh` + flex），`.home-hero` 去掉边框/圆角/背景并让内容居中；`html:has(.home-page)` 与 `body:has(.home-page)` 设 `overflow: hidden` + `overscroll-behavior: none`，`.site-shell:has(.home-page)` 同时固定高度与 overflow。**滚动锁只能靠 `:has` CSS**：离开首页后选择器自动失效、滚动自然恢复，**不得**用 JS 写/清 `body` overflow，也不得把 `overflow:hidden` 挂到全站 html/body；搜索、QQ 复制、复制结果播报必须仍可用。联系方式用 `.home-contact-grid` 2 列紧凑网格（桌面恢复横向 flex 行）。
 
 ## 常见陷阱
 
@@ -57,6 +57,10 @@
   无 JS/弱动效用户会看到空白或错落入场；动画必须纯 CSS 且尊重 reduced-motion。
 - 恢复浅色/主题切换（ThemeToggle、localStorage.theme、`dblog:toggle-theme`）：全站已深色唯一，
   恢复会把首页 Hero 的 surface 色块与 Token 打回两套来源（见 [主题系统](theme.md)）。
+- 用 JS（useEffect 写 body.style.overflow）锁首页滚动，或把 `overflow:hidden` 写到全局 html/body：
+  移动端离开首页会滚不动；滚动锁必须留在 `html:has(.home-page), body:has(.home-page)` 的多媒体查询里。
+- 把桌面 Hero 卡片（边框/圆角/背景）带回 <768px，或把联系方式改成单列：移动首页已定稿为无卡片、
+  内容铺满视口、联系方式 2 列；同时确保搜索/QQ/状态提示仍在首屏可用。
 - 把首页搜索做成「输入即出结果」的内嵌搜索、搜索建议或命令面板：首页只负责跳到 `/search?q=`，
   搜索评分/防抖/结果列表都在 `/search`（见 [搜索](search.md)）；首页内嵌结果会让 SSG 首帧与
   `?q=` 直访语义混乱。

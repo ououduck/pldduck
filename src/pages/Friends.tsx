@@ -493,7 +493,7 @@ export const Friends = () => {
               transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.28, ease: easeOut }}
               className="overflow-hidden"
             >
-              <div className="space-y-4 px-5 pb-5">
+              <div className="space-y-4 px-5 pb-5 pt-4">
                 <motion.div
                   initial={shouldReduceMotion ? false : { opacity: 0 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -686,7 +686,7 @@ export const Friends = () => {
               transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.28, ease: easeOut }}
               className="overflow-hidden"
             >
-              <div className="px-5 pb-5">
+              <div className="px-5 pb-5 pt-4">
                 {unavailableFriends.length > 0 ? (
                   <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                     {unavailableFriends.map((friend) => (

@@ -81,11 +81,11 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
         className="min-w-0 overflow-hidden rounded-overlay bg-surface-muted"
         onMouseEnter={() => preloadPage(`/post/${post.id}`)}
       >
-        {/* 移动端：封面在上（16/9 全宽）、信息在下；sm 起：图左文右的横向横幅。 */}
-        <div className="flex flex-col sm:grid sm:grid-cols-[minmax(0,34%)_minmax(0,1fr)]">
+        {/* 移动端也是横向横幅，但更矮：封面左侧 38%，信息右侧收紧；sm 起放大到 34% + 更舒展的内边距。 */}
+        <div className="flex min-h-32 sm:min-h-52">
           <Link
             to={`/post/${post.id}`}
-            className="relative block aspect-[16/9] w-full overflow-hidden bg-surface sm:aspect-auto sm:min-h-52"
+            className="relative block w-[38%] shrink-0 overflow-hidden bg-surface sm:w-[34%]"
             aria-label={`阅读文章：${post.title}`}
           >
             {post.coverImage ? (
@@ -96,20 +96,20 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
                 fetchPriority="auto"
                 width={post.coverWidth}
                 height={post.coverHeight}
-                sizes="(max-width: 639px) 100vw, 34vw"
+                sizes="(max-width: 639px) 38vw, 34vw"
                 wrapperClassName="h-full w-full"
                 className="h-full w-full object-cover"
                 effect="fade"
               />
             ) : (
-              <div className="flex h-full min-h-44 w-full items-center justify-center sm:min-h-52">
+              <div className="flex h-full min-h-32 w-full items-center justify-center sm:min-h-52">
                 <span className="text-[11px] tracking-[0.16em] text-content-muted">无封面</span>
               </div>
             )}
           </Link>
 
-          <div className="flex min-w-0 flex-col p-4 sm:p-5 md:p-6">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-content-muted">
+          <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-5 md:p-6">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[10px] text-content-muted sm:gap-x-2 sm:text-[11px]">
               <span className="font-medium text-content">{post.category}</span>
               <PostMetaSeparator />
               <span>{post.date}</span>
@@ -132,21 +132,26 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
               </span>
             </div>
 
-            <Link to={`/post/${post.id}`} aria-label={`阅读文章：${post.title}`} className="mt-2 block">
+            <Link to={`/post/${post.id}`} aria-label={`阅读文章：${post.title}`} className="mt-1.5 block sm:mt-2">
               <h2
-                className={`line-clamp-2 font-serif font-bold leading-tight tracking-tight text-content decoration-line underline-offset-4 hover:underline ${
-                  featured ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'
+                className={`line-clamp-2 font-serif font-bold leading-snug tracking-tight text-content decoration-line underline-offset-4 hover:underline sm:leading-tight ${
+                  featured ? 'text-base sm:text-2xl md:text-3xl' : 'text-[15px] sm:text-xl md:text-2xl'
                 }`}
               >
                 {post.title}
               </h2>
             </Link>
 
-            <p className="mt-2 line-clamp-2 text-sm leading-6 text-content-muted md:line-clamp-3">{post.excerpt}</p>
+            {/* 移动横幅较窄：摘要与标签收在 sm+ 展示，移动端只保留标题/元信息/分享。 */}
+            <p className="mt-2 hidden line-clamp-2 text-sm leading-6 text-content-muted sm:block md:line-clamp-3">
+              {post.excerpt}
+            </p>
 
-            <div className="mt-auto flex items-end justify-between gap-3 pt-4">
-              <PostCardTags tags={post.tags} />
-              <span className="shrink-0">{shareButton}</span>
+            <div className="mt-auto flex items-end justify-between gap-3 pt-2 sm:pt-4">
+              <div className="hidden min-w-0 sm:block">
+                <PostCardTags tags={post.tags} />
+              </div>
+              <span className="ml-auto shrink-0">{shareButton}</span>
             </div>
           </div>
         </div>

@@ -30,6 +30,13 @@ const isEditableTarget = (target: EventTarget | null) => {
 
 type MobileNavPhase = 'closed' | 'opening' | 'open' | 'closing';
 
+/**
+ * 抽屉的呼出入口：`pointer` = 顶栏汉堡按钮（可能是鼠标/触摸点击，也可能是键盘
+ * Enter/Space），`gesture` = 页面右滑（一定是触摸手势，不存在键盘意图）。
+ * 二者的区别只影响「打开后焦点落在哪里」，见下方 focusPanel。
+ */
+type MobileNavOpenSource = 'pointer' | 'gesture';
+
 const MOBILE_NAV_ANIMATION_DURATION_MS = 340;
 
 const MOBILE_NAV_MENU_BUTTON_ID = 'mobile-nav-menu-button';
@@ -99,6 +106,7 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
   const mobileNavScrollRef = useRef<HTMLElement | null>(null);
   const canStartSwipeRef = useRef(false);
   const isSwipingRef = useRef(false);
+  const mobileNavOpenSourceRef = useRef<MobileNavOpenSource>('pointer');
   const mobileNavDuration = shouldReduceMotion ? 1 : MOBILE_NAV_ANIMATION_DURATION_MS;
   const isMobileNavOpen = mobileNavPhase === 'open' || mobileNavPhase === 'opening';
   const isMobileNavAnimating = mobileNavPhase === 'opening' || mobileNavPhase === 'closing';
@@ -179,37 +187,41 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
     [clearAnimationFrame, clearTransitionTimer, finalizeClose, isMobileNavMounted, mobileNavDuration, mobileNavPhase],
   );
 
-  const openMobileNav = useCallback(() => {
-    if (isMobileNavMounted || mobileNavPhase === 'opening' || mobileNavPhase === 'open') {
-      return;
-    }
-
-    afterCloseActionRef.current = null;
-    previousActiveElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    clearAnimationFrame();
-    clearTransitionTimer();
-    setIsMobileNavMounted(true);
-    setMobileNavPhase('closed');
-
-    const beginOpening = () => {
-      animationFrameRef.current = null;
-
-      if (mobileNavDuration <= 1) {
-        setMobileNavPhase('open');
+  const openMobileNav = useCallback(
+    (source: MobileNavOpenSource) => {
+      if (isMobileNavMounted || mobileNavPhase === 'opening' || mobileNavPhase === 'open') {
         return;
       }
 
-      setMobileNavPhase('opening');
-      transitionTimerRef.current = window.setTimeout(() => {
-        transitionTimerRef.current = null;
-        setMobileNavPhase('open');
-      }, mobileNavDuration);
-    };
+      afterCloseActionRef.current = null;
+      previousActiveElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      mobileNavOpenSourceRef.current = source;
+      clearAnimationFrame();
+      clearTransitionTimer();
+      setIsMobileNavMounted(true);
+      setMobileNavPhase('closed');
 
-    animationFrameRef.current = window.requestAnimationFrame(() => {
-      animationFrameRef.current = window.requestAnimationFrame(beginOpening);
-    });
-  }, [clearAnimationFrame, clearTransitionTimer, isMobileNavMounted, mobileNavDuration, mobileNavPhase]);
+      const beginOpening = () => {
+        animationFrameRef.current = null;
+
+        if (mobileNavDuration <= 1) {
+          setMobileNavPhase('open');
+          return;
+        }
+
+        setMobileNavPhase('opening');
+        transitionTimerRef.current = window.setTimeout(() => {
+          transitionTimerRef.current = null;
+          setMobileNavPhase('open');
+        }, mobileNavDuration);
+      };
+
+      animationFrameRef.current = window.requestAnimationFrame(() => {
+        animationFrameRef.current = window.requestAnimationFrame(beginOpening);
+      });
+    },
+    [clearAnimationFrame, clearTransitionTimer, isMobileNavMounted, mobileNavDuration, mobileNavPhase],
+  );
 
   const handleToggleMobileNav = useCallback(() => {
     if (isMobileNavAnimating) {
@@ -221,7 +233,7 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
       return;
     }
 
-    openMobileNav();
+    openMobileNav('pointer');
   }, [isMobileNavAnimating, isMobileNavOpen, openMobileNav, requestCloseMobileNav]);
 
   const handleMobileNavItemSelect = useCallback(
@@ -335,7 +347,8 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
       const isFlick = deltaX >= SWIPE_OPEN_FLICK_DISTANCE_PX && velocity > SWIPE_OPEN_FLICK_VELOCITY_PX_PER_MS;
 
       if (isLongSwipe || isFlick) {
-        openMobileNav();
+        // 手势呼出：焦点只落在对话框容器上（见下方 focusPanel），不抢品牌行。
+        openMobileNav('gesture');
       }
     };
 
@@ -525,8 +538,23 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
 
     const focusPanel = window.setTimeout(() => {
       const panel = mobileNavPanelRef.current;
-      const firstFocusable = panel?.querySelector<HTMLElement>(focusableSelector);
-      (firstFocusable ?? panel)?.focus();
+      if (!panel) {
+        return;
+      }
+
+      // 手势呼出只把焦点交给对话框容器本身（.mobile-nav-panel 带 outline-none，不画焦点环）：
+      // 脚本聚焦在「页面还没有发生过任何指针点击」时会被浏览器按键盘焦点处理（Chrome
+      // 只在鼠标按下/键盘事件时清掉该判据，触摸滑动不会），于是 :focus-visible 给品牌行
+      // 圈出一圈白色焦点框 —— 首次加载后右滑呼出最明显；点汉堡按钮时那次点击已清掉判据，
+      // 所以看不到。触摸手势没有键盘意图，Tab 交给下面的焦点陷阱即可，不必抢首个可聚焦项。
+      // 按钮打开（可能是键盘 Enter/Space）仍沿用「聚焦第一个可聚焦项」的既有行为。
+      if (mobileNavOpenSourceRef.current === 'gesture') {
+        panel.focus({ preventScroll: true });
+        return;
+      }
+
+      const firstFocusable = panel.querySelector<HTMLElement>(focusableSelector);
+      (firstFocusable ?? panel).focus();
     }, mobileNavDuration);
 
     const handleKeyDown = (event: KeyboardEvent) => {

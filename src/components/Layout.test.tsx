@@ -292,6 +292,35 @@ describe('Layout', () => {
     expect(dialog).toBeInTheDocument();
   });
 
+  // 回归：脚本聚焦在「页面还没发生过指针点击」时会被浏览器按键盘焦点处理，
+  // :focus-visible 于是给抽屉品牌行（头像 + 站名）圈出一圈白色焦点框 —— 首次加载后
+  // 右滑呼出可见，点汉堡按钮（那次点击已清掉判据）则不可见。手势呼出因此只聚焦
+  // 对话框容器本身，Tab 才由焦点陷阱交给首个可聚焦项。
+  it('右滑呼出的抽屉只聚焦对话框容器，不把焦点塞进品牌行', async () => {
+    renderLayout();
+    dispatchSwipe(30, 260);
+    const panel = await screen.findByTestId('mobile-nav-panel');
+    await waitForNavOpen();
+    await waitFor(() => expect(document.activeElement).toBe(panel));
+    // 抽屉里的品牌行存在且没被脚本聚焦（白色焦点框的来源就是它）。
+    const brandedRow = panel.querySelector('.sidebar-brand');
+    expect(brandedRow).not.toBeNull();
+    expect(document.activeElement).not.toBe(brandedRow);
+    // 容器自己带 outline-none：焦点落在对话框上不会画出焦点环。
+    expect(panel.className).toContain('outline-none');
+  });
+
+  it('点汉堡按钮呼出的抽屉仍把焦点移入首个可聚焦项', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    await user.click(screen.getByRole('button', { name: '打开导航菜单' }));
+    const panel = await screen.findByTestId('mobile-nav-panel');
+    await waitForNavOpen();
+    // 打开动画结束后焦点被脚本移进抽屉（先等它真的落在面板内，别在按钮上就断言）。
+    await waitFor(() => expect(panel.contains(document.activeElement)).toBe(true));
+    expect(document.activeElement).not.toBe(panel);
+  });
+
   it('纵向滚动与短促右滑不误开抽屉', async () => {
     renderLayout();
     dispatchSwipe(30, 340, 200, 700); // 横向位移被纵向位移压过

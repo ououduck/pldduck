@@ -75,6 +75,9 @@ describe('Layout', () => {
   afterEach(() => {
     // 移动端导航锁定 body 滚动：重置避免跨用例污染。
     document.body.style.overflow = '';
+    // 共享滚动锁同时写根元素（html overflow + overscroll-behavior），一并复位。
+    document.documentElement.style.overflow = '';
+    document.documentElement.style.removeProperty('overscroll-behavior');
     localStorage.clear();
   });
 
@@ -265,6 +268,26 @@ describe('Layout', () => {
     await user.click(closeButton);
     await waitForNavClosed();
     expect(screen.queryByRole('dialog', { name: '移动端导航菜单' })).not.toBeInTheDocument();
+  });
+
+  it('抽屉的滚动锁只由共享锁接管：html 与 body 同时锁定、关闭后根元素复原', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    const root = document.documentElement;
+    expect(root.style.overflow).toBe('');
+
+    await user.click(screen.getByRole('button', { name: '打开导航菜单' }));
+    await waitForNavOpen();
+    // WebKit 上只锁 body 不足以锁住视口，锁必须落到 html 上（见 useModalOverlay）。
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(root.style.overflow).toBe('hidden');
+    expect(root.style.getPropertyValue('overscroll-behavior')).toBe('none');
+
+    await user.click(await screen.findByRole('button', { name: '收起导航菜单' }));
+    await waitForNavClosed();
+    expect(document.body.style.overflow).toBe('');
+    expect(root.style.overflow).toBe('');
+    expect(root.style.getPropertyValue('overscroll-behavior')).toBe('');
   });
 
   it('点击抽屉导航项后菜单关闭（close-then-navigate 守卫回归）', async () => {

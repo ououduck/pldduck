@@ -505,19 +505,14 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
       return;
     }
 
-    const htmlOverflow = document.documentElement.style.overflow;
-    const htmlOverscrollBehavior = document.documentElement.style.overscrollBehavior;
-
-    document.documentElement.style.overflow = 'hidden';
-    document.documentElement.style.overscrollBehavior = 'none';
-    // body 滚动锁走共享计数锁：与弹层（搜索/分享等）叠加时按打开顺序计数、
-    // 关闭时逐个释放，避免“菜单先关、弹层后关”或同时关闭时恢复互相覆盖，
-    // 导致页面永久锁滚或弹层未关就恢复滚动。
+    // 滚动锁统一走共享计数锁（lockBodyScroll 同时锁 html 与 body，并关掉根元素的
+    // overscroll-behavior）。此前这里另外手写了一份 documentElement.style.overflow /
+    // overscrollBehavior 的捕获与还原：同一份根元素状态被两处置写时，抽屉与弹层
+    // （搜索/分享/Cookie）任何一次「先捕获、后还原」交错都可能把 hidden 写回去，
+    // 表现为「页面再也滚不动」。现在根元素只有一个写者。
     lockBodyScroll();
 
     return () => {
-      document.documentElement.style.overflow = htmlOverflow;
-      document.documentElement.style.overscrollBehavior = htmlOverscrollBehavior;
       unlockBodyScroll();
     };
   }, [isMobileNavMounted]);

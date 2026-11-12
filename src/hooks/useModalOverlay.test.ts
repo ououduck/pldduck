@@ -119,4 +119,44 @@ describe('lockBodyScroll / unlockBodyScroll（计数式）', () => {
     unlockBodyScroll();
     expect(document.body.style.overflow).toBe('');
   });
+
+  it('同时锁 html 与 body（WebKit 下只锁 body 不足以锁住视口），计数归零后逐项还原', () => {
+    const root = document.documentElement;
+    document.body.style.overflow = 'auto';
+    root.style.overflow = 'scroll';
+    root.style.overscrollBehavior = 'contain';
+
+    lockBodyScroll();
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(root.style.overflow).toBe('hidden');
+    // 根元素关掉 overscroll：弹层内滚到边界时不再把惯性传给背景页。
+    expect(root.style.overscrollBehavior).toBe('none');
+
+    unlockBodyScroll();
+    expect(document.body.style.overflow).toBe('auto');
+    expect(root.style.overflow).toBe('scroll');
+    expect(root.style.overscrollBehavior).toBe('contain');
+
+    // 还原到用例初始值，避免跨用例污染。
+    document.body.style.overflow = '';
+    root.style.overflow = '';
+    root.style.overscrollBehavior = '';
+  });
+
+  it('计数式叠加：任一弹层未关闭时不得提前还原根元素状态', () => {
+    const root = document.documentElement;
+    root.style.overflow = 'visible';
+
+    lockBodyScroll();
+    lockBodyScroll();
+    expect(root.style.overflow).toBe('hidden');
+
+    unlockBodyScroll();
+    expect(root.style.overflow).toBe('hidden');
+
+    unlockBodyScroll();
+    expect(root.style.overflow).toBe('visible');
+
+    root.style.overflow = '';
+  });
 });

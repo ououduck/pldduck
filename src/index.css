@@ -150,6 +150,33 @@
   }
 }
 
+/* 不支持 :has() 的内核（Firefox 121 之前的版本，含长期支持版 ESR 115；Safari 15.4 之前）：
+   上面整块规则的选择器里含内核不认识的伪类，整条规则会被丢弃 —— 内层宽度停在展开值，
+   而内层是绝对定位、`z-sidebar` 盖在正文之上的浮层，于是桌面端侧栏**永久展开压住正文**。
+   这里给出等价的 hover 兜底：判据退化为「鼠标悬停」（这些内核上重复用 `:focus-visible`
+   需要 :has 之外的时序，宁可保持原 hover 语义，也不要把浮层钉住）。
+   支持 :has() 的内核整块不生效，行为与上面完全一致。 */
+@supports not selector(:has(*)) {
+  @media (hover: hover) {
+    .site-sidebar:not(:hover) .site-sidebar-inner {
+      width: var(--sidebar-rail-width);
+    }
+
+    .site-sidebar:not(:hover)
+      :is(
+        .nav-item-label,
+        .nav-item-hint,
+        .nav-item-external,
+        .sidebar-nav-group-title,
+        .sidebar-brand-text,
+        .sidebar-footer
+      ) {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+}
+
 /* 导航行（含侧栏底部的服务状态入口）：静态用次要文字色、hover 用 surface-muted 弱底，
    让桌面侧栏、移动抽屉、导航项与服务状态入口始终同一套配色。
    服务状态入口在 SiteStatusBadge 里自带一份 IDLE_ROW_CLASS（不属本次改动范围），

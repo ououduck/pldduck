@@ -1,6 +1,14 @@
 /**
  * Cookie 同意弹窗：屏幕中央的隐私说明，localStorage 持久化同意，
  * 关闭仅当前会话不提示；与其它弹层共享滚动锁与焦点陷阱。
+ *
+ * 跨内核（Safari/WebKit、Firefox/Gecko）布局约定：
+ * - 遮罩层 `grid + overflow-y-auto`，对话框用 `m-auto` 居中：内容比视口高时
+ *   `margin:auto` 会退化成顶对齐、由遮罩层滚动，不会像 `items-center` 那样把
+ *   对话框上下同时挤出视口（顶部标题/关闭按钮点不到）。
+ * - 限高先给 `100vh` 兜底，再用 `@supports (height:100svh)` 升级到 `svh`：
+ *   Safari 15.4 / Firefox 101 之前的 `svh` 声明会被整条丢弃，裸写 `svh` 等于没有
+ *   限高（本站其它弹层 SlideModal/TableOfContents/ImageViewer 也是这套两层写法）。
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -49,7 +57,7 @@ export const CookieNotice: React.FC = () => {
           animate={{ opacity: 1 }}
           exit={shouldReduceMotion ? undefined : { opacity: 0 }}
           transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.18, ease: 'easeOut' }}
-          className="cookie-notice fixed inset-0 z-modal flex items-center justify-center bg-black/65 p-4"
+          className="cookie-notice fixed inset-0 z-modal grid overflow-y-auto overscroll-contain bg-black/65 p-4"
           onClick={(event) => {
             if (event.target === event.currentTarget) handleClose();
           }}
@@ -64,7 +72,7 @@ export const CookieNotice: React.FC = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={shouldReduceMotion ? undefined : { opacity: 0, scale: 0.98, y: 8 }}
             transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2, ease: 'easeOut' }}
-            className="max-h-[calc(100svh-2rem)] w-full max-w-2xl overflow-y-auto border border-line bg-surface p-6 shadow-2xl md:p-8"
+            className="m-auto max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto border border-line bg-surface p-6 shadow-2xl supports-[height:100svh]:max-h-[calc(100svh-2rem)] md:p-8"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">

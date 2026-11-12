@@ -30,17 +30,36 @@ let scrollLockCount = 0;
 
 /** 页面级快捷键使用此查询，避免在弹层打开时误触发背景交互。 */
 export const hasOpenOverlay = () => openOverlayStack.length > 0;
+
+/** 首个锁定者捕获的原值：计数归零时逐项还原（不含未改写的属性）。 */
 let originalBodyOverflow = '';
+let originalHtmlOverflow = '';
+let originalHtmlOverscrollBehavior = '';
 
 /**
  * 共享的页面滚动锁（计数式）。多个弹层/抽屉叠加时只有第一个捕获原始值、
  * 最后一个恢复，避免相互覆盖导致页面永久锁滚或弹层未关就恢复滚动。
  * 移动端导航等非弹层入口也应复用本锁，不要单独操作 body.style.overflow。
+ *
+ * 同时锁 `html` 与 `body`：
+ * - 视口滚动取的是根元素的 overflow（根为 `visible` 时按规范改用 body 的值），
+ *   Safari/WebKit 对「只锁 body」的传播行为与 Blink/Gecko 并不总是一致，
+ *   两个都写才能保证三套内核在真实手势下都锁得住；
+ * - 根元素同时关掉 `overscroll-behavior`，避免弹层内滚到边界时把惯性传给背景页
+ *   （Safari 16 起支持，未支持的版本自动忽略）。
+ * `scrollbar-gutter: stable` 保证隐藏滚动条时不产生横向跳动。
  */
 export const lockBodyScroll = () => {
   if (scrollLockCount === 0) {
+    const root = document.documentElement;
     originalBodyOverflow = document.body.style.overflow;
+    originalHtmlOverflow = root.style.overflow;
+    // 用 getPropertyValue 捕获：各内核在「属性未设置」时的 camelCase 读值不一致
+    // （WebKit 会给出 undefined），这里统一成字符串，恢复时再原样写回。
+    originalHtmlOverscrollBehavior = root.style.getPropertyValue('overscroll-behavior');
     document.body.style.overflow = 'hidden';
+    root.style.overflow = 'hidden';
+    root.style.setProperty('overscroll-behavior', 'none');
   }
 
   scrollLockCount += 1;
@@ -51,7 +70,11 @@ export const unlockBodyScroll = () => {
   scrollLockCount = Math.max(0, scrollLockCount - 1);
 
   if (scrollLockCount === 0) {
+    const root = document.documentElement;
     document.body.style.overflow = originalBodyOverflow;
+    root.style.overflow = originalHtmlOverflow;
+    // setProperty('') 等价于移除该声明，恢复「未设置」的原状。
+    root.style.setProperty('overscroll-behavior', originalHtmlOverscrollBehavior);
   }
 };
 

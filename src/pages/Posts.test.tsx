@@ -180,6 +180,20 @@ describe('Posts', () => {
     expect(oldestButton).toHaveTextContent('最早');
   });
 
+  it('搜索框与排序按钮同处一行（分类 tab 删除后不再让搜索框独占一行）', async () => {
+    renderPosts();
+    const searchBox = await screen.findByRole('searchbox', { name: '搜索文章' });
+    const sortButton = screen.getByRole('button', { name: '按最新优先排序' });
+
+    // 最近的一层 flex 容器必须同时包住「搜索框」和「排序按钮」。
+    const row = sortButton.closest('.flex');
+    expect(row).not.toBeNull();
+    expect(row).toContainElement(searchBox);
+    // 排序按钮是行内最后一个子节点（靠右），搜索框占满剩余宽度。
+    expect((row as HTMLElement).lastElementChild).toBe(sortButton);
+    expect(searchBox.closest('.flex-1')).not.toBeNull();
+  });
+
   it('继续阅读以卡片式呈现，保留继续/放弃操作与进度', async () => {
     const user = userEvent.setup();
     const [firstPost] = getInitialPosts();

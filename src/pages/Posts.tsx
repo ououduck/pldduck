@@ -128,30 +128,31 @@ const filterAndSortPosts = (posts: PostMetadata[], selectedTag: string | null, s
   return sortPosts(filteredPosts, sortOrder);
 };
 
-interface FilterBarProps {
+interface SortToggleProps {
   sortOrder: 'newest' | 'oldest';
   onToggleSort: () => void;
 }
 
-const FilterBar: React.FC<FilterBarProps> = ({ sortOrder, onToggleSort }) => (
-  <div className="mb-1 flex justify-end">
-    {/* 排序收成一个轻量切换按钮：图标 + 当前排序词，aria-pressed 跟随「最早优先」态。 */}
-    <button
-      type="button"
-      onClick={onToggleSort}
-      aria-pressed={sortOrder === 'oldest'}
-      aria-label={`按${sortOrder === 'newest' ? '最新' : '最早'}优先排序`}
-      title="切换排序方式"
-      className="inline-flex min-h-11 shrink-0 items-center gap-1.5 px-2 text-sm text-zinc-500 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-400 dark:hover:text-white dark:focus-visible:outline-zinc-100"
-    >
-      {sortOrder === 'newest' ? (
-        <ArrowDownWideNarrow size={15} aria-hidden="true" />
-      ) : (
-        <ArrowUpWideNarrow size={15} aria-hidden="true" />
-      )}
-      <span>{sortOrder === 'newest' ? '最新' : '最早'}</span>
-    </button>
-  </div>
+/**
+ * 排序切换按钮：收成一个轻量图标 + 当前排序词，与搜索框同处一行并靠右对齐，
+ * `aria-pressed` 跟随「最早优先」态。分类 tab 删除后这里不再需要独立的一整行。
+ */
+const SortToggle: React.FC<SortToggleProps> = ({ sortOrder, onToggleSort }) => (
+  <button
+    type="button"
+    onClick={onToggleSort}
+    aria-pressed={sortOrder === 'oldest'}
+    aria-label={`按${sortOrder === 'newest' ? '最新' : '最早'}优先排序`}
+    title="切换排序方式"
+    className="inline-flex min-h-11 shrink-0 items-center gap-1.5 px-2 text-sm text-zinc-500 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-400 dark:hover:text-white dark:focus-visible:outline-zinc-100"
+  >
+    {sortOrder === 'newest' ? (
+      <ArrowDownWideNarrow size={15} aria-hidden="true" />
+    ) : (
+      <ArrowUpWideNarrow size={15} aria-hidden="true" />
+    )}
+    <span>{sortOrder === 'newest' ? '最新' : '最早'}</span>
+  </button>
 );
 
 export const Posts = () => {
@@ -522,16 +523,19 @@ export const Posts = () => {
 
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1 space-y-5 md:space-y-7">
-          <FilterBar sortOrder={sortOrder} onToggleSort={handleToggleSort} />
-
-          <div className="mx-auto max-w-2xl">
-            <SearchField
-              value={searchQuery}
-              onValueChange={handleSearchChange}
-              onClear={handleClearSearch}
-              placeholder="搜索标题、标签与正文内容..."
-              aria-label="搜索文章"
-            />
+          {/* 搜索框与排序切换同处一行（搜索框自适应占满左侧、排序靠右）：
+              分类 tab 删除后不再让搜索框独占一整行、右侧空出一块。 */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="min-w-0 flex-1">
+              <SearchField
+                value={searchQuery}
+                onValueChange={handleSearchChange}
+                onClear={handleClearSearch}
+                placeholder="搜索标题、标签与正文内容..."
+                aria-label="搜索文章"
+              />
+            </div>
+            <SortToggle sortOrder={sortOrder} onToggleSort={handleToggleSort} />
           </div>
 
           {loading || isSearching ? (

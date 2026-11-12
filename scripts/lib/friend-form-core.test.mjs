@@ -441,8 +441,19 @@ describe('评论渲染', () => {
       result: { verdict: 'not-found', message: '没找到', stats: { anchorCount: 3 } },
       siteUrl: 'https://www.pldduck.com',
     });
-    expect(body).toContain('静态链接数');
+    expect(body).toContain('链接数');
+    expect(body).toContain('静态 HTML');
     expect(body).not.toContain('| 页面出现的域名 | |');
+  });
+
+  it('渲染兜底的证据里写明检测方式与 frame 数', () => {
+    const body = renderDetectComment({
+      validated: validateFriendRecord(validValues()),
+      result: { verdict: 'not-found', message: '渲染后没找到', stats: { anchorCount: 12, rendered: true, frames: 3 } },
+      siteUrl: 'https://www.pldduck.com',
+    });
+    expect(body).toContain('浏览器渲染（含 JS 挂件）');
+    expect(body).toContain('渲染的 frame 数：3');
   });
 
   it('人工放行评论在检测未命中时写明「人工放行」', () => {

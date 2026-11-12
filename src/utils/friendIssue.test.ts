@@ -118,6 +118,18 @@ describe('友链 Issue 预填链接', () => {
   });
 });
 
+describe('预填链接依赖的仓库设置（漂移守卫）', () => {
+  const config = yaml.load(
+    readFileSync(new URL('../../.github/ISSUE_TEMPLATE/config.yml', import.meta.url), 'utf8'),
+  ) as { blank_issues_enabled?: boolean };
+
+  it('空白 Issue 必须保持开启：关掉后 GitHub 会把 /issues/new?body=… 重定向到模板', () => {
+    // 2026-11 用户反馈：blank_issues_enabled: false 时，页面上填好的资料全部丢失，
+    // 申请人落到一份空的申请模板。这条断言防止有人再把开关关回去。
+    expect(config.blank_issues_enabled).toBe(true);
+  });
+});
+
 describe('预填内容与 Issue 模板的契约（漂移守卫）', () => {
   const template = yaml.load(
     readFileSync(new URL('../../.github/ISSUE_TEMPLATE/friend-link-application.yml', import.meta.url), 'utf8'),

@@ -6,6 +6,7 @@ import {
   decodeHtmlBytes,
   extractAnchorUrls,
   findBacklink,
+  findBacklinkInAnchors,
   buildTransportVerdict,
   classifyReachability,
   registrableHost,
@@ -189,6 +190,63 @@ describe('findBacklink', () => {
       findBacklink({ html: '', pageUrl: 'https://x.com', claimedUrl: 'https://x.com', acceptedHosts: new Set() }),
     ).toThrow(TypeError);
     expect(() => detect(page('<a href="https://www.pldduck.com">x</a>'), { claimedUrl: 'nope' })).toThrow();
+  });
+});
+
+describe('findBacklinkInAnchors（渲染兜底与静态共用口径）', () => {
+  const renderedDetect = (anchors, overrides = {}) =>
+    findBacklinkInAnchors({
+      anchors,
+      pageUrl: 'https://blog.example.com/links',
+      finalUrl: 'https://blog.example.com/links',
+      claimedUrl: 'https://blog.example.com',
+      acceptedHosts: accepted,
+      rendered: true,
+      frames: 2,
+      ...overrides,
+    });
+
+  it('渲染后的锚点命中：结论与静态路径一致，并标记证据来源', () => {
+    const result = renderedDetect([{ url: 'https://www.pldduck.com/', text: '跑路的duck' }]);
+    expect(result.verdict).toBe(BACKLINK_VERDICTS.FOUND);
+    expect(result.anchors[0].text).toBe('跑路的duck');
+    expect(result.stats.rendered).toBe(true);
+    expect(result.stats.frames).toBe(2);
+  });
+
+  it('渲染后仍没有本站链接：说明按渲染口径措辞', () => {
+    const result = renderedDetect([{ url: 'https://other.example/' }]);
+    expect(result.verdict).toBe(BACKLINK_VERDICTS.NOT_FOUND);
+    expect(result.message).toContain('浏览器渲染');
+    expect(result.stats.anchorCount).toBe(1);
+  });
+
+  it('iframe 聚合来的锚点与主文档一视同仁（跨域挂件也参与判定）', () => {
+    const result = renderedDetect([{ url: 'https://blog.example.com/about' }, { url: 'https://pldduck.com/toolbox' }]);
+    expect(result.verdict).toBe(BACKLINK_VERDICTS.FOUND);
+  });
+
+  it('浏览器里出现的 javascript:/data: 伪锚点被过滤，不计数也不命中', () => {
+    const result = renderedDetect([
+      { url: 'javascript:alert(1)' },
+      { url: 'data:text/html,<a href=https://pldduck.com>' },
+      { url: 'https://www.pldduck.com/' },
+    ]);
+    expect(result.stats.anchorCount).toBe(1);
+    expect(result.verdict).toBe(BACKLINK_VERDICTS.FOUND);
+  });
+
+  it('渲染路径同样受 offsite 约束（防 301 到本站）', () => {
+    const result = renderedDetect([{ url: 'https://www.pldduck.com/' }], {
+      finalUrl: 'https://www.pldduck.com/from-redirect',
+    });
+    expect(result.verdict).toBe(BACKLINK_VERDICTS.OFFSITE);
+  });
+
+  it('渲染后一个锚点都没有 → js-only，并说明是浏览器渲染口径', () => {
+    const result = renderedDetect([]);
+    expect(result.verdict).toBe(BACKLINK_VERDICTS.JS_ONLY);
+    expect(result.message).toContain('浏览器渲染');
   });
 });
 

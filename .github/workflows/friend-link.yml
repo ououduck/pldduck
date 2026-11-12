@@ -3,7 +3,8 @@
 # 流程（铁律见 ai-rules/friends.md 规则 3/5/6/7）：
 #   申请人开「友链申请」Issue（.github/ISSUE_TEMPLATE/friend-link-application.yml）
 #     → detect job：解析正文 → 先验站点/头像在境外能否打开（打不开就自动驳回并关闭，这是唯一
-#       由机器人下的结论）→ 静态抓取反链页面、把证据写进评论并打检测标签、推飞书「待审核」。
+#       由机器人下的结论）→ 静态抓取反链页面，没命中再用无头浏览器渲染一次（JS 挂件）→
+#       把证据写进评论并打检测标签、推飞书「待审核」。
 #       **这个 job 在架构上就没有写仓库内容的权限，永远不改文件。**
 #   站长人工判定，二选一打标签：
 #     friend-approved → apply job：重新解析校验 → 写 friends/<slug>.json → 回读自证
@@ -37,7 +38,10 @@ name: Friend Link Check
 
 on:
   issues:
-    # labeled 是唯一写入入口；opened/edited/reopened 只跑检测。
+    # labeled 只用于 friend-approved/rejected（唯一写入入口）；检测只认
+    # opened/edited/reopened。**不要**把 labeled(friend-link) 加进 detect ——
+    # 模板与页面预填都会在创建时带上该标签，GitHub 会额外发一次 labeled 事件，
+    # 两个分支同时命中会让一次申请跑两遍检测、发两条重复评论（2026-11 修复）。
     types: [opened, edited, reopened, labeled]
   issue_comment:
     # 申请人补一句「我改好了」即可重测（脚本里限定：作者本人或 OWNER/MEMBER/COLLABORATOR，
@@ -70,7 +74,6 @@ jobs:
     if: >-
       github.event.sender.type != 'Bot' && (
         (github.event_name == 'issues' && (github.event.action == 'opened' || github.event.action == 'edited' || github.event.action == 'reopened')) ||
-        (github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == 'friend-link') ||
         (github.event_name == 'issue_comment' && github.event.action == 'created' && contains(github.event.issue.labels.*.name, 'friend-link')) ||
         (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'detect')
       )
@@ -100,6 +103,17 @@ jobs:
       - name: Install dependencies
         # undici（lib/http.mjs 的 SSRF dispatcher）是生产依赖，需要安装。
         run: npm ci --no-audit --no-fund
+
+      - name: Cache Playwright browsers
+        # 渲染兜底用的 Chromium 体积大，按 lockfile 指纹缓存；命中时安装步骤只补系统依赖。
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install headless Chromium
+        # 只在「静态抓取没命中」时才会真正启动浏览器；安装失败时脚本会自动退回静态结论。
+        run: npx playwright install --with-deps chromium
 
       - name: Run backlink detection
         env:

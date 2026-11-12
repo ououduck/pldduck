@@ -66,6 +66,10 @@ export interface FriendIssueUrlOptions {
 /**
  * 拼预填链接。不用 `template=` 参数 —— 走 Issue 表单时 GitHub 会忽略 `body`，
  * 资料填不进正文；直接开空白 Issue 才能把正文带上，标题/标签/受理人仍由参数指定。
+ *
+ * ⚠️ 依赖 `.github/ISSUE_TEMPLATE/config.yml` 的 `blank_issues_enabled: true`：
+ * 关掉空白 Issue 后 GitHub 会把 `/issues/new?...` 重定向到模板选择页，query 参数
+ * 全部丢失（2026-11 用户反馈）。`friendIssue.test.ts` 有漂移守卫盯着这个开关。
  */
 export const buildFriendIssueUrl = ({
   repoUrl,

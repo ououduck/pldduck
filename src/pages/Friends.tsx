@@ -281,7 +281,7 @@ const FriendApplyForm = () => {
             rel="noopener noreferrer"
             className="text-sm text-content-muted underline-offset-4 transition-colors hover:text-content hover:underline"
           >
-            改用空白 Issue 表单
+            改用标准申请表单
           </a>
         </div>
       </form>

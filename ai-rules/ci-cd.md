@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署到 Cloudflare Worker：Workers Static Assets + 小型 Worker 运行时，仅 `GET /api/status` 同源代理 Better Stack）、feishu-webhook、comment 三件套、akismet、notify-post-update、check-broken-links、friend-link（友链反链检测 + 人工放行后写文件并触发部署）、friend-availability-audit（每日友链失联巡检，双向同步 `unavailable`）；PagesCMS 动作按钮（.pages.yml）。
+GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署到 Cloudflare Worker：Workers Static Assets + 小型 Worker 运行时，仅 `GET /api/status` 同源代理 Better Stack）、feishu-webhook、comment 三件套、akismet、notify-post-update、check-broken-links、friend-link（友链反链检测：静态抓取为主、未命中用 Playwright/Chromium 渲染兜底；人工放行后写文件并触发部署）、friend-availability-audit（每日友链失联巡检，双向同步 `unavailable`）；PagesCMS 动作按钮（.pages.yml）。
 
 ## 关键文件
 

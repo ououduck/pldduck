@@ -1,7 +1,10 @@
-# 关掉空白 Issue：Issue 只用于友链申请这一条流程，避免混进无法解析的自由正文。
-# 文章订阅不受影响（订阅是在既有 Issue 下评论，不需要「New issue」按钮）。
-# 要恢复空白 Issue，删掉本文件即可。
-blank_issues_enabled: false
+# 友链页的「一键预填」走的是 /issues/new?title=…&body=… 这条**空白 Issue 直链**，
+# 所以空白 Issue 必须保持开启（blank_issues_enabled: true）。
+# 关掉它时 GitHub 会把该链接重定向到模板选择页/模板表单，query 参数全部丢失
+# （2026-11 用户反馈：填好的资料没带走，落到空白模板）。
+# 代价是任何人都能开空白 Issue：机器人只处理带 friend-link 标签的 Issue，其余一律跳过
+# （scripts/friend-link-check.mjs 的 resolveRoute），站长手动关闭即可。
+blank_issues_enabled: true
 contact_links:
   - name: 友链问题邮件联系
     url: mailto:pldduck@outlook.com

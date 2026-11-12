@@ -12,10 +12,13 @@
  *   - GITHUB_TOKEN 的 push 不触发任何 workflow，所以记录校验必须在写入之前完成，
  *     收录通知与部署都要机器人自己发（workflow_dispatch 自 2022-09 起允许 GITHUB_TOKEN 调用）；
  *   - 写入目录硬编码 friends/，文件名只从 issue 提交者 login 派生，一次只动一个文件。
+ *   - 反链检测静态优先：静态 HTML 没命中、且页面确实抓到了，才用无头浏览器渲染一次（JS 挂件）；
+ *     渲染失败/超时/被拦一律退回静态结论，绝不当成「没挂链」。
  *
  * 本地调试（不出网也能跑字节级判定）：
  *   node scripts/friend-link-check.mjs --fixture page.html --url https://blog.example/links --print
  *   node scripts/friend-link-check.mjs --check-url https://blog.example --print
+ *   node scripts/friend-link-check.mjs --check-url https://blog.example --site https://blog.example --render
  *   GITHUB_EVENT_NAME=issues GITHUB_EVENT_PATH=event.json GITHUB_TOKEN=… node scripts/friend-link-check.mjs --dry-run
  */
 
@@ -46,7 +49,9 @@ import {
   classifyReachability,
   decodeHtmlBytes,
   findBacklink,
+  findBacklinkInAnchors,
 } from './lib/friend-backlink.mjs';
+import { renderPage } from './lib/render-html.mjs';
 import {
   FRIEND_ISSUE_MARKER,
   FRIENDS_DIR,
@@ -83,6 +88,18 @@ const REQUEST_TIMEOUT_MS = parseEnvNumber(process.env.FRIEND_CHECK_TIMEOUT_MS, 2
 const MAX_RESPONSE_BYTES = parseEnvNumber(process.env.FRIEND_MAX_RESPONSE_BYTES, 1024 * 1024);
 const MAX_REDIRECTS = parseEnvNumber(process.env.FRIEND_MAX_REDIRECTS, 5);
 const REQUEST_RETRIES = 1;
+
+/**
+ * 渲染兜底：静态 HTML 里没命中时，用无头浏览器再取证一次（JS 挂件/接口拉数据的友链）。
+ * 默认开启；没装浏览器时 renderPage 自己返回 error，检测照旧退回静态结论。
+ * 只有「静态拿到了 HTML 但没命中」才会触发 —— 静态都打不开的站点不值得再花 25 秒。
+ */
+const RENDER_FALLBACK_ENABLED = !['0', 'false', 'no'].includes(
+  String(process.env.FRIEND_RENDER_FALLBACK || '1').toLowerCase(),
+);
+/** 单次渲染超时 + 一轮检测的渲染总预算（两个候选页顶多各一次）。 */
+const RENDER_TIMEOUT_MS = parseEnvNumber(process.env.FRIEND_RENDER_TIMEOUT_MS, 25000);
+const RENDER_BUDGET_MS = parseEnvNumber(process.env.FRIEND_RENDER_BUDGET_MS, 60000);
 
 const DEPLOY_WORKFLOW = 'deploy.yml';
 
@@ -266,12 +283,72 @@ const probeUrl = async (url) => {
 };
 
 /**
+ * 渲染兜底：静态抓取没命中时，用无头浏览器把页面（含 iframe）渲染一次再判定。
+ *
+ * 只在「静态拿到了 HTML、但结论是 not-found / js-only」时调用 —— 静态都打不开的站点
+ * 再渲染一次只是浪费时间。渲染失败/超时/被拦一律返回 null，由调用方沿用静态结论，
+ * 绝不让「渲染没成功」被读成「没挂链」。
+ *
+ * @param {object} input
+ * @param {string[]} input.candidates 已经静态抓到过 HTML 的页面地址
+ * @param {string} input.claimedSiteUrl 申请人申报的站点地址
+ * @returns {Promise<{ verdict: object, checked: string } | null>}
+ */
+const detectByRender = async ({ candidates, claimedSiteUrl }) => {
+  if (!RENDER_FALLBACK_ENABLED) return null;
+  const deadline = Date.now() + RENDER_BUDGET_MS;
+  let best = null;
+  for (const candidate of candidates) {
+    if (Date.now() > deadline) {
+      logger.warn('渲染兜底超出总预算，停止重试', { budgetMs: RENDER_BUDGET_MS });
+      break;
+    }
+    const rendered = await renderPage(candidate, { timeoutMs: RENDER_TIMEOUT_MS });
+    if (rendered.error) {
+      logger.warn('渲染兜底未成功（沿用静态结论）', {
+        url: sanitizeUrlForLogs(candidate),
+        error: sanitizeLogValue(rendered.error),
+      });
+      continue;
+    }
+    if (rendered.status >= 400) {
+      logger.warn('渲染兜底拿到错误状态码（沿用静态结论）', {
+        url: sanitizeUrlForLogs(candidate),
+        status: rendered.status,
+      });
+      continue;
+    }
+    const verdict = findBacklinkInAnchors({
+      anchors: rendered.anchors,
+      pageUrl: candidate,
+      finalUrl: rendered.finalUrl,
+      claimedUrl: claimedSiteUrl,
+      acceptedHosts: ACCEPTED_HOSTS,
+      rendered: true,
+      frames: rendered.frames,
+    });
+    logger.info('渲染兜底判定完成', {
+      url: sanitizeUrlForLogs(candidate),
+      verdict: verdict.verdict,
+      anchors: verdict.stats.anchorCount,
+      frames: verdict.stats.frames,
+    });
+    if (verdict.verdict === BACKLINK_VERDICTS.FOUND) return { verdict, checked: candidate };
+    best = best ?? { verdict, checked: candidate };
+  }
+  return best;
+};
+
+/**
  * 最多两次 GET：先抓申报的反链页面，未命中再退回站点首页（很多人挂在页脚）。
  * 命中即返回；两次都不命中时返回信息量更大的那次结论。
+ * 静态路径全部未命中时，再走一次渲染兜底（见 detectByRender）。
  */
 const detectBacklink = async ({ pageUrl, siteUrl: claimedSiteUrl }) => {
   const candidates = [...new Set([pageUrl, claimedSiteUrl].filter(Boolean))];
   let fallback = null;
+  const staticHtmlCandidates = [];
+  const staticVerdicts = [];
   for (const candidate of candidates) {
     const fetched = await fetchHtml(candidate);
     if (fetched.transport) {
@@ -289,8 +366,23 @@ const detectBacklink = async ({ pageUrl, siteUrl: claimedSiteUrl }) => {
     });
     if (verdict.verdict === BACKLINK_VERDICTS.FOUND) return { verdict, checked: candidate };
     fallback = fallback ?? verdict;
-    if (candidates.length === 1) return { verdict, checked: candidate };
+    staticHtmlCandidates.push(candidate);
+    staticVerdicts.push(verdict.verdict);
+    if (candidates.length === 1) break;
   }
+
+  // 只有「页面本身拿到了、只是没看到链接」才值得渲染；offsite 是跳转问题，渲染救不了。
+  const renderEligible =
+    staticHtmlCandidates.length > 0 &&
+    staticVerdicts.some(
+      (verdict) => verdict === BACKLINK_VERDICTS.NOT_FOUND || verdict === BACKLINK_VERDICTS.JS_ONLY,
+    ) &&
+    !staticVerdicts.includes(BACKLINK_VERDICTS.OFFSITE);
+  if (renderEligible) {
+    const rendered = await detectByRender({ candidates: staticHtmlCandidates, claimedSiteUrl });
+    if (rendered) return rendered;
+  }
+
   return { verdict: fallback ?? buildTransportVerdict({ error: '没有可抓取的地址' }), checked: '' };
 };
 
@@ -448,6 +540,7 @@ const runDetect = async (issue) => {
     issue: issue.number,
     verdict: verdict.verdict,
     checked: checked ? sanitizeUrlForLogs(checked) : '',
+    rendered: Boolean(verdict.stats?.rendered),
   });
 };
 
@@ -664,8 +757,11 @@ const resolveRoute = (eventName, payload) => {
     if (payload.action === 'labeled') {
       if (label === LABELS.approved) return { action: 'apply' };
       if (label === LABELS.rejected) return { action: 'reject' };
-      if (label === LABELS.link) return { action: 'detect' };
-      return { action: 'skip', reason: `与友链无关的标签：${sanitizeLogValue(label) || '(空)'}` };
+      // friend-link 不在这里触发检测：模板/页面预填都会在**创建时**带上这个标签，
+      // GitHub 会额外发一次 labeled 事件 —— 若这里也返回 detect，一次申请会跑两遍
+      // 检测、发两条一模一样的评论（2026-11 修复）。检测只由 opened/edited/reopened
+      // 与申请人评论触发（见 ai-rules/friends.md 规则 8）。
+      return { action: 'skip', reason: `该标签不触发检测：${sanitizeLogValue(label) || '(空)'}` };
     }
     if (['opened', 'edited', 'reopened'].includes(payload.action)) {
       if (!hasLinkLabel(payload.issue)) return { action: 'skip', reason: '非友链 Issue' };
@@ -713,6 +809,39 @@ const runLocalCheck = async () => {
   if (!pageUrl && !fixture) {
     logger.error('本地模式需要 --url <页面地址>，或 --fixture <html 文件> 配合 --url');
     process.exitCode = 1;
+    return;
+  }
+
+  // --render：直接走无头浏览器渲染口径（验证 JS 挂件是否真的挂上了本站链接）。
+  // 需要本地先 `npx playwright install chromium`；不动 GitHub、不写任何文件。
+  if (hasFlag('render')) {
+    if (!pageUrl) {
+      logger.error('--render 需要 --url <页面地址>');
+      process.exitCode = 1;
+      return;
+    }
+    const rendered = await renderPage(pageUrl, { timeoutMs: RENDER_TIMEOUT_MS });
+    if (rendered.error) {
+      logger.error('渲染失败', { error: sanitizeLogValue(rendered.error) });
+      process.exitCode = 1;
+      return;
+    }
+    const result = findBacklinkInAnchors({
+      anchors: rendered.anchors,
+      pageUrl,
+      finalUrl: rendered.finalUrl,
+      claimedUrl: claimed,
+      acceptedHosts: ACCEPTED_HOSTS,
+      rendered: true,
+      frames: rendered.frames,
+    });
+    console.log(
+      JSON.stringify(
+        { verdict: result.verdict, message: result.message, stats: result.stats, anchors: result.anchors },
+        null,
+        2,
+      ),
+    );
     return;
   }
 

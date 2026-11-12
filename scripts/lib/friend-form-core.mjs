@@ -456,7 +456,10 @@ const detectionRows = (result) => {
   return [
     ['结论', inlineCode(result.verdict)],
     ['说明', result.message ? sanitizeLogValue(result.message) : ''],
-    ['静态链接数', stats.anchorCount === undefined ? '' : String(stats.anchorCount)],
+    // 证据来源必须写清楚：静态抓取与无头浏览器渲染的覆盖面不同，站长看证据时要知道是哪一种。
+    ['检测方式', stats.rendered ? '浏览器渲染（含 JS 挂件）' : '静态 HTML'],
+    ['链接数', stats.anchorCount === undefined ? '' : String(stats.anchorCount)],
+    ['渲染的 frame 数', stats.frames ? String(stats.frames) : ''],
     ['页面出现的域名', stats.sampleHosts?.length ? inlineCode(stats.sampleHosts.join(', ')) : ''],
     ['落地域名', inlineCode(stats.landedHost ?? '')],
     ['响应体被截断', stats.truncated ? '是（页脚可能没读到）' : '否'],
@@ -486,7 +489,7 @@ export const renderDetectComment = ({ validated, filename, result, siteUrl }) =>
         : [
             '请检查以下几点后修改本 Issue 的正文（或在本 Issue 下评论一句，检测会自动重跑）：',
             '',
-            `1. 链接必须写成服务端直出的 \`<a href="${siteUrl}">\`（Vue/React 用 JS 渲染的友链挂件，静态抓取看不到）。`,
+            `1. 链接必须写成服务端直出的 \`<a href="${siteUrl}">\`：本次已用无头浏览器渲染过一次，但加载慢、被墙或被站点反爬拦住的 JS 挂件仍可能漏检。`,
             '2. 只认 `<a href>`：图片、RSS、`rel=canonical`、跳转都不算。',
             '3. 常见的挂链位置：首页页脚、友情链接/friends 单独页、关于页。',
             '',

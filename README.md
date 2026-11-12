@@ -306,12 +306,14 @@ Worker 已开启 **Workers Observability / Workers Logs**（`wrangler.jsonc` 的
 本站开放友情链接，流程全部公开可查：
 
 1. 打开 <https://www.pldduck.com/friends>，展开「申请友链」，按面板内信息把本站挂到你的站点上。
-   **链接必须是服务端直出的 `<a href>`**——Vue / React 用 JavaScript 渲染的友链挂件，静态抓取看不到。
+   **链接最好是服务端直出的 `<a href>`**——Vue / React 用 JavaScript 渲染的友链挂件，静态抓取看不到；
+   机器人会在静态页面里没找到时用无头浏览器再渲染一次，但加载慢、被墙或被反爬拦截的挂件仍可能漏检。
 2. 在「填好资料，一键带到 Issue」卡片里填写站点名称、地址、简介、头像（反链页面选填），勾选三项确认，
    点「生成 Issue 申请」——会打开一个正文已经填好的 GitHub 新建 Issue 页面，核对无误后提交即可；
-   也可以点「改用空白 Issue 表单」，按模板逐项填写。
+   也可以点「改用标准申请表单」，按模板逐项填写。
 3. GitHub Actions 会先探测你的站点与头像在境外能否访问（开启「禁海外」会被判定为不可达并自动关闭 Issue，
-   解除屏蔽后重开 Issue 即可重新检测），随后静态抓取反链页面并公示检测证据。
+   解除屏蔽后重开 Issue 即可重新检测），随后静态抓取反链页面；静态 HTML 里没看到本站链接时，
+   再用无头浏览器渲染一次（JS 挂件也能识别），并把证据（含「检测方式」）公示在 Issue 里。
 4. **检测结果只作为审核参考，是否收录由站长确认。** 站长按「收录」标签后，机器人生成 `friends/<slug>.json`
    并自动触发部署；按「拒绝」标签则回复固定文案并关闭 Issue。
 5. 申请只用于**新增收录**：已收录条目如需修改名称、地址、简介或头像，或想把友链下架，请直接邮件联系 <pldduck@outlook.com>（不走 Issue 流程，重复提交同一站点会被判已收录）。
@@ -341,7 +343,9 @@ Worker 已开启 **Workers Observability / Workers Logs**（`wrangler.jsonc` 的
 
 ## 反馈与协作
 
-本站为个人站点，内容以站长笔述为准。仓库关闭了空白 Issue，Issues 只保留「友链申请」这一条流程：
+本站为个人站点，内容以站长笔述为准。Issues 只保留「友链申请」这一条流程。空白 Issue 为页面「一键预填」
+保留开启（`blank_issues_enabled: true`）——关掉它 GitHub 会把预填链接重定向到模板选择页、丢掉全部参数，
+见 `.github/ISSUE_TEMPLATE/config.yml`；机器人只处理带 `friend-link` 标签的 Issue，其余一律跳过。
 
 - **交换友链**：在 `/friends` 页填好资料后生成 Issue 申请（流程见上文）。
 - **其他问题**：邮件联系 <pldduck@outlook.com>。

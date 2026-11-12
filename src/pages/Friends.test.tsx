@@ -185,7 +185,7 @@ describe('Friends', () => {
     expect(screen.queryByRole('button', { name: /我已添加/ })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '填好资料，一键带到 Issue' })).toBeInTheDocument();
 
-    const blankFormLink = screen.getByRole('link', { name: /改用空白 Issue 表单/ });
+    const blankFormLink = screen.getByRole('link', { name: /改用标准申请表单/ });
     expect(blankFormLink).toHaveAttribute('href', siteConfig.friendsPage.applyUrl);
     // 采集面必须是 GitHub：改回 Tally 等外部表单时这里先变红。
     expect(blankFormLink.getAttribute('href')).toMatch(/^https:\/\/github\.com\//);

@@ -211,30 +211,56 @@ export const decodeHtmlBytes = (bytes, contentType = '') => {
 };
 
 /**
- * 静态页面反链判定。
+ * 基于**已提取的绝对锚点列表**做反链判定（静态 HTML 与浏览器渲染共用同一套口径）。
+ *
+ * 静态路径由 findBacklink 从 HTML 里提取锚点后调用；渲染兜底（scripts/lib/render-html.mjs）
+ * 把主文档与所有 iframe 渲染后的绝对地址交给这里。两条路径**必须**共用本函数 ——
+ * 不许为渲染结果另立一套判定，否则「同一个页面、两种结论」会立刻出现。
+ *
  * @param {object} input
- * @param {string} input.html 已解码的页面文本
+ * @param {Array<{ url: string, text?: string }>} input.anchors 绝对 http(s) 地址（渲染路径来自浏览器）
  * @param {string} input.pageUrl 实际抓到的页面地址
  * @param {string} input.finalUrl 重定向后的落地地址（无重定向时等于 pageUrl）
  * @param {string} input.claimedUrl 申请人申报的站点地址
  * @param {ReadonlySet<string>} input.acceptedHosts buildAcceptedHosts 的结果
  * @param {boolean} [input.truncated] 响应体被截断（后面的页脚根本没读到）
+ * @param {boolean} [input.rendered] 锚点来自无头浏览器渲染（而不是静态 HTML）
+ * @param {number} [input.frames] 渲染时实际收集的 frame 数（证据展示用）
  * @returns {{verdict: string, message: string, anchors: Array<{url: string, text: string}>, stats: object}}
  */
-export const findBacklink = ({ html, pageUrl, finalUrl, claimedUrl, acceptedHosts, truncated = false }) => {
+export const findBacklinkInAnchors = ({
+  anchors,
+  pageUrl,
+  finalUrl,
+  claimedUrl,
+  acceptedHosts,
+  truncated = false,
+  rendered = false,
+  frames = 0,
+}) => {
   const hosts = acceptedHosts instanceof Set ? acceptedHosts : new Set(acceptedHosts ?? []);
   if (hosts.size === 0) throw new TypeError('acceptedHosts 不能为空');
   const claimedHost = registrableHost(new URL(String(claimedUrl)).hostname);
   const landedHost = registrableHost(new URL(String(finalUrl || pageUrl)).hostname);
-  const anchors = extractAnchorUrls(html, finalUrl || pageUrl);
-  const distinctHosts = [...new Set(anchors.map((anchor) => registrableHost(new URL(anchor.url).hostname)))];
+  // 渲染路径的锚点来自浏览器（已是绝对地址），这里仍做一次协议校验：防御
+  // 页面里出现浏览器扩展/脚本注入的 javascript:、data: 等伪链接。
+  const list = (Array.isArray(anchors) ? anchors : []).filter((anchor) => {
+    try {
+      return ['http:', 'https:'].includes(new URL(String(anchor?.url)).protocol);
+    } catch {
+      return false;
+    }
+  });
+  const distinctHosts = [...new Set(list.map((anchor) => registrableHost(new URL(anchor.url).hostname)))];
   const stats = {
-    anchorCount: anchors.length,
+    anchorCount: list.length,
     hostCount: distinctHosts.length,
     sampleHosts: distinctHosts.slice(0, 8),
     landedHost,
     claimedHost,
     truncated: Boolean(truncated),
+    rendered: Boolean(rendered),
+    frames: Number.isFinite(frames) && frames > 0 ? frames : undefined,
   };
 
   if (landedHost !== claimedHost) {
@@ -246,16 +272,18 @@ export const findBacklink = ({ html, pageUrl, finalUrl, claimedUrl, acceptedHost
     };
   }
 
-  if (anchors.length === 0) {
+  if (list.length === 0) {
     return {
       verdict: BACKLINK_VERDICTS.JS_ONLY,
-      message: '抓到的 HTML 里没有任何静态 <a> 链接，友链很可能是 JS 渲染的（静态抓取看不到）。',
+      message: rendered
+        ? '浏览器渲染后的页面里仍然没有任何 <a> 链接（无头浏览器可能被站点拦截，或挂件在本次渲染中没加载出来）。'
+        : '抓到的 HTML 里没有任何静态 <a> 链接，友链很可能是 JS 渲染的（静态抓取看不到）。',
       anchors: [],
       stats,
     };
   }
 
-  const hits = anchors.filter((anchor) => isBacklinkHost(new URL(anchor.url).hostname, hosts));
+  const hits = list.filter((anchor) => isBacklinkHost(new URL(anchor.url).hostname, hosts));
   if (hits.length > 0) {
     return {
       verdict: BACKLINK_VERDICTS.FOUND,
@@ -268,11 +296,34 @@ export const findBacklink = ({ html, pageUrl, finalUrl, claimedUrl, acceptedHost
   const truncationNote = truncated ? '注意：响应体超过读取上限被截断，页脚部分可能没读到。' : '';
   return {
     verdict: BACKLINK_VERDICTS.NOT_FOUND,
-    message: `页面有 ${anchors.length} 个静态链接，但没有指向本站域名的 <a>（检测到的是静态 HTML，JS 渲染的挂件看不到）。${truncationNote}`,
+    message: rendered
+      ? `浏览器渲染后的页面有 ${list.length} 个链接，但没有指向本站域名的 <a>。${truncationNote}`
+      : `页面有 ${list.length} 个静态链接，但没有指向本站域名的 <a>（检测到的是静态 HTML，JS 渲染的挂件看不到）。${truncationNote}`,
     anchors: [],
     stats,
   };
 };
+
+/**
+ * 静态页面反链判定（解析静态 HTML 里的锚点）。
+ * @param {object} input
+ * @param {string} input.html 已解码的页面文本
+ * @param {string} input.pageUrl 实际抓到的页面地址
+ * @param {string} input.finalUrl 重定向后的落地地址（无重定向时等于 pageUrl）
+ * @param {string} input.claimedUrl 申请人申报的站点地址
+ * @param {ReadonlySet<string>} input.acceptedHosts buildAcceptedHosts 的结果
+ * @param {boolean} [input.truncated] 响应体被截断（后面的页脚根本没读到）
+ * @returns {{verdict: string, message: string, anchors: Array<{url: string, text: string}>, stats: object}}
+ */
+export const findBacklink = ({ html, pageUrl, finalUrl, claimedUrl, acceptedHosts, truncated = false }) =>
+  findBacklinkInAnchors({
+    anchors: extractAnchorUrls(html, finalUrl || pageUrl),
+    pageUrl,
+    finalUrl,
+    claimedUrl,
+    acceptedHosts,
+    truncated,
+  });
 
 /**
  * 传输层结论（抓取失败 / 站点拒绝自动化）——与 findBacklink 同构，供评论与日志统一渲染。

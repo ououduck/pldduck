@@ -31,6 +31,21 @@ export const FRIEND_FIELDS = Object.freeze([
   { label: '确认事项', key: 'confirmations', required: true },
 ]);
 
+/**
+ * 正文是否长得像一份友链申请：两个必填段的标题同时出现。
+ *
+ * 为什么需要它：外部申请人没有仓库写权限，GitHub **不会**把预填链接里的
+ * `labels=friend-link` 应用到他们创建的空白 Issue 上（2026-11 实测：正文预填成功、
+ * 标签却是空的，检测被当成「非友链 Issue」静默跳过）。标签只是便利，正文结构才是契约；
+ * 检测结束后机器人会自己补打 friend-link 标签，后续评论重测照旧。
+ * @param {string} [body] Issue 正文
+ * @returns {boolean}
+ */
+export const looksLikeFriendApplication = (body) => {
+  const text = String(body ?? '');
+  return FRIEND_FIELDS.slice(0, 2).every((field) => text.includes(`### ${field.label}`));
+};
+
 /** 拒绝文案的联系邮箱：用站点公开邮箱（config/site.config.json 的 social.rawEmail），不掺任何用户输入。 */
 export const REJECT_CONTACT_EMAIL = 'pldduck@outlook.com';
 

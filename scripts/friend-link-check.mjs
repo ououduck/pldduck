@@ -61,6 +61,7 @@ import {
   normalizeFriendUrl,
   parseFriendIssueBody,
   pickDetectionUrl,
+  looksLikeFriendApplication,
   renderApprovedComment,
   renderBlockedComment,
   renderDetectComment,
@@ -736,6 +737,16 @@ const hasLinkLabel = (issue) =>
   (issue?.labels ?? []).some((label) => (typeof label === 'string' ? label : label.name) === LABELS.link);
 
 /**
+ * 是不是友链申请：有 `friend-link` 标签，或正文就是一份申请。
+ *
+ * 后者是 2026-11 的实测补丁：外部申请人没有仓库写权限，GitHub 不会把预填链接里的
+ * `labels=friend-link` 应用到他们创建的空白 Issue 上 —— 只认标签会把正常申请全部静默跳过。
+ * 正文判定只要求两个必填段标题（见 looksLikeFriendApplication），解析失败仍走原来的
+ * 「表单无法解析」评论，不会被当成友链申请乱写文件。
+ */
+const isFriendApplication = (issue) => hasLinkLabel(issue) || looksLikeFriendApplication(issue?.body);
+
+/**
  * 判断本次事件该走哪条路径。防自循环三处在案（ai-rules/friends.md 规则 7）：
  * sender.type == 'Bot' 一律跳过；机器人正文/评论里带 FRIEND_ISSUE_MARKER 的跳过；
  * 评论重测只认 Issue 作者本人或 OWNER/MEMBER/COLLABORATOR。
@@ -764,7 +775,7 @@ const resolveRoute = (eventName, payload) => {
       return { action: 'skip', reason: `该标签不触发检测：${sanitizeLogValue(label) || '(空)'}` };
     }
     if (['opened', 'edited', 'reopened'].includes(payload.action)) {
-      if (!hasLinkLabel(payload.issue)) return { action: 'skip', reason: '非友链 Issue' };
+      if (!isFriendApplication(payload.issue)) return { action: 'skip', reason: '非友链 Issue' };
       if (payload.action === 'edited' && payload.issue?.body?.includes(FRIEND_ISSUE_MARKER)) {
         return { action: 'skip', reason: '正文含机器人标记' };
       }
@@ -775,7 +786,7 @@ const resolveRoute = (eventName, payload) => {
 
   if (eventName === 'issue_comment') {
     if (payload.action !== 'created') return { action: 'skip', reason: '评论非新建' };
-    if (!hasLinkLabel(payload.issue)) return { action: 'skip', reason: '非友链 Issue' };
+    if (!isFriendApplication(payload.issue)) return { action: 'skip', reason: '非友链 Issue' };
     const body = payload.comment?.body ?? '';
     if (body.includes(FRIEND_ISSUE_MARKER)) return { action: 'skip', reason: '机器人自己的评论' };
     const association = payload.comment?.author_association ?? '';

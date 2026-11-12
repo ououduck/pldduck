@@ -17,6 +17,7 @@ import {
   normalizeFriendUrl,
   parseFriendIssueBody,
   pickDetectionUrl,
+  looksLikeFriendApplication,
   renderApprovedComment,
   renderBlockedComment,
   renderComment,
@@ -125,6 +126,20 @@ describe('parseFriendIssueBody', () => {
     const parsed = parseFriendIssueBody(issueBody({ 站点简介: '我喜欢 - [ ] 这种写法' }));
     expect(parsed.ok).toBe(true);
     expect(parsed.confirmations).toHaveLength(2);
+  });
+});
+
+describe('looksLikeFriendApplication（没有 friend-link 标签时的识别）', () => {
+  it('站点名称 + 站点地址两段都在 → 认作友链申请', () => {
+    expect(looksLikeFriendApplication(issueBody())).toBe(true);
+    expect(looksLikeFriendApplication('### 站点名称\n\nx\n\n### 站点地址\n\nhttps://x.example')).toBe(true);
+  });
+
+  it('普通空白 Issue / 缺段 / 空正文一律不认（避免对无关 Issue 发评论）', () => {
+    expect(looksLikeFriendApplication('')).toBe(false);
+    expect(looksLikeFriendApplication(undefined)).toBe(false);
+    expect(looksLikeFriendApplication('### 站点名称\n\n只有名称')).toBe(false);
+    expect(looksLikeFriendApplication('这是一个普通 Issue，随便写点东西')).toBe(false);
   });
 });
 

@@ -1,6 +1,9 @@
 /**
  * 文章标签面板：桌面右侧 sticky 卡片；移动端固定右侧标签按钮 + 侧边弹层。
  * 只负责标签列表与筛选交互，计数/排序由调用方（Posts）传入。
+ *
+ * 标签列表是紧凑的小按钮网格：一排三个、小字号、只显示标签文字（不显示计数），
+ * 顺序即调用方给的文章数降序，便于在卡片/侧板里一眼看完所有标签而不用长距离滚动。
  */
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -22,9 +25,13 @@ interface TagsPanelProps {
   onSelectTag: (tag: string | null) => void;
 }
 
-const tagButtonClass = (active: boolean) =>
-  `flex min-h-11 w-full items-center justify-between gap-2 rounded-control px-2.5 text-left text-sm transition-colors ${
-    active ? 'bg-content font-semibold text-background' : 'text-content-muted hover:bg-surface-muted hover:text-content'
+/**
+ * 小按钮样式：选中态反色成白色（bg-content 白字底），未选中是比卡片更暗的
+ * bg-background 小色块；字号收紧到 11px，长标签用 truncate 只留前几个字。
+ */
+const tagChipClass = (active: boolean) =>
+  `inline-flex min-h-8 min-w-0 items-center justify-center rounded-control px-1.5 text-[11px] leading-tight transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-content ${
+    active ? 'bg-content font-semibold text-background' : 'bg-background text-content-muted hover:text-content'
   }`;
 
 const TagList: React.FC<{
@@ -41,29 +48,30 @@ const TagList: React.FC<{
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {/* 「全部文章」是清除筛选的入口，占满一行；标签本身按一排三个铺开。 */}
       <button
         type="button"
         onClick={() => select(null)}
         aria-pressed={!selectedTag}
-        className={mergeClassName(tagButtonClass(!selectedTag), 'shrink-0')}
+        aria-label={`全部文章，共 ${totalPosts} 篇文章`}
+        className={mergeClassName(tagChipClass(!selectedTag), 'w-full shrink-0')}
       >
-        <span>全部文章</span>
-        <span className="shrink-0 text-[11px] tabular-nums opacity-70">{totalPosts}</span>
+        全部文章
       </button>
-      <ul className="mt-1 min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain pr-0.5">
+      <ul className="mt-1.5 grid min-h-0 flex-1 grid-cols-3 content-start gap-1.5 overflow-y-auto overscroll-contain pr-0.5">
         {tags.map((tag) => {
           const active = selectedTag === tag.name;
           return (
-            <li key={tag.name}>
+            <li key={tag.name} className="min-w-0">
               <button
                 type="button"
                 onClick={() => select(tag.name)}
                 aria-pressed={active}
                 aria-label={`筛选标签 ${tag.name}，共 ${tag.count} 篇文章`}
-                className={tagButtonClass(active)}
+                title={tag.name}
+                className={mergeClassName(tagChipClass(active), 'w-full')}
               >
                 <span className="min-w-0 truncate">{tag.name}</span>
-                <span className="shrink-0 text-[11px] tabular-nums opacity-70">{tag.count}</span>
               </button>
             </li>
           );

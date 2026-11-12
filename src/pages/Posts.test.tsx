@@ -103,7 +103,7 @@ describe('Posts', () => {
     await waitFor(() => expect(container.querySelectorAll('article')).toHaveLength(defaultArticleCount));
   });
 
-  it('右侧标签卡片列出全部标签与计数，点击写入 ?tag= 并过滤列表', async () => {
+  it('右侧标签卡片列出全部标签（不显示计数），点击写入 ?tag= 并过滤列表', async () => {
     const user = userEvent.setup();
     const [firstPost] = getInitialPosts();
     const firstTag = firstPost.tags[0];
@@ -114,13 +114,46 @@ describe('Posts', () => {
     const tagButton = within(panel).getByRole('button', {
       name: `筛选标签 ${firstTag}，共 ${expectedCount} 篇文章`,
     });
+    // 计数只留在可访问名称里，视觉上只显示标签文字。
+    expect(tagButton.textContent).toBe(firstTag);
 
     await user.click(tagButton);
     await waitFor(() => expect(probeSearch).toContain(`tag=${encodeURIComponent(firstTag)}`));
     expect(container.querySelectorAll('article')).toHaveLength(expectedCount);
-    expect(
-      within(panel).getByRole('button', { name: `筛选标签 ${firstTag}，共 ${expectedCount} 篇文章` }),
-    ).toHaveAttribute('aria-pressed', 'true');
+    const activeButton = within(panel).getByRole('button', {
+      name: `筛选标签 ${firstTag}，共 ${expectedCount} 篇文章`,
+    });
+    expect(activeButton).toHaveAttribute('aria-pressed', 'true');
+    // 选中后反色成白底小按钮。
+    expect(activeButton).toHaveClass('bg-content', 'text-background');
+  });
+
+  it('标签按文章数降序铺成一行三个的小按钮网格', () => {
+    renderPosts();
+    const panel = screen.getByRole('complementary', { name: '全部标签' });
+
+    // 期望顺序：按文章数降序、同数按中文名排序（与小字按钮的展示顺序一致）。
+    const counts = new Map<string, number>();
+    getInitialPosts().forEach((post) => {
+      (Array.isArray(post.tags) ? post.tags : [])
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .forEach((tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1));
+    });
+    const expectedOrder = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh-CN'))
+      .map(([name]) => name);
+
+    const list = panel.querySelector('ul');
+    expect(list).toHaveClass('grid', 'grid-cols-3');
+
+    const chips = within(panel)
+      .getAllByRole('button')
+      .filter((element) => element.getAttribute('aria-label')?.startsWith('筛选标签 '));
+    expect(chips.map((element) => element.textContent)).toEqual(expectedOrder);
+    // 小字号小按钮：不再是一行一个的整宽列表项。
+    expect(chips[0]).toHaveClass('min-h-8', 'text-[11px]');
+    expect(chips[0]).not.toHaveClass('justify-between');
   });
 
   it('?tag= 直访按标签过滤，清除标签后恢复完整列表', async () => {

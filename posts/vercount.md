@@ -15,6 +15,7 @@ series: false
 draft: false
 ---
 # 起因
+
 不蒜子的稳定性大幅降低 时不时就炸 而且性能也一般  
 于是我就找到了这款更加现代的网站计数器 - [Vercount](https://www.vercount.one/)  
 (其实也不是现在找的 早就看到并且Star了 只是之前一直懒着没换)

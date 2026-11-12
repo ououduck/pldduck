@@ -480,6 +480,7 @@ describe('评论渲染', () => {
       result: { verdict: 'not-found', message: '没检测到', stats: {} },
       deployed: true,
     });
+    expect(body).toContain('人工审核已通过，已添加至友链页');
     expect(body).toContain('人工放行');
     expect(body).toContain('abc123d');
     expect(body).toContain('Deploy to Cloudflare Worker');
@@ -499,6 +500,7 @@ describe('评论渲染', () => {
     expect(body).toContain('自动检测全部通过');
     expect(body).toContain('已自动关闭');
     expect(body).not.toContain('站长已人工确认');
+    expect(body).not.toContain('人工审核已通过');
   });
 
   it('部署触发失败时如实说明要手动部署', () => {

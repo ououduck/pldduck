@@ -541,16 +541,20 @@ export const renderApprovedComment = ({
   auto = false,
 }) =>
   renderComment({
-    title: auto ? '已收录：自动检测全部通过，友链文件已写入' : '已收录：站长审核通过，友链文件已写入',
+    title: auto ? '已收录：自动检测全部通过，友链文件已写入' : '已收录：人工审核通过，已添加至友链页',
     paragraphs: [
       auto
         ? `表单、站点与头像的可达性、反链检测全部通过，本条友链已自动写入 \`${FRIENDS_DIR}/${filename}.json\`（commit \`${String(commitSha ?? '').slice(0, 7)}\`）。`
-        : `站长已人工确认，本条友链写入 \`${FRIENDS_DIR}/${filename}.json\`（commit \`${String(commitSha ?? '').slice(0, 7)}\`）。`,
+        : // 人工放行（站长打 friend-approved）时给提交者的固定告知：先说明「已通过」，再补写入证据。
+          '人工审核已通过，已添加至友链页。',
       auto
         ? '反链检测命中，证据见下；本 Issue 已自动关闭。'
-        : result?.verdict === 'found'
-          ? `反链检测同时命中，证据见下。`
-          : `注意：自动反链检测**未**命中（${result?.message ?? '未执行'}），本条为人工放行。`,
+        : [
+            `写入 \`${FRIENDS_DIR}/${filename}.json\`（commit \`${String(commitSha ?? '').slice(0, 7)}\`）。`,
+            result?.verdict === 'found'
+              ? '反链检测同时命中，证据见下。'
+              : `注意：自动反链检测**未**命中（${result?.message ?? '未执行'}），本条为人工放行。`,
+          ].join('\n'),
       deployed
         ? '已自动触发 `Deploy to Cloudflare Worker`，站点要等那次运行跑完才会更新（不是立刻生效）。'
         : '⚠️ 自动触发部署失败，请到 Actions 手动运行 `Deploy to Cloudflare Worker`。',

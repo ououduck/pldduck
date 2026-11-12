@@ -315,7 +315,8 @@ Worker 已开启 **Workers Observability / Workers Logs**（`wrangler.jsonc` 的
    再用无头浏览器渲染一次（JS 挂件也能识别），并把证据（含「检测方式」）公示在 Issue 里。
 4. **全部检测通过（表单合法 + 站点/头像可访问 + 反链命中）会自动收录**：机器人生成 `friends/<slug>.json`、
    触发部署并关闭 Issue，不需要人工审核。任一环节没通过，Issue 保持开启、只公示证据，由站长人工处理
-   （打 `friend-approved` 标签即收录；决定不收就直接手动关闭 Issue）。
+   （打 `friend-approved` 标签即收录：机器人会评论「人工审核已通过，已添加至友链页」并关闭 Issue；
+   决定不收就直接手动关闭 Issue）。
 5. 申请只用于**新增收录**：已收录条目如需修改名称、地址、简介或头像，或想把友链下架，请直接邮件联系 <pldduck@outlook.com>（不走 Issue 流程，重复提交同一站点会被判已收录）。
 6. 条目生效需要等待那次部署跑完，提交后不会立即出现在友链页。
 7. 本站维护一份**友链黑名单**（`config/friend-blacklist.json`，可在 Pages CMS 的「友链黑名单」里编辑）：

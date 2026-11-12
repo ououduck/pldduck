@@ -6,18 +6,25 @@
  * aria-label / title，不再靠省略号截断）；RSS 指向站内 `/feed.xml`（不加 target）；「更新订阅」
  * 取 `ISSUE_SUBSCRIPTION_URL` 常量，不硬编码。
  *
- * QQ 不再复制号码：入口只在 `social.qq` 与 `social.qqQrCode` 同时存在时渲染，鼠标悬停或点击
- * （触屏）打开二维码弹窗。弹窗经 portal 挂到 body —— 卡片入场动画的 transform 会让 fixed
- * 子元素退回卡片坐标系并被 `overflow-hidden` 裁掉；焦点陷阱 / 滚动锁 / Escape / 焦点还原
- * 复用 `useModalOverlay`。二维码加载失败如实提示，不伪装成功。
+ * QQ 不再复制号码：入口只在 `social.qq` 与 `social.qqQrCode` 同时存在时渲染。鼠标悬停时在按钮
+ * 正上方弹出小悬浮层（手机点击切换开合），不接管焦点、不锁滚动、不带全屏遮罩。悬浮层经 portal
+ * 固定定位到按钮上方 —— 卡片入场动画的 transform 会让 fixed 子元素退回卡片坐标系，并被
+ * `overflow-hidden` 裁掉；位置随滚动/缩放重新计算，空间不足时自动翻到按钮下方。
  */
 
-import { useId, useRef, useState, type FC } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FC,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Github, Mail, Rss, X } from 'lucide-react';
+import { Bell, Github, Mail, Rss } from 'lucide-react';
 import { siteConfig } from '@config/site.config';
 import { ISSUE_SUBSCRIPTION_URL } from '@/components/IssueSubscriptionCard';
-import { useModalOverlay } from '@/hooks/useModalOverlay';
 import { assetUrl } from '@/utils/siteUrl';
 import { Widget } from './Widget';
 
@@ -28,21 +35,50 @@ const contactIconClassName = 'shrink-0 opacity-70';
 
 const contactLabelClassName = 'whitespace-nowrap underline-offset-4 group-hover:underline';
 
-/**
- * 关闭弹窗后的「悬停重开」抑制窗口。
- *
- * 遮罩被移除时，指针下的元素发生变化，浏览器会立刻给 QQ 入口补发一次 `mouseenter`；
- * 不拦住就会「刚关掉又弹开」（Esc 永远关不上）。补发通常在同一帧内完成，几百毫秒足够。
- * 点击不受此限（主动意图由 onClick 直接打开）。
- */
-const HOVER_REOPEN_BLOCK_MS = 400;
-
 /** QQ 品牌图标（Simple Icons 的 QQ 单路径，24×24，currentColor 与其它 lucide 图标同色）。 */
 const QqIcon: FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 24 24" width={15} height={15} fill="currentColor" aria-hidden="true" className={className}>
     <path d="M21.395 15.035a40 40 0 0 0-.803-2.264l-1.079-2.695c.001-.032.014-.562.014-.836C19.526 4.632 17.351 0 12 0S4.474 4.632 4.474 9.241c0 .274.013.804.014.836l-1.08 2.695a39 39 0 0 0-.802 2.264c-1.021 3.283-.69 4.643-.438 4.673.54.065 2.103-2.472 2.103-2.472 0 1.469.756 3.387 2.394 4.771-.612.188-1.363.479-1.845.835-.434.32-.379.646-.301.778.343.578 5.883.369 7.482.189 1.6.18 7.14.389 7.483-.189.078-.132.132-.458-.301-.778-.483-.356-1.233-.646-1.846-.836 1.637-1.384 2.393-3.302 2.393-4.771 0 0 1.563 2.537 2.103 2.472.251-.03.581-1.39-.438-4.673" />
   </svg>
 );
+
+const QQ_POPOVER_WIDTH = 200;
+const QQ_POPOVER_GAP = 10;
+/** 悬浮层的大致高度（标题 + 160px 二维码 + 说明），只用于判断上下是否放得下。 */
+const QQ_POPOVER_HEIGHT = 240;
+const HOVER_CLOSE_DELAY_MS = 150;
+
+interface PopoverPosition {
+  left: number;
+  top?: number;
+  bottom?: number;
+  placement: 'top' | 'bottom';
+}
+
+/** 鼠标/触控笔才算「悬停」；触屏的 pointerenter 交给 click 处理，避免一触即开又立刻被 click 关掉。 */
+const isHoverPointer = (pointerType: string) => !pointerType || pointerType === 'mouse';
+
+const getPopoverPosition = (button: HTMLButtonElement): PopoverPosition => {
+  const rect = button.getBoundingClientRect();
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const halfWidth = QQ_POPOVER_WIDTH / 2;
+  const left = Math.min(
+    Math.max(rect.left + rect.width / 2, halfWidth + 8),
+    Math.max(halfWidth + 8, viewportWidth - halfWidth - 8),
+  );
+
+  // 按钮上方放得下就向上弹（默认），否则翻到下方，避免被视口顶部裁掉。
+  if (rect.top >= QQ_POPOVER_HEIGHT + QQ_POPOVER_GAP + 8) {
+    return { left, bottom: viewportHeight - rect.top + QQ_POPOVER_GAP, placement: 'top' };
+  }
+
+  return {
+    left,
+    top: Math.min(rect.bottom + QQ_POPOVER_GAP, Math.max(8, viewportHeight - QQ_POPOVER_HEIGHT - 8)),
+    placement: 'bottom',
+  };
+};
 
 export const ContactWidget = () => {
   const { github, email, rawEmail, qq: qqNumber, qqQrCode } = siteConfig.social;
@@ -52,42 +88,126 @@ export const ContactWidget = () => {
 
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [qrFailed, setQrFailed] = useState(false);
-  const qrDialogRef = useRef<HTMLDivElement | null>(null);
-  const qrCloseButtonRef = useRef<HTMLButtonElement | null>(null);
-  const qrDialogId = useId();
-  const qrTitleId = useId();
-  const qrHintId = useId();
-  const hoverReopenBlockedUntilRef = useRef(0);
+  const [popoverPosition, setPopoverPosition] = useState<PopoverPosition | null>(null);
+  const qqButtonRef = useRef<HTMLButtonElement | null>(null);
+  const qqPopoverRef = useRef<HTMLDivElement | null>(null);
+  const hoverCloseTimerRef = useRef<number | null>(null);
+  const qqPopoverId = useId();
 
-  const closeQrDialog = () => {
-    hoverReopenBlockedUntilRef.current = Date.now() + HOVER_REOPEN_BLOCK_MS;
+  const clearHoverCloseTimer = useCallback(() => {
+    if (hoverCloseTimerRef.current !== null) {
+      window.clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+  }, []);
+
+  const closeQrPopover = useCallback(() => {
+    clearHoverCloseTimer();
     setIsQrOpen(false);
-  };
+    setPopoverPosition(null);
+  }, [clearHoverCloseTimer]);
 
-  const openQrDialog = () => {
-    // 重新打开时清掉上一次的加载失败态，失败反馈只属于当前这次打开。
-    setQrFailed(false);
-    setIsQrOpen(true);
-  };
-
-  const handleQqMouseEnter = () => {
-    if (Date.now() < hoverReopenBlockedUntilRef.current) {
+  const openQrPopover = useCallback(() => {
+    const button = qqButtonRef.current;
+    if (!button) {
       return;
     }
-    openQrDialog();
+    clearHoverCloseTimer();
+    // 重新打开时清掉上一次的加载失败态，失败反馈只属于当前这次打开。
+    setQrFailed(false);
+    setPopoverPosition(getPopoverPosition(button));
+    setIsQrOpen(true);
+  }, [clearHoverCloseTimer]);
+
+  const scheduleHoverClose = useCallback(() => {
+    clearHoverCloseTimer();
+    hoverCloseTimerRef.current = window.setTimeout(() => {
+      hoverCloseTimerRef.current = null;
+      closeQrPopover();
+    }, HOVER_CLOSE_DELAY_MS);
+  }, [clearHoverCloseTimer, closeQrPopover]);
+
+  const updatePopoverPosition = useCallback(() => {
+    if (!qqButtonRef.current) {
+      return;
+    }
+    setPopoverPosition(getPopoverPosition(qqButtonRef.current));
+  }, []);
+
+  const handleQqPointerEnter = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!isHoverPointer(event.pointerType)) {
+      return;
+    }
+    openQrPopover();
   };
 
+  const handleQqPointerLeave = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!isHoverPointer(event.pointerType)) {
+      return;
+    }
+    scheduleHoverClose();
+  };
+
+  // 触屏点击切换开合；桌面端点击已由悬停展开，再点一次即关闭。
   const handleQqClick = () => {
-    // 点击是主动意图：抑制窗口内也允许重新打开。
-    openQrDialog();
+    if (isQrOpen) {
+      closeQrPopover();
+    } else {
+      openQrPopover();
+    }
   };
 
-  useModalOverlay({
-    isOpen: isQrOpen,
-    onClose: closeQrDialog,
-    initialFocusRef: qrCloseButtonRef,
-    containerRef: qrDialogRef,
-  });
+  const handlePopoverPointerEnter = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (isHoverPointer(event.pointerType)) {
+      clearHoverCloseTimer();
+    }
+  };
+
+  const handlePopoverPointerLeave = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (isHoverPointer(event.pointerType)) {
+      scheduleHoverClose();
+    }
+  };
+
+  // 打开期间：Escape / 点击悬浮层外部关闭；滚动与缩放时重新锚定到按钮。
+  useEffect(() => {
+    if (!isQrOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+      event.preventDefault();
+      closeQrPopover();
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (qqPopoverRef.current?.contains(target) || qqButtonRef.current?.contains(target)) {
+        return;
+      }
+      closeQrPopover();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('resize', updatePopoverPosition);
+    window.addEventListener('scroll', updatePopoverPosition, true);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('resize', updatePopoverPosition);
+      window.removeEventListener('scroll', updatePopoverPosition, true);
+    };
+  }, [closeQrPopover, isQrOpen, updatePopoverPosition]);
+
+  useEffect(() => () => clearHoverCloseTimer(), [clearHoverCloseTimer]);
 
   return (
     <Widget id="home-contact" title="联系方式" index={5} className="lg:col-span-3 xl:col-span-5">
@@ -108,13 +228,15 @@ export const ContactWidget = () => {
 
         {qqNumber && qrImageUrl && (
           <button
+            ref={qqButtonRef}
             type="button"
-            onMouseEnter={handleQqMouseEnter}
+            onPointerEnter={handleQqPointerEnter}
+            onPointerLeave={handleQqPointerLeave}
             onClick={handleQqClick}
             aria-label={`查看 QQ 二维码（QQ 号 ${qqNumber}）`}
             aria-haspopup="dialog"
             aria-expanded={isQrOpen}
-            aria-controls={isQrOpen ? qrDialogId : undefined}
+            aria-controls={isQrOpen ? qqPopoverId : undefined}
             className={contactItemClassName}
           >
             <QqIcon className={contactIconClassName} />
@@ -148,67 +270,54 @@ export const ContactWidget = () => {
       {isQrOpen &&
         qqNumber &&
         qrImageUrl &&
+        popoverPosition &&
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="fixed inset-0 z-modal flex items-center justify-center bg-black/65 p-4"
-            onClick={(event) => {
-              if (event.target === event.currentTarget) {
-                closeQrDialog();
-              }
+            ref={qqPopoverRef}
+            id={qqPopoverId}
+            role="dialog"
+            aria-label={`QQ 号 ${qqNumber} 的二维码`}
+            style={{
+              left: popoverPosition.left,
+              top: popoverPosition.top,
+              bottom: popoverPosition.bottom,
+              width: QQ_POPOVER_WIDTH,
             }}
+            onPointerEnter={handlePopoverPointerEnter}
+            onPointerLeave={handlePopoverPointerLeave}
+            className="fixed z-nested -translate-x-1/2 rounded-overlay border border-line bg-surface p-3 text-content shadow-2xl"
           >
-            <div
-              ref={qrDialogRef}
-              id={qrDialogId}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby={qrTitleId}
-              aria-describedby={qrHintId}
-              className="w-full max-w-[18rem] rounded-overlay border border-line bg-surface p-5 text-content shadow-2xl"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 id={qrTitleId} className="text-sm font-semibold text-content">
-                    QQ 二维码
-                  </h3>
-                  <p className="mt-1 text-[11px] text-content-muted">QQ 号 {qqNumber}</p>
-                </div>
-                <button
-                  ref={qrCloseButtonRef}
-                  type="button"
-                  onClick={closeQrDialog}
-                  aria-label="关闭 QQ 二维码"
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-icon text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-content"
+            <p className="text-center text-[11px] text-content-muted">QQ 号 {qqNumber}</p>
+
+            <div className="mt-2 flex justify-center">
+              {qrFailed ? (
+                <p
+                  role="status"
+                  className="flex h-40 w-40 items-center justify-center rounded-control bg-surface-muted px-3 text-center text-[11px] leading-5 text-content-muted"
                 >
-                  <X size={16} aria-hidden="true" />
-                </button>
-              </div>
-
-              <div className="mt-4 flex justify-center">
-                {qrFailed ? (
-                  <p
-                    role="status"
-                    className="flex min-h-52 w-52 items-center justify-center rounded-control bg-surface-muted px-4 text-center text-[11px] leading-5 text-content-muted"
-                  >
-                    二维码加载失败，请稍后重试。
-                  </p>
-                ) : (
-                  <img
-                    src={qrImageUrl}
-                    alt={`QQ 号 ${qqNumber} 的二维码`}
-                    width={208}
-                    height={208}
-                    onError={() => setQrFailed(true)}
-                    className="h-52 w-52 rounded-control bg-white object-contain p-2"
-                  />
-                )}
-              </div>
-
-              <p id={qrHintId} className="mt-3 text-center text-[11px] leading-5 text-content-muted">
-                用手机 QQ 扫一扫，添加好友
-              </p>
+                  二维码加载失败，请稍后重试。
+                </p>
+              ) : (
+                <img
+                  src={qrImageUrl}
+                  alt={`QQ 号 ${qqNumber} 的二维码`}
+                  width={160}
+                  height={160}
+                  onError={() => setQrFailed(true)}
+                  className="h-40 w-40 rounded-control bg-white object-contain p-1.5"
+                />
+              )}
             </div>
+
+            <p className="mt-2 text-center text-[11px] text-content-muted">手机 QQ 扫一扫</p>
+
+            <span
+              aria-hidden="true"
+              className={`absolute left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 border-line bg-surface ${
+                popoverPosition.placement === 'top' ? '-bottom-[5px] border-b border-r' : '-top-[5px] border-l border-t'
+              }`}
+            />
           </div>,
           document.body,
         )}

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
 /**
- * 联系方式卡（首页）：QQ 二维码弹窗、邮箱前缀显示与六个入口的统一样式。
+ * 联系方式卡（首页）：QQ 二维码悬浮层、邮箱前缀显示与六个入口的统一样式。
  *
  * 配置用可变 mock：真实 `config/site.config.json` 里的 `social.qqQrCode` 由 Pages CMS 填写，
  * 测试不能依赖它当前是否为空。
@@ -37,10 +37,16 @@ const renderWidget = () =>
   );
 
 const getQqButton = () => screen.getByRole('button', { name: /QQ 二维码/ });
+const findPopover = () => screen.findByRole('dialog', { name: 'QQ 号 10001 的二维码' });
 
-const openQrDialog = async () => {
-  await userEvent.setup().click(getQqButton());
-  return screen.findByRole('dialog', { name: 'QQ 二维码' });
+const openByHover = async () => {
+  await userEvent.setup().hover(getQqButton());
+  return findPopover();
+};
+
+const openByClick = () => {
+  fireEvent.click(getQqButton());
+  return findPopover();
 };
 
 describe('ContactWidget', () => {
@@ -78,7 +84,7 @@ describe('ContactWidget', () => {
       expect(icon).toHaveAttribute('height', '15');
     });
 
-    // QQ 是内联 SVG（不是 lucide 的复制图标），可见文字只有 QQ，号码留到弹窗里。
+    // QQ 是内联 SVG（不是 lucide 的复制图标），可见文字只有 QQ，号码留到悬浮层里。
     const qqButton = getQqButton();
     expect(qqButton.querySelector('svg path')).not.toBeNull();
     expect(qqButton).toHaveTextContent('QQ');
@@ -93,103 +99,90 @@ describe('ContactWidget', () => {
     expect(screen.getByRole('navigation', { name: '联系方式' }).querySelectorAll('a, button')).toHaveLength(5);
   });
 
-  it('鼠标悬停即弹出二维码弹窗（图片来自 CMS 配置）', async () => {
-    const user = userEvent.setup();
+  it('鼠标悬停时在按钮上方弹出小悬浮层（非全屏遮罩、无 aria-modal）', async () => {
     renderWidget();
 
     const qqButton = getQqButton();
     expect(qqButton).toHaveAttribute('aria-haspopup', 'dialog');
     expect(qqButton).toHaveAttribute('aria-expanded', 'false');
 
-    await user.hover(qqButton);
+    const popover = await openByHover();
 
-    const dialog = await screen.findByRole('dialog', { name: 'QQ 二维码' });
-    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(popover).not.toHaveAttribute('aria-modal');
+    expect(popover.className).toContain('fixed');
+    expect(popover.style.width).toBe('200px');
+    expect(popover.style.left).toBeTruthy();
+    expect(popover.style.top || popover.style.bottom).toBeTruthy();
+    // 不是全屏遮罩：没有覆盖整个视口的 fixed inset-0 背景层。
+    expect(document.querySelector('.fixed.inset-0')).toBeNull();
+
     expect(qqButton).toHaveAttribute('aria-expanded', 'true');
-    expect(qqButton).toHaveAttribute('aria-controls', dialog.id);
+    expect(qqButton).toHaveAttribute('aria-controls', popover.id);
 
     const image = screen.getByRole('img', { name: 'QQ 号 10001 的二维码' });
     expect(image).toHaveAttribute('src', 'https://cdn.example.com/qq-qr.png');
     expect(screen.getByText('QQ 号 10001')).toBeInTheDocument();
   });
 
-  it('点击同样打开弹窗（手机点击路径），弹窗挂在 body 上不被卡片裁剪', async () => {
-    const user = userEvent.setup();
+  it('悬浮层挂在 body 上，不被卡片入场动画与 overflow-hidden 裁剪', async () => {
     renderWidget();
 
-    await user.click(getQqButton());
+    const popover = await openByHover();
 
-    const dialog = await screen.findByRole('dialog', { name: 'QQ 二维码' });
-    // 卡片有入场动画的 transform + overflow-hidden：fixed 子元素会被裁剪，必须走 portal。
-    expect(document.body.contains(dialog)).toBe(true);
-    expect(screen.getByRole('navigation', { name: '联系方式' }).contains(dialog)).toBe(false);
+    expect(document.body.contains(popover)).toBe(true);
+    expect(screen.getByRole('navigation', { name: '联系方式' }).contains(popover)).toBe(false);
   });
 
-  it('Escape 关闭弹窗并把焦点还给 QQ 入口', async () => {
+  it('鼠标移出后收起悬浮层', async () => {
     const user = userEvent.setup();
     renderWidget();
 
-    const qqButton = getQqButton();
-    qqButton.focus();
-    await user.keyboard('{Enter}');
+    await user.hover(getQqButton());
+    await findPopover();
 
-    await screen.findByRole('dialog', { name: 'QQ 二维码' });
-    await waitFor(() => expect(screen.getByRole('button', { name: '关闭 QQ 二维码' })).toHaveFocus());
-
-    await user.keyboard('{Escape}');
-
+    await user.unhover(getQqButton());
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    await waitFor(() => expect(qqButton).toHaveFocus());
   });
 
-  it('关闭后指针仍停在入口上时，不会被浏览器补发的 mouseenter 立刻重开', async () => {
-    const user = userEvent.setup();
+  it('触屏的 pointerenter 不会误开，点击可切换开合（手机点击路径）', async () => {
     renderWidget();
-
     const qqButton = getQqButton();
-    fireEvent.mouseEnter(qqButton);
-    await screen.findByRole('dialog', { name: 'QQ 二维码' });
 
-    await user.keyboard('{Escape}');
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-
-    // 遮罩移除后，指针下的入口会收到一次补发的 mouseenter：不能因此立刻弹回。
-    fireEvent.mouseEnter(qqButton);
+    fireEvent.pointerOver(qqButton, { pointerType: 'touch', relatedTarget: null });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    // 抑制窗口结束后，悬停打开恢复正常（点击路径不受抑制窗口限制）。
-    await new Promise((resolve) => setTimeout(resolve, 450));
-    fireEvent.mouseEnter(qqButton);
-    expect(await screen.findByRole('dialog', { name: 'QQ 二维码' })).toBeInTheDocument();
+    fireEvent.click(qqButton);
+    await findPopover();
+
+    fireEvent.click(qqButton);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('点击关闭按钮或遮罩都能关闭弹窗', async () => {
-    const user = userEvent.setup();
+  it('Escape 与点击悬浮层外部都能关闭', async () => {
     renderWidget();
 
-    await openQrDialog();
-    await user.click(screen.getByRole('button', { name: '关闭 QQ 二维码' }));
+    await openByClick();
+    fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
-    await openQrDialog();
-    const dialog = screen.getByRole('dialog', { name: 'QQ 二维码' });
-    fireEvent.click(dialog.parentElement as HTMLElement);
+    await openByClick();
+    fireEvent.pointerDown(document.body);
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('二维码加载失败时如实提示，重新打开会重置失败态', async () => {
-    const user = userEvent.setup();
     renderWidget();
 
-    await openQrDialog();
+    await openByClick();
     fireEvent.error(screen.getByRole('img', { name: 'QQ 号 10001 的二维码' }));
 
     expect(screen.getByRole('status')).toHaveTextContent('二维码加载失败，请稍后重试。');
     expect(screen.queryByRole('img', { name: 'QQ 号 10001 的二维码' })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: '关闭 QQ 二维码' }));
-    await openQrDialog();
+    fireEvent.click(getQqButton());
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
+    await openByClick();
     expect(screen.getByRole('img', { name: 'QQ 号 10001 的二维码' })).toBeInTheDocument();
   });
 });

@@ -24,8 +24,9 @@
 2026-11 用户确认把侧栏「订阅与联系」分组整体迁到首页：侧栏只保留导航与工具，首页承担全站搜索与
 联系/订阅入口；不要因为旧规则写过「首页不得有搜索」就把它删掉或搬回侧栏。
 
-2026-11 用户确认调整联系方式卡：QQ 不再复制号码，改用 SVG 图标，鼠标悬停或手机点击时弹出二维码弹窗
-（二维码图片地址写进 Pages CMS 的 `social.qqQrCode`）；邮箱按钮只显示 @ 前的前缀、所有入口不再用省略号截断。
+2026-11 用户确认调整联系方式卡：QQ 不再复制号码，改用 SVG 图标，鼠标悬停或手机点击时在按钮上方弹出
+二维码小悬浮层（二维码图片地址写进 Pages CMS 的 `social.qqQrCode`）；邮箱按钮只显示 @ 前的前缀、
+所有入口不再用省略号截断。悬浮层是**非模态**的小 popover，不是全屏遮罩弹窗。
 
 2026-11（第二轮改版）用户明确要求首页改为**小部件布局**，并授权破例：手机端改为上下滑动看卡片
 （不再禁止滚动）、允许出现推荐阅读/标签/写作档案这类内容小部件、卡片标题使用 `h2`。
@@ -56,7 +57,6 @@
 - `src/components/IssueSubscriptionCard.tsx`（只取导出的 `ISSUE_SUBSCRIPTION_URL` 常量做「更新订阅」外链，
   **不渲染卡片**）
 - `src/components/Seo.tsx`（`Seo` 与 `buildSiteSchemas`，首页 SEO 与结构化数据）
-- `src/hooks/useModalOverlay.ts`（QQ 二维码弹窗的焦点陷阱 / 滚动锁 / Escape / 焦点还原）
 - `src/utils/siteUrl.ts`（`assetUrl` / `absoluteSiteUrl`）
 - `src/pages/Home.test.tsx` / `src/components/home/ContactWidget.test.tsx` / `src/services/homeStats.test.ts`
 
@@ -73,18 +73,22 @@
 3. **SSG / 水合确定性**：渲染期禁止 fetch、`Date.now()`、`Math.random()`、`window` / `document` 访问；
    **「近 12 个月」「本年」必须锚定最新一篇文章的年月**（`getHomeStats()` 已如此实现），不得改用当前时钟
    —— 否则每次构建产物都漂移、SSR 与客户端首帧也对不上。锚点年份要在界面上显式写出（如「2026 年」），
-   不要说成「今年」。搜索输入初值固定空字符串，QQ 二维码弹窗与加载失败反馈只能出现在客户端事件之后。
+   不要说成「今年」。搜索输入初值固定空字符串，QQ 二维码悬浮层与加载失败反馈只能出现在客户端事件之后。
 4. **联系方式与订阅语义**：GitHub / 更新订阅 / 项目仓库外链用 `target="_blank"` + `rel="noopener noreferrer"`，
    可访问名称里标注「外部站点，新标签页打开」；邮箱用 `siteConfig.social.email`（`mailto:`），可见文字只显示
    `social.rawEmail` 中 @ 之前的前缀，完整地址放进 `aria-label` 与 `title`，**不得**再用 `truncate` / 省略号截断；
    RSS 用 `assetUrl('/feed.xml')`（站内资源，**不**加 `target`）；「更新订阅」的 href 必须取
    `ISSUE_SUBSCRIPTION_URL` 常量，**不得**在首页硬编码 Issue URL。QQ 入口只在 `siteConfig.social.qq` 与
    `siteConfig.social.qqQrCode` 同时存在时渲染，**不再复制号码**（不引入 clipboard / 复制反馈）：
-   鼠标悬停（`onMouseEnter`）或点击（触屏）打开屏幕居中的二维码弹窗，图片地址必须过 `assetUrl(qqQrCode)`；
-   弹窗必须用 `createPortal` 挂到 `document.body`（卡片 `.home-reveal` 的 transform 会让 `fixed` 子元素
-   退回卡片坐标系并被 `overflow-hidden` 裁掉），复用 `useModalOverlay` 的焦点陷阱 / 滚动锁 / Escape /
-   焦点还原，关闭途径含关闭按钮、遮罩点击与 Escape；二维码加载失败必须经 `role="status"` 如实提示，
-   重新打开时重置失败态，不得伪装成功。首页只放「更新订阅」文字入口，**不得**渲染 `IssueSubscriptionCard`。
+   鼠标悬停（`onPointerEnter` 且 `pointerType` 为 mouse）时在按钮**正上方**弹出二维码小悬浮层，
+   手机点击（`pointerType` 为 touch）走 click 切换开合；触屏的 pointerenter 必须忽略，避免一触即开又被
+   click 立刻关掉。图片地址必须过 `assetUrl(qqQrCode)`。悬浮层是**非模态 popover**：不锁滚动、不做焦点
+   陷阱、不得渲染全屏遮罩；必须用 `createPortal` 挂到 `document.body` 并读按钮 `getBoundingClientRect()`
+   做 `fixed` 定位（卡片入场动画的 transform 会让 `fixed` 子元素退回卡片坐标系并被 `overflow-hidden` 裁掉），
+   上方空间不足时翻到按钮下方；打开期间监听 scroll / resize 重新锚定。关闭途径：鼠标移出（含从按钮移入
+   悬浮层的短暂宽限）、Escape、点击悬浮层外部、再次点击入口。二维码加载失败必须经 `role="status"` 如实
+   提示，重新打开时重置失败态，不得伪装成功。首页只放「更新订阅」文字入口，**不得**渲染
+   `IssueSubscriptionCard`。
 5. **SEO 保持现状**：`<Seo title={siteConfig.title} description={siteConfig.description} />` —— `title`
    必须逐字等于 `siteConfig.title`，否则 `seoHomeTitle` / `seoHomeDescription` 的首页覆盖不生效
    （见 `Seo.tsx`）；该覆盖只对 `/` 有效，其他页面不得复用 `siteConfig.title` 作为标题。
@@ -97,7 +101,7 @@
    （`Widget` 通过 `aria-labelledby` 关联），不得出现跳级标题；搜索表单用 `role="search"` +
    `<label className="sr-only">`（`htmlFor` 指向输入框 id）；联系方式区用 `<nav aria-label="联系方式">`；
    QQ 入口有明确的可访问名称（含号码）并声明 `aria-haspopup="dialog"` / `aria-expanded` / `aria-controls`；
-   二维码弹窗用 `role="dialog"` + `aria-modal="true"` + `aria-labelledby` / `aria-describedby`，
+   二维码悬浮层用 `role="dialog"` + `aria-label`（**非模态，不写 `aria-modal`、不抢焦点**），
    二维码图片有含号码的 `alt`，加载失败用 `role="status"` 播报；写作档案柱状图用
    `role="img"` + `aria-label` 给出文字摘要（图形不可读时也不能丢信息）。
 7. **无全局 Footer**：`Layout` 不再渲染页面底部 Footer（版权只在侧栏底部），首页不得补页脚、版权或
@@ -107,7 +111,7 @@
    `@media (prefers-reduced-motion: reduce)` 下必须 `animation: none` 直接可见；动画不得让 LCP 元素
    长期不可见、不得引发布局位移，也不得在 SSR 首帧输出 `opacity: 0` 的内联样式。
 9. **性能**：`getHomeStats()` 有模块级缓存，不要在渲染期重排文章元数据、不要每次渲染重新 `sort`；
-   组件内 state 只允许搜索输入、QQ 二维码弹窗开合 / 加载失败与服务状态快照；不得引入文章搜索索引、搜索建议/结果预览、
+   组件内 state 只允许搜索输入、QQ 二维码悬浮层开合 / 加载失败 / 锚点位置与服务状态快照；不得引入文章搜索索引、搜索建议/结果预览、
    `preloadPage` 预加载或订阅卡等旧逻辑；柱状图是纯 CSS，不得引入图表库。
 10. **全站搜索行为**：表单提交时 `trim()` 查询——空查询跳 `/search`，非空跳 `/search?q=<encodeURIComponent>`；
     首页**只**做跳转，不请求索引、不渲染结果、不打开命令面板、不处理 `?q=` URL 参数
@@ -157,8 +161,9 @@
   统一放在首页（规则 4）。
 - 看到 `config/portal.config.json` 仍存在，就以为首页还该消费它：它只是历史配置，暂保留 ≠ 恢复渲染。
 - 作者头像直接用 `/logo-96.png` 裸路径：必须过 `assetUrl()`，子路径部署下否则 404。
-- 把 QQ 入口改回复制号码、或把二维码弹窗直接写在卡片里：弹窗必须走 `createPortal` + `useModalOverlay`，
-  否则会被 `.home-reveal` 的 transform / `overflow-hidden` 裁剪，也拿不到焦点陷阱与滚动锁。
+- 把 QQ 二维码做成全屏遮罩 / 焦点陷阱弹窗：用户要的是贴在按钮上方的小悬浮层（非模态 popover），
+  不锁滚动、不抢焦点、不加全屏背景；把它直接 `absolute` 写在卡片里则会被 `.home-reveal` 的 transform /
+  `overflow-hidden` 裁剪，必须 `createPortal` + 读按钮 rect 做 `fixed` 定位。
 - 给联系方式入口保留 `truncate` / 省略号，或让邮箱显示完整地址：用户已确认只显示 @ 前的前缀
   （完整地址放进可访问名称与 `title`），按钮样式与图标尺寸必须与其它入口一致。
 - 去掉 `ProfilePage` 或只传 `profilePageSchema`：会丢掉 WebSite / Organization，SEO 审计失败。

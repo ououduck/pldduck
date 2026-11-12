@@ -95,6 +95,7 @@ const configCollections = [
   { collection: 'siteConfig', file: 'config/site.config.json' },
   { collection: 'portalConfig', file: 'config/portal.config.json' },
   { collection: 'commentsConfig', file: 'config/comments.config.json' },
+  { collection: 'friendBlacklist', file: 'config/friend-blacklist.json' },
 ];
 
 describe('PagesCMS 站点配置字段与三份配置文件一一对应', () => {

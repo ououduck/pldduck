@@ -6,7 +6,7 @@
 
 `friends/*.json` 有**两条互不相交的写入路径**，各改各的键：
 
-- **A 道 · 申请入库**（`.github/workflows/friend-link.yml`）：先做**可达性探测**（站点地址与头像在境外打不开就转人工，不自动关闭），能访问时再抓取对方页面做**反链检测（静态抓取优先，未命中用无头浏览器渲染兜底）**。**全部检测通过（表单合法 + 站点/头像可达 + 反链命中）→ 机器人自动写入、触发部署并关闭 Issue**（2026-11 用户授权，happy path 不再人工审核）；**任一环节没通过 → 只出证据、保持开启，转站长人工**：确认收录就打 `friend-approved` 标签（走同一条写入路径），决定不收就直接手动关闭 Issue（没有单独的拒绝标签）。此道只写展示字段，**永不触碰 `unavailable`**。
+- **A 道 · 申请入库**（`.github/workflows/friend-link.yml`）：先查**友链黑名单**（命中直接拦截并关闭，见规则 15）与做**可达性探测**（站点地址与头像在境外打不开就转人工，不自动关闭），能访问时再抓取对方页面做**反链检测（静态抓取优先，未命中用无头浏览器渲染兜底）**。**全部检测通过（表单合法 + 站点/头像可达 + 反链命中）→ 机器人自动写入、触发部署并关闭 Issue**（2026-11 用户授权，happy path 不再人工审核）；**任一环节没通过 → 只出证据、保持开启，转站长人工**：确认收录就打 `friend-approved` 标签（走同一条写入路径），决定不收就直接手动关闭 Issue（没有单独的拒绝标签）。此道只写展示字段，**永不触碰 `unavailable`**。
 - **B 道 · 失联巡检**（`.github/workflows/friend-availability-audit.yml`，每天 02:00 UTC 定时 + Pages CMS 手动按钮）：探测每条记录的站点 URL，**双向**同步 `unavailable`（下线标失联、恢复移回上方），并**覆盖站长在 CMS 里的手工勾选**（2026-10 用户明确授权）。此道只写 `unavailable` 这一个键，其余字段原样透传。
 
 失联状态未配置时默认视为正常；前端两条路径都只读。
@@ -20,6 +20,7 @@
 - `.github/workflows/friend-link.yml`（检测 + 人工放行后的写入与部署）
 - `scripts/friend-link-check.mjs`（事件编排、抓取、GitHub API）
 - `scripts/lib/friend-backlink.mjs`（反链判定纯函数：`findBacklinkInAnchors` 是静态/渲染共用口径，`findBacklink` 只负责从 HTML 提取锚点）/ `scripts/lib/render-html.mjs`（渲染兜底：Playwright/Chromium + 逐请求 SSRF 护栏，失败一律退回静态结论）/ `scripts/lib/friend-form-core.mjs`（表单解析 + 记录校验，唯一校验权威；`withUnavailable` 是 B 道唯一的序列化出口）
+- `config/friend-blacklist.json`（Pages CMS「友链黑名单」直接编辑；匹配在 `scripts/lib/friend-blacklist.mjs`，泛域名口径见规则 15）
 - `src/types.ts`（`Friend.unavailable` 的 JSDoc 与本节口径同步）
 - `scripts/generate-site-data.mjs`（失联分组：缺键视为 false，不视为主列表之外的独立来源）
 - `.github/workflows/friend-availability-audit.yml`（B 道：定时 + CMS 手动按钮）
@@ -68,6 +69,11 @@
 12. **日志与评论安全**：Issue 标题/正文/用户字段进 Actions 日志或 Issue 评论前必须过 `sanitizeLogValue`，URL 必须过 `sanitizeUrlForLogs`；拒绝文案是固定串 + 常量邮箱，不掺任何用户输入。
 13. **编辑式页头**：删除英文大写眉题；页头是 `rounded-overlay bg-surface p-5 md:p-7` 的卡片，`h1` 用 `font-sans text-4xl font-bold md:text-5xl`、文案「友情链接」，描述低对比文字；右侧「随机前往」是 ghost 按钮（`min-h-11`、hover `surface-muted`、无可访问友链时 `disabled`），**不得**改回实底/描边按钮或恢复英文眉题。
 14. **卡片化视觉（2026-11 更新）**：页头、搜索区、申请面板、本站信息、表单、提示、失联面板、友链主列表与失联列表全部改为卡片式：页头/搜索/面板用 `rounded-overlay bg-surface`，内部分节用 `rounded-overlay bg-surface-muted p-4 md:p-5`，友链条目本身是 `rounded-overlay bg-surface-muted p-4`（hover `bg-surface`），主列表/失联列表为 1 / md:2 / lg:3 列 `gap-3` 网格。**不得**恢复旧的 `border-t`/`divide-y` 细线列表、三张独立卡片或重边框；amber 的「信息修改联系」块仍保留（`bg-amber-500/10` + `warning` 语义色，必须显眼）。
+15. **友链黑名单（2026-11 用户授权）**：站长在 Pages CMS 的「友链黑名单」（`config/friend-blacklist.json` 的 `domains`）维护域名，匹配逻辑在 `scripts/lib/friend-blacklist.mjs`（纯函数 + 单测），口径：
+    - 大小写不敏感；条目可以是域名或完整 URL（只取主机名）；国际化域名转 punycode 后比较；
+    - `example.com` 匹配裸域 + 所有子域；`*.example.com` 只匹配子域（不匹配裸域）；其它位置出现 `*`、空条目、单标签域名一律判无效并忽略（无效条数记日志，不影响有效条目）；
+    - 检查范围是**站点地址、反链页面、头像**三个地址（防止「申报 A 站、反链挂在被拉黑的 B 站」绕过）。
+      命中后：固定文案评论 + 打 `friend-blacklisted`、**关闭 Issue**、飞书「已拦截」，不写文件、不进入人工审核；`publishRecord` 里还有一层纵深防御，人工打 `friend-approved` 也会被拦（要收录须先从 CMS 移除该域名）。黑名单配置读不出来时**不静默放行**：评论提示配置不可用、打 `friend-needs-info` 转人工。
 
 ## 常见陷阱
 

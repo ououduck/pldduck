@@ -425,6 +425,12 @@ const FOOTER = [
 ].join('\n');
 
 /**
+ * 黑名单拦截评论的页脚：不能带「打 friend-approved 即入库」那句 —— 黑名单命中的
+ * 申请连人工放行都会被拦（要先从 CMS 黑名单移除），给申请人这个提示只会误导。
+ */
+const BLACKLIST_FOOTER = ['', '---', '', '*由 GitHub Actions 自动发布。*'].join('\n');
+
+/**
  * 组装机器人评论（统一带自循环标记与页脚）。
  * @param {object} input
  * @param {string} input.title 一级标题
@@ -554,6 +560,31 @@ export const renderApprovedComment = ({
       ['最后一次检测', detectionRows(result)],
     ],
   });
+
+/**
+ * 黑名单拦截评论：固定文案，不回显匹配规则，只回显命中的主机名。
+ * 黑名单命中的申请连人工放行都会被拦（要先从 CMS 移除），所以不能带「打标签即入库」的页脚。
+ * @param {object} input
+ * @param {string} input.url 命中的地址（站点/反链页/头像）
+ * @returns {string}
+ */
+export const renderBlacklistedComment = ({ url }) => {
+  let host = String(url ?? '');
+  try {
+    host = new URL(host).hostname;
+  } catch {
+    // 不是合法 URL 时原样展示（调用方传进来的通常是 URL，这里只是兜底）。
+  }
+  return renderComment({
+    title: '申请未通过：站点在友链黑名单中',
+    paragraphs: [
+      `申报的站点或资源地址（${inlineCode(host)}）已在本站的友链黑名单中，本流程不会收录该站点。`,
+      `如果你认为这是误判，欢迎邮件联系 ${REJECT_CONTACT_EMAIL}。`,
+    ],
+    note: '本 Issue 已关闭。黑名单调整后重开本 Issue 会重新检测。',
+    footer: BLACKLIST_FOOTER,
+  });
+};
 
 /** 站点无法访问时的固定话术（站长指定，逐字保留）。 */
 export const UNREACHABLE_NOTICE =

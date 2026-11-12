@@ -51,6 +51,7 @@ import {
   findBacklinkInAnchors,
 } from './lib/friend-backlink.mjs';
 import { renderPage } from './lib/render-html.mjs';
+import { findBlacklistHit, loadFriendBlacklist } from './lib/friend-blacklist.mjs';
 import {
   FRIEND_ISSUE_MARKER,
   FRIENDS_DIR,
@@ -63,6 +64,7 @@ import {
   looksLikeFriendApplication,
   renderApprovedComment,
   renderBlockedComment,
+  renderBlacklistedComment,
   renderDetectComment,
   renderUnreachableComment,
   suggestFilename,
@@ -108,6 +110,7 @@ const LABELS = Object.freeze({
   missing: 'friend-backlink-missing',
   needsInfo: 'friend-needs-info',
   unreachable: 'friend-unreachable',
+  blacklisted: 'friend-blacklisted',
   // 唯一的「放行」标签：自动收录时机器人自己打；自动流程没通过时站长手动打，
   // 走同一条写入路径（2026-11 用户授权：不再区分「人工确认」和「人工拒绝」两个标签）。
   approved: 'friend-approved',
@@ -486,6 +489,51 @@ const runDetect = async (issue) => {
     return;
   }
 
+  /* 友链黑名单（2026-11 用户授权）：命中的站点直接拦截并关闭，不自动收录、也不进人工审核。
+     配置读不出来时不静默放行 —— 转人工，避免「黑名单坏了 = 全部放行」。 */
+  const blacklist = loadFriendBlacklist({ rootDir: ROOT_DIR });
+  if (blacklist.error) {
+    logger.error('友链黑名单不可用，转人工', { error: blacklist.error });
+    await postComment(
+      issue.number,
+      renderBlockedComment({
+        title: '友链黑名单配置不可用',
+        reasons: [blacklist.error],
+        next: '站长修复 config/friend-blacklist.json 后，重开本 Issue 或评论一句即可重测。',
+      }),
+    );
+    await syncDetectionLabel(issue, LABELS.needsInfo);
+    await notify('friend-review', `【友链需人工】#${issue.number} 黑名单配置不可用\n${issueUrl(issue.number)}`);
+    return;
+  }
+  if (blacklist.invalid > 0) {
+    logger.warn('友链黑名单存在无效条目，已忽略', { invalid: blacklist.invalid });
+  }
+  const blacklistHit = findBlacklistHit(
+    [validated.record.url, validated.backlinkUrl, validated.record.avatar],
+    blacklist.patterns,
+  );
+  if (blacklistHit) {
+    await postComment(issue.number, renderBlacklistedComment({ url: blacklistHit.url }));
+    await syncDetectionLabel(issue, LABELS.blacklisted);
+    await closeIssue(issue.number, 'not_planned');
+    await notify(
+      'friend-blacklisted',
+      [
+        `【友链已拦截】#${issue.number} 命中黑名单`,
+        `地址：${sanitizeLogValue(blacklistHit.url)}`,
+        `规则：${sanitizeLogValue(blacklistHit.source)}`,
+        issueUrl(issue.number),
+      ].join('\n'),
+    );
+    logger.info('命中友链黑名单，已拦截', {
+      issue: issue.number,
+      host: blacklistHit.host,
+      source: blacklistHit.source,
+    });
+    return;
+  }
+
   /* 可达性检查：站点或头像在境外根本打不开 → 不自动收录，转人工（2026-11 用户授权：
      只有「全部通过」才自动上线；不通过一律留给站长决定，Issue 保持开启）。 */
   const site = { url: validated.record.url, ...(await probeUrl(validated.record.url)) };
@@ -612,6 +660,38 @@ const dispatchDeploy = () => repoClient.dispatchWorkflow(DEPLOY_WORKFLOW);
  */
 const publishRecord = async ({ issue, validated, filename, verdict, source }) => {
   const { record, canonicalUrl, backlinkUrl } = validated;
+
+  /* 黑名单的纵深防御：自动路径已在 runDetect 拦过，这里覆盖人工放行（friend-approved）。
+     命中就不写 —— 站长要收录须先从 CMS 黑名单里移除。 */
+  const blacklist = loadFriendBlacklist({ rootDir: ROOT_DIR });
+  if (blacklist.error) {
+    await postComment(
+      issue.number,
+      renderBlockedComment({
+        title: '友链黑名单配置不可用',
+        reasons: [blacklist.error],
+        next: '修复 config/friend-blacklist.json 后重新打 friend-approved。',
+      }),
+    );
+    return { published: false, reason: 'blacklist-error' };
+  }
+  const blacklistHit = findBlacklistHit([record.url, backlinkUrl, record.avatar], blacklist.patterns);
+  if (blacklistHit) {
+    await postComment(
+      issue.number,
+      renderBlockedComment({
+        title: '站点在友链黑名单中',
+        reasons: [`命中的地址：${blacklistHit.host}`],
+        next: '如确需收录，请先从 Pages CMS 的「友链黑名单」移除该域名，再重新打 friend-approved。',
+      }),
+    );
+    logger.info('命中友链黑名单，未写入', {
+      issue: issue.number,
+      host: blacklistHit.host,
+      source: blacklistHit.source,
+    });
+    return { published: false, reason: 'blacklisted' };
+  }
 
   /* 本流程只做「新增收录」：申请类型字段已于 2026-10 经用户授权从表单与模板里删除，
      地址已收录一律退回，改信息与下架都走站长邮箱（友链页第三张卡片）。 */

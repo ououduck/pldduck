@@ -67,6 +67,19 @@ content:
         description: 勾选后该友链归入「已失联的博客」板块。每日失联巡检会按探测结果双向覆写此开关（两次探测都打不开则勾上、恢复访问则取消），手工勾选会在下一轮巡检时被覆盖
         type: boolean
 
+  # ── 友链黑名单（单文件）：命中的站点不会自动收录，也不进人工审核 ──
+  - name: friendBlacklist
+    label: 友链黑名单
+    type: file
+    path: config/friend-blacklist.json
+    format: json
+    fields:
+      - name: domains
+        label: 黑名单域名（支持泛域名，如 *.spam.com）
+        description: 每行一个域名或完整 URL；example.com 会连带屏蔽所有子域，*.example.com 只屏蔽子域（不屏蔽裸域）；大小写不敏感。命中的申请会被直接拦截并关闭，不进入人工审核
+        type: string
+        list: true
+
   # ── 评论关键词配置（单文件，CMS 中直接编辑，保存即推送到仓库生效）──
   - name: commentKeywords
     label: 评论关键词

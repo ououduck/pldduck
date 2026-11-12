@@ -2,7 +2,8 @@
 #
 # 流程（规则见 ai-rules/friends.md 规则 3/4/5/6/7）：
 #   申请人开「友链申请」Issue（.github/ISSUE_TEMPLATE/friend-link-application.yml）
-#     → detect job：解析正文 → 验站点/头像在境外能否打开 → 抓反链（静态优先，渲染兜底）
+#     → detect job：解析正文 → 查友链黑名单（命中直接拦截并关闭）→ 验站点/头像在境外能否打开
+#       → 抓反链（静态优先，渲染兜底）
 #       · 全部通过（表单合法 + 站点/头像可达 + 反链命中）→ 自动写 friends/<slug>.json
 #         → 触发 deploy.yml → 评论「已收录」→ 自动关闭 Issue（2026-11 用户授权，
 #         happy path 不再需要人工打标签）

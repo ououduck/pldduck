@@ -19,6 +19,7 @@ import {
   pickDetectionUrl,
   looksLikeFriendApplication,
   renderApprovedComment,
+  renderBlacklistedComment,
   renderBlockedComment,
   renderComment,
   renderDetectComment,
@@ -384,6 +385,7 @@ describe('评论渲染', () => {
   it('每条评论都带自循环标记', () => {
     for (const body of [
       renderComment({ title: 'x' }),
+      renderBlacklistedComment({ url: 'https://spam.example/' }),
       renderBlockedComment({ title: 'y', reasons: ['z'] }),
       renderDetectComment({
         validated: validateFriendRecord(validValues()),
@@ -398,6 +400,16 @@ describe('评论渲染', () => {
     ]) {
       expect(body).toContain(FRIEND_ISSUE_MARKER);
     }
+  });
+
+  it('黑名单拦截评论：固定文案 + 只回显主机名，且不教申请人打放行标签', () => {
+    const body = renderBlacklistedComment({ url: 'https://spam.example/links?x=1' });
+    expect(body).toContain('友链黑名单');
+    expect(body).toContain('spam.example');
+    expect(body).not.toContain('spam.example/links');
+    expect(body).not.toContain('friend-approved');
+    expect(body).toContain('已关闭');
+    expect(body).toContain(FRIEND_ISSUE_MARKER);
   });
 
   it('用户文本一律进行内代码：拼不出可点链接、裸露 HTML 或多行字段', () => {

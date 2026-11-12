@@ -52,7 +52,7 @@ import { hasOpenOverlay } from '@/hooks/useModalOverlay';
 import { useReadingMode } from '@/components/ReadingModeContext';
 import { GiscusComments } from '@/components/GiscusComments';
 import { useSsgRouteData } from '@/ssr/routeData';
-import { fillBusuanziSpans } from '@/services/busuanzi';
+import { fillVercountSpans, VERCUNT_PENDING_TEXT } from '@/services/vercount';
 import { replaceUrlHash, scrollToHeadingElement } from '@/utils/headingScroll';
 
 type MarkdownImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
@@ -1100,10 +1100,10 @@ export const Post = () => {
     return () => observer.disconnect();
   }, []);
 
-  // 不蒜子阅读量 span 在阅读模式切换时才随 meta 行挂载/卸载；从缓存回填一次，
+  // Vercount 阅读量 span 在阅读模式切换时才随 meta 行挂载/卸载；从缓存回填一次，
   // 保证退出阅读模式后能即时显示（路由级 Ping 在 Layout 已完成上报）。
   useEffect(() => {
-    fillBusuanziSpans();
+    fillVercountSpans();
   }, [isReadingMode, post?.id]);
 
   useEffect(() => {
@@ -2054,13 +2054,16 @@ export const Post = () => {
                           <PostMetaDivider />
                           <span>{post.readTime}</span>
                         </span>
-                        <span className="inline-flex items-center gap-2.5 tabular-nums" title="由不蒜子提供本页阅读量">
+                        <span
+                          className="inline-flex items-center gap-2.5 tabular-nums"
+                          title="由 Vercount 提供本页阅读量"
+                        >
                           {/* 移动端换行到这一项时不要留下行首分隔点；桌面单行仍保留。 */}
                           <span className="hidden sm:inline">
                             <PostMetaDivider />
                           </span>
                           <span>
-                            <span id="busuanzi_page_pv">加载中</span> 次阅读
+                            <span id="vercount_value_page_pv">{VERCUNT_PENDING_TEXT}</span> 次阅读
                           </span>
                         </span>
                       </span>

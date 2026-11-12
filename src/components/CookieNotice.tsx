@@ -87,7 +87,7 @@ export const CookieNotice: React.FC = () => {
               id="cookie-notice-description"
               className="mt-3 text-[13px] leading-6 text-content-muted md:text-sm md:leading-7"
             >
-              本站使用必要的本地存储记住你的偏好，并使用 Clarity 与不蒜子统计了解访问情况；评论由 Giscus
+              本站使用必要的本地存储记住你的偏好，并使用 Clarity 与 Vercount 统计了解访问情况；评论由 Giscus
               承载。继续浏览即表示你了解上述处理方式，也可以先阅读
               <Link
                 to="/privacy"

@@ -22,8 +22,8 @@ const policySections = [
   {
     title: '访问统计',
     paragraphs: [
-      '本站可能使用 Microsoft Clarity 与不蒜子统计了解页面访问量、访问来源、设备类型与大致使用情况，用于改进内容和体验。统计服务可能设置 Cookie 或读取匿名标识；它们不会获得你在本站评论中主动填写的正文内容。',
-      '统计脚本会随页面加载，关闭 Cookie 提示只表示本次会话不再展示提示，不会停用统计。如果你不希望被统计，请使用浏览器的隐私/拦截设置（如屏蔽 clarity.ms 与统计请求），或谨慎使用本站。',
+      '本站可能使用 Microsoft Clarity 了解页面访问行为与设备类型，并使用 Vercount 统计页面访问量与独立访客数，用于改进内容和体验。Vercount 会写入一个有效期为一年的去重 Cookie（vercount_uv_ 前缀，只记录「这台浏览器访问过本站」），统计服务也可能读取匿名标识；它们不会获得你在本站评论中主动填写的正文内容。',
+      '统计请求会随页面加载与站内路由切换自动发起，关闭 Cookie 提示只表示本次会话不再展示提示，不会停用统计。如果你不希望被统计，请使用浏览器的隐私/拦截设置（如屏蔽 clarity.ms 与 events.vercount.one 的请求），或谨慎使用本站。',
     ],
   },
   {
@@ -74,7 +74,7 @@ export const Privacy = () => {
         <p className="mt-4 max-w-xl text-sm leading-7 text-content-muted md:text-base">
           这份说明解释本站如何处理你的浏览器数据、访问统计与评论信息。
         </p>
-        <p className="mt-3 text-xs text-content-muted">生效日期：2026-11-08</p>
+        <p className="mt-3 text-xs text-content-muted">生效日期：2026-11-12</p>
       </header>
 
       <article className="mt-4 space-y-4">

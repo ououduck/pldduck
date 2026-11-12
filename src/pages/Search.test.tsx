@@ -29,9 +29,10 @@ const mockPost: PostMetadata = {
 vi.mock('@/components/PostCard', () => ({
   PostCard: ({ variant }: { variant?: string }) => <div data-testid="mock-post-card" data-variant={variant} />,
 }));
-vi.mock('@/services/busuanzi', () => ({
-  pingBusuanzi: vi.fn(),
-  fillBusuanziSpans: vi.fn(),
+vi.mock('@/services/vercount', () => ({
+  pingVercount: vi.fn(),
+  fillVercountSpans: vi.fn(),
+  VERCUNT_PENDING_TEXT: '加载中',
 }));
 vi.mock('@/services/posts', () => ({
   searchPosts: vi.fn(),

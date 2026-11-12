@@ -38,9 +38,10 @@ vi.mock('@/services/posts', () => ({
   getPosts: vi.fn(async () => MOCK_POSTS),
   searchPosts: vi.fn(async () => MOCK_POSTS),
 }));
-vi.mock('@/services/busuanzi', () => ({
-  pingBusuanzi: vi.fn(),
-  fillBusuanziSpans: vi.fn(),
+vi.mock('@/services/vercount', () => ({
+  pingVercount: vi.fn(),
+  fillVercountSpans: vi.fn(),
+  VERCUNT_PENDING_TEXT: '加载中',
 }));
 
 // URL 探针：MemoryRouter 不更新 window.location，断言搜索参数必须经

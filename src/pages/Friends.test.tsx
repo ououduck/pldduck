@@ -27,9 +27,10 @@ vi.mock('@/services/friends', () => ({
   getInitialFriends: vi.fn(() => friendsFixture),
   getFriends: vi.fn(async () => friendsFixture),
 }));
-vi.mock('@/services/busuanzi', () => ({
-  pingBusuanzi: vi.fn(),
-  fillBusuanziSpans: vi.fn(),
+vi.mock('@/services/vercount', () => ({
+  pingVercount: vi.fn(),
+  fillVercountSpans: vi.fn(),
+  VERCUNT_PENDING_TEXT: '加载中',
 }));
 
 const renderFriends = (initialEntry = '/friends') =>

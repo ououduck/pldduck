@@ -17,9 +17,10 @@ vi.mock('@/services/readingHistory', () => ({
   removeReadingHistory: vi.fn(),
   subscribeReadingHistory: vi.fn(() => () => {}),
 }));
-vi.mock('@/services/busuanzi', () => ({
-  pingBusuanzi: vi.fn(),
-  fillBusuanziSpans: vi.fn(),
+vi.mock('@/services/vercount', () => ({
+  pingVercount: vi.fn(),
+  fillVercountSpans: vi.fn(),
+  VERCUNT_PENDING_TEXT: '加载中',
 }));
 vi.mock('@/components/GiscusComments', () => ({
   GiscusComments: () => <div data-testid="mock-giscus" />,
@@ -292,8 +293,8 @@ describe('Post', () => {
     expect(editLink).toHaveAttribute('target', '_blank');
     expect(screen.getByRole('button', { name: '分享文章：测试文章标题' })).toBeInTheDocument();
 
-    // 不蒜子阅读量回填锚点必须保留（Layout 的 pingBusuanzi 依赖该 id）。
-    expect(document.getElementById('busuanzi_page_pv')).toBeInTheDocument();
+    // Vercount 阅读量回填锚点必须保留（Layout 的 pingVercount 依赖该 id）。
+    expect(document.getElementById('vercount_value_page_pv')).toBeInTheDocument();
 
     // 移动端作者单独一行、日期/时长/阅读量在下一行；桌面恢复单行。
     const meta = document.querySelector('.post-meta');

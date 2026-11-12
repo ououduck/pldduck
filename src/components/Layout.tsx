@@ -1,13 +1,13 @@
 /**
  * 全站布局壳：侧边导航（桌面图标条 + hover 展开浮层，移动端左滑抽屉、任意页右滑呼出）、
- * 细顶栏、背景纹理与路由内容容器；提供页面级快捷键与不蒜子统计上报。
+ * 细顶栏、背景纹理与路由内容容器；提供页面级快捷键与 Vercount 统计上报。
  * 页面底部不再有全站 Footer（版权只保留在侧栏底部），正文即页面内容的终点。
  */
 
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { pingBusuanzi } from '@/services/busuanzi';
+import { pingVercount } from '@/services/vercount';
 
 import { SiteSidebar, SiteSidebarBody } from './SiteSidebar';
 import { SiteTopBar } from './SiteTopBar';
@@ -807,12 +807,12 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // 不蒜子统计：路由变化即上报当前页访问并回填计数 span（适配 SPA 客户端导航，
+  // Vercount 统计：路由变化即上报当前页访问并回填计数 span（适配 SPA 客户端导航，
   // 替代官方 <script> 仅首屏执行一次、无法为新路由上报/回填的局限）。
+  // 不在卸载时中断请求：一次路由切换本身就是一次真实浏览，让在飞的请求完成才能
+  // 如实计数；迟到的响应由服务层按 URL 丢弃，不会污染当前页。
   useEffect(() => {
-    const controller = new AbortController();
-    pingBusuanzi(controller.signal);
-    return () => controller.abort();
+    pingVercount();
   }, [location.pathname]);
 
   return (

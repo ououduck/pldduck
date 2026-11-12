@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Layout } from './Layout';
 import { resolveNavLabel } from './siteNav';
+import { pingVercount } from '@/services/vercount';
 
 // 懒加载子组件用简单 stub 替代，避免测试中等待 dynamic import 与动画。
 // 注意：Layout 以命名导出方式解构（import('./X').then(m => m.X)），mock 需提供同名导出。
@@ -13,10 +14,11 @@ vi.mock('@/components/BackToTop', () => ({
 vi.mock('@/components/CookieNotice', () => ({
   CookieNotice: () => <div data-testid="mock-cookie-notice" />,
 }));
-// 不蒜子统计：避免测试环境发起真实网络请求。
-vi.mock('@/services/busuanzi', () => ({
-  pingBusuanzi: vi.fn(),
-  fillBusuanziSpans: vi.fn(),
+// Vercount 统计：避免测试环境发起真实网络请求。
+vi.mock('@/services/vercount', () => ({
+  pingVercount: vi.fn(),
+  fillVercountSpans: vi.fn(),
+  VERCUNT_PENDING_TEXT: '加载中',
 }));
 // 服务状态轮询已收敛到全局 store：侧栏状态入口与 Workers 上限提示都只订阅
 // siteStatusStore，mock 掉订阅接口即可避免 jsdom 里发起真实请求。
@@ -195,6 +197,22 @@ describe('Layout', () => {
     // 外层栏只占图标条宽度并作为定位上下文，内层 .site-sidebar-inner 是可溢出的浮层。
     expect(document.querySelector('#site-sidebar > .site-sidebar-inner')).not.toBeNull();
     expect(within(sidebar()).getByRole('link', { name: /^文章/ })).toBeInTheDocument();
+  });
+
+  it('Vercount 统计：按路由上报，首屏一次、每次导航各一次', async () => {
+    const user = userEvent.setup();
+    const pingMock = vi.mocked(pingVercount);
+    renderLayout();
+    expect(pingMock).toHaveBeenCalledTimes(1);
+
+    await user.click(within(sidebar()).getByRole('link', { name: /^文章/ }));
+    await waitFor(() => expect(probePathname).toBe('/posts'));
+    expect(pingMock).toHaveBeenCalledTimes(2);
+
+    // 同一路由内的再次导航不得重复上报（否则同一次浏览会被计两次）。
+    await user.click(within(sidebar()).getByRole('link', { name: /^文章/ }));
+    await waitFor(() => expect(probePathname).toBe('/posts'));
+    expect(pingMock).toHaveBeenCalledTimes(2);
   });
 
   it('Ctrl+K 打开命令面板', async () => {

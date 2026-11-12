@@ -5,9 +5,10 @@ import { CoverGenerator } from './CoverGenerator';
 
 // 封面生成器重度依赖 canvas 2D：jsdom 无 canvas 实现，渲染 effect 会走
 // 失败兜底（generateCover 有 try/catch），冒烟测试验证页面骨架与错误兜底不崩溃。
-vi.mock('@/services/busuanzi', () => ({
-  pingBusuanzi: vi.fn(),
-  fillBusuanziSpans: vi.fn(),
+vi.mock('@/services/vercount', () => ({
+  pingVercount: vi.fn(),
+  fillVercountSpans: vi.fn(),
+  VERCUNT_PENDING_TEXT: '加载中',
 }));
 
 const renderCover = () =>

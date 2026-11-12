@@ -5,9 +5,10 @@ import { Watermark } from './Watermark';
 
 // 水印工具全部在本地处理：初始渲染不触发 FileReader/canvas/网络。
 // 此前的页面组件没有外壳测试，随本次工具页外壳统一补上页头与骨架冒烟断言。
-vi.mock('@/services/busuanzi', () => ({
-  pingBusuanzi: vi.fn(),
-  fillBusuanziSpans: vi.fn(),
+vi.mock('@/services/vercount', () => ({
+  pingVercount: vi.fn(),
+  fillVercountSpans: vi.fn(),
+  VERCUNT_PENDING_TEXT: '加载中',
 }));
 
 const renderWatermark = () =>

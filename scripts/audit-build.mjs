@@ -137,7 +137,7 @@ if (localStylesheets.size === 0) {
   }
 }
 
-// 依赖第三方服务（Clarity/Busuanzi）的引用存在性检查：期望值从源模板
+// 依赖第三方服务（Clarity/Vercount）的引用存在性检查：期望值从源模板
 // （index.html / public/_headers）推导 —— 从源码移除对应服务时审计自动放宽。
 const sourceIndexHtml = fs.existsSync(path.join(ROOT_DIR, 'index.html'))
   ? fs.readFileSync(path.join(ROOT_DIR, 'index.html'), 'utf8')
@@ -146,7 +146,7 @@ const sourceHeadersFile = fs.existsSync(path.join(ROOT_DIR, 'public/_headers'))
   ? fs.readFileSync(path.join(ROOT_DIR, 'public/_headers'), 'utf8')
   : '';
 const sourceUsesClarity = sourceIndexHtml.includes('www.clarity.ms') || sourceHeadersFile.includes('www.clarity.ms');
-const sourceUsesBusuanzi = sourceIndexHtml.includes('busuanzi.cc') || sourceHeadersFile.includes('busuanzi.cc');
+const sourceUsesVercount = sourceIndexHtml.includes('vercount.one') || sourceHeadersFile.includes('vercount.one');
 
 if (sourceUsesClarity) {
   if (!entryHtml.includes('https://www.clarity.ms/tag/')) {
@@ -156,8 +156,8 @@ if (sourceUsesClarity) {
     errors.push('entry HTML is missing the Clarity project ID');
   }
 }
-if (sourceUsesBusuanzi && !entryHtml.includes('https://cdn.busuanzi.cc')) {
-  errors.push('entry HTML is missing the Busuanzi API preconnect');
+if (sourceUsesVercount && !entryHtml.includes('https://events.vercount.one')) {
+  errors.push('entry HTML is missing the Vercount API preconnect');
 }
 
 const headersPath = path.join(DIST_DIR, '_headers');
@@ -168,11 +168,22 @@ if (!fs.existsSync(headersPath)) {
   if (sourceUsesClarity && !headers.includes('https://www.clarity.ms')) {
     errors.push('CSP is missing the required Clarity origin');
   }
-  if (sourceUsesBusuanzi && !headers.includes("connect-src 'self' https://cdn.busuanzi.cc")) {
-    errors.push('CSP connect-src is missing the Busuanzi API origin');
+  if (sourceUsesVercount && !headers.includes("connect-src 'self' https://events.vercount.one")) {
+    errors.push('CSP connect-src is missing the Vercount API origin');
   }
 }
 const assetsDir = path.join(DIST_DIR, 'assets');
+// Vercount 计数客户端必须真的进包：index.html 的 preconnect 只能证明域名被提前建连，
+// 证明不了 src/services/vercount.ts 还在被引用（误删或被官方 script 取代时，计数会静默失效）。
+if (sourceUsesVercount && fs.existsSync(assetsDir)) {
+  const hasVercountClient = fs
+    .readdirSync(assetsDir)
+    .filter((name) => name.endsWith('.js'))
+    .some((name) => fs.readFileSync(path.join(assetsDir, name), 'utf8').includes('events.vercount.one/api/v2/log'));
+  if (!hasVercountClient) {
+    errors.push('built JavaScript is missing the Vercount counting client');
+  }
+}
 let initialScriptBytes = 0;
 let initialStyleBytes = 0;
 if (fs.existsSync(assetsDir)) {

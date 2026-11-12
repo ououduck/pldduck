@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-`/privacy` 是面向访客的隐私说明页，解释本站的本地存储、Clarity/不蒜子统计、Giscus 评论与第三方链接；Cookie 同意使用屏幕中央的模态弹窗，而不是底部横幅。
+`/privacy` 是面向访客的隐私说明页，解释本站的本地存储、Clarity/Vercount 统计、Giscus 评论与第三方链接；Cookie 同意使用屏幕中央的模态弹窗，而不是底部横幅。
 
 ## 关键文件
 
@@ -19,7 +19,7 @@
 3. **同意语义不变**：「同意」写入 `localStorage.cookie-consent=accepted` 并永久不再弹；关闭/仅浏览写入 `sessionStorage.cookie-dismissed=1`，仅当前会话不弹，**不得**把关闭等同于同意。
 4. **隐私入口可达**：Cookie 弹窗内必须有指向 `/privacy` 的链接；侧栏底部保留隐私政策入口。弹窗内点击隐私链接应先关闭弹窗再导航，否则滚动锁会把隐私页锁住；直接访问 `/privacy` 时不得被弹窗遮挡。
 5. **路由单一数据源**：`/privacy` 只登记在 `config/routes.mjs`，同步 `App.tsx`、`preload.ts`、sitemap 与 `public/sw.js` 标记区（构建生成）；改路由后跑 `scripts/routes-consistency.test.mjs`。
-6. **文案边界**：本页是站点说明，不是针对特定司法辖区的法律意见；不要加入无法兑现的承诺（如「绝不收集任何数据」「完全匿名」）。涉及第三方（GitHub/Giscus、Clarity、不蒜子、友链目标站）明确指向其自身政策。
+6. **文案边界**：本页是站点说明，不是针对特定司法辖区的法律意见；不要加入无法兑现的承诺（如「绝不收集任何数据」「完全匿名」）。涉及第三方（GitHub/Giscus、Clarity、Vercount、友链目标站）明确指向其自身政策。
 7. **视觉一致**：页头与各节使用 `rounded-overlay bg-surface` 卡片，标题 `font-serif`；删除英文大写眉题/图标，不用跨页发丝线。Cookie 弹窗同样不加大写英文眉题。
 
 ## 常见陷阱

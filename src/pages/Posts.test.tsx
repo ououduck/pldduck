@@ -19,9 +19,10 @@ const SearchParamsProbe = () => {
 vi.mock('@/components/ShareModal', () => ({
   ShareModal: () => <div data-testid="mock-share-modal" />,
 }));
-vi.mock('@/services/busuanzi', () => ({
-  pingBusuanzi: vi.fn(),
-  fillBusuanziSpans: vi.fn(),
+vi.mock('@/services/vercount', () => ({
+  pingVercount: vi.fn(),
+  fillVercountSpans: vi.fn(),
+  VERCUNT_PENDING_TEXT: '加载中',
 }));
 vi.mock('@/services/readingHistory', () => ({
   getReadingHistory: vi.fn(() => []),

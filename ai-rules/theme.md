@@ -29,10 +29,11 @@
 `<html class="dark">` 只用于让既有 `dark:` 工具类生效；颜色本身由 `:root` 的深色 Token 提供，
 **不要**再写 `html.dark { --color-* }` 覆盖（会与 `:root` 形成两套来源）。
 
-**首页 Hero 与入场动效**：`.home-hero` 是 `surface` 大色块 + `.home-hero-glow` 低对比径向光；
-`.home-reveal` 用 CSS keyframes 按 `--home-reveal-delay` 依次淡入/上移（avatar → title → bio → search → contact）。
-动画纯 CSS、无 JS 控制显隐；`@media (prefers-reduced-motion: reduce)` 下所有 `.home-reveal` 直接
-`animation: none`（内容立即可见）。不使用 framer-motion 入场。
+**首页小部件与入场动效**：首页是 surface 大色块的小部件网格，名片卡内保留 `.home-widget-glow`
+低对比径向光；`.home-reveal` 用 CSS keyframes 按 `data-home-reveal="card-N"` 的固定
+`--home-reveal-delay`（0 → 360ms，每张 +60ms）依次淡入/上移。动画纯 CSS、无 JS 控制显隐；
+`@media (prefers-reduced-motion: reduce)` 下所有 `.home-reveal` 直接 `animation: none`（内容立即可见）。
+不使用 framer-motion 入场。
 
 **文章正文与阅读模式**：`.post-prose.prose` 的字号/行高/颜色/间距全部由 `index.css` 的 `.post-prose`
 区块与 Token 提供（移动 17px / 桌面 18px / 行高 1.95 / 46rem）；阅读模式在 `.reading-mode-article`
@@ -40,11 +41,11 @@
 
 ## 关键文件
 
-- `src/index.css`（`:root` 深色 Token、`body` / `:focus-visible`、`.home-hero` / `.home-reveal`、
-  侧栏与顶栏样式、文章正文与阅读模式）
+- `src/index.css`（`:root` 深色 Token、`body` / `:focus-visible`、`.home-widgets` 网格 /
+  `.home-widget-glow` / `.home-reveal`、侧栏与顶栏样式、文章正文与阅读模式）
 - `config/tailwind.config.js`（`darkMode: 'class'`、颜色 Token → 语义工具类映射）
 - `index.html`（`<html class="dark">`、`color-scheme: dark`、`theme-color`）
-- `src/pages/Home.tsx`（Hero 结构与 reveal 延迟）
+- `src/components/home/Widget.tsx`（小部件卡片外壳与 `data-home-reveal` 序号）
 - `src/components/ReadingModeContext.tsx` / `ReadingModeToggle.tsx`
 - `src/hooks/useReducedMotion.ts` / `useMediaQuery.ts`
 
@@ -55,7 +56,7 @@
 3. **设计 Token 是唯一视觉来源**：颜色、字体、间距、圆角、布局宽度、动效只能改 `src/index.css` 的 Token 与 `config/tailwind.config.js` 的映射；不得在组件里新写十六进制色值、魔数圆角或独立动效时长。颜色 Token 是**深色黑白强对比**（近黑底 / 近白字），调整前必须全站核对文章正文、代码块、侧栏、顶栏、状态入口、表单、弹层。
 4. **语义类优先**：新组件/改样式优先用 `bg-background`、`bg-surface`、`bg-surface-muted`、`text-content`、`text-content-muted`、`border-line`、`text-accent` 等语义类；既有 `paper` / `ink` / `void` 保留兼容，新代码不要扩散。需要透明度时**不要**写 `bg-surface/50` —— `var()` 颜色不支持 Tailwind `/opacity` 修饰符；改用现成 Token 或新增 Token。
 5. **禁止回退浅色/彩色**：页面底色不得改回纯白或暖米色 `#f2f0e9`，链接不得改回蓝色 `#0969da`；`accent` 与正文同色（近白），可点击性靠下划线/hover 表达。`success` / `warning` / `danger` 只允许出现在状态语义，不得用作主色或装饰。
-6. **首页 Hero 入场动效**：只用 CSS `.home-reveal`（`data-home-reveal` + `--home-reveal-delay`），不得改成 framer-motion/JS 控制显隐，也不得让内容依赖动画结束才可见。`prefers-reduced-motion: reduce` 分支必须保留（`animation: none`，内容直接可见）；首屏 LCP 元素（头像/标题）不得被动画长时间遮挡，动画不得引发布局位移。
+6. **首页小部件入动效**：只用 CSS `.home-reveal`（`data-home-reveal="card-N"` + `--home-reveal-delay`），不得改成 framer-motion/JS 控制显隐，也不得让内容依赖动画结束才可见。`prefers-reduced-motion: reduce` 分支必须保留（`animation: none`，内容直接可见）；首屏 LCP 元素（头像/标题）不得被动画长时间遮挡，动画不得引发布局位移。
 7. **阅读模式**：ReadingModeContext 的栈式 Escape 守卫（ESC 栈顶退出）保持；进入/退出时的快照恢复与目录状态记忆不得破坏。
 8. **加载指示只有一个出口**：页面级/列表级加载态一律用 `ContentStatus.tsx` 的 `LoadingStatus`（`role="status" aria-live="polite"`），路由懒加载占位也必须走它；图形在 `index.css` 的 `.duck-loader*`，颜色只取 `currentColor`，节拍挂在 `--loader-beat` / `--loader-ease`，减弱动效走 CSS 媒体查询。
 9. **文章正文排版**：`.post-prose.prose` 与 `.reading-mode-article` 的规则只能写在 `index.css`（typography 插件选择器特异性更高）；字号/颜色/间距全部走 Token，不得在 `Post.tsx` 里写死 px 或颜色。

@@ -179,15 +179,50 @@
   color: var(--color-text);
 }
 
-/* ===== 首页 Hero（深色唯一）=====
-   大色块替代发丝线：surface 面板 + 顶部微光。入场动画纯 CSS 驱动：
-   SSR 输出最终 DOM（类名固定，不依赖 JS / 时钟 / 存储），浏览器首帧即开始播放；
+/* ===== 首页小部件布局（深色唯一）=====
+   首页是一屏「小部件面板」：手机端单列纵向滚动，≥1024px 走 6 列、≥1280px 走 12 列
+   网格，靠各卡片的 col-span/row-span 铺满宽度（见 src/components/home/）。
+   入场动画纯 CSS 驱动：每张卡片按 data-home-reveal="card-N" 的固定延迟依次
+   淡入上移，SSR 输出最终 DOM（类名固定，不依赖 JS / 时钟 / 存储），浏览器首帧即开始播放；
    prefers-reduced-motion: reduce 时整段禁用，内容直接可见。 */
-.home-hero {
+.home-page {
+  /* 手机端一屏一卡往下滑：底部给安全区与 Cookie 提示条留白，
+     最后一张卡片不会被浮层遮住（`:has(.home-page)` 的滚动锁已随改版移除）。 */
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px) + var(--cookie-notice-height, 0px));
+}
+
+/* 桌面铺满全屏：Layout 的路由容器用 `max-w-7xl` 给其它页面限宽，
+   首页要独占整列宽度，这里用 `:has(.home-page)` 在首页挂载期间放宽（离开自动失效）。 */
+.site-shell main > div:has(.home-page) {
+  max-width: none;
+}
+
+.home-widgets {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+@media (min-width: 1024px) {
+  .home-widgets {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .home-widgets {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}
+
+.home-widget {
   isolation: isolate;
 }
 
-.home-hero-glow {
+/* 名片卡的低对比径向光：只在名片卡里出现，其它小部件是纯 surface 色块。 */
+.home-widget-glow {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -207,158 +242,45 @@
   }
 }
 
-@keyframes home-reveal-title {
-  from {
-    opacity: 0;
-    clip-path: inset(0 0 100% 0);
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    clip-path: inset(0 0 0 0);
-    transform: translateY(0);
-  }
-}
-
-@keyframes home-reveal-avatar {
-  from {
-    opacity: 0;
-    transform: scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
+/* 入场顺序按卡片编号固定延迟（名片卡 → 统计 → 推荐 → 写作 → 联系方式 → 标签 → 状态），
+   最晚 360ms 起步，整屏在 900ms 内落定；不依赖 JS，也不写内联样式。 */
 .home-reveal {
-  animation: home-reveal-rise 560ms var(--ease-emphasized) both;
+  animation: home-reveal-rise 520ms var(--ease-emphasized) both;
   animation-delay: var(--home-reveal-delay, 0ms);
 }
 
-.home-reveal[data-home-reveal='avatar'] {
-  animation-name: home-reveal-avatar;
-  animation-duration: 640ms;
+.home-reveal[data-home-reveal='card-1'] {
+  --home-reveal-delay: 0ms;
 }
 
-.home-reveal[data-home-reveal='title'] {
-  animation-name: home-reveal-title;
-  animation-duration: 620ms;
-  --home-reveal-delay: 70ms;
+.home-reveal[data-home-reveal='card-2'] {
+  --home-reveal-delay: 60ms;
 }
 
-.home-reveal[data-home-reveal='bio'] {
-  --home-reveal-delay: 140ms;
+.home-reveal[data-home-reveal='card-3'] {
+  --home-reveal-delay: 120ms;
 }
 
-.home-reveal[data-home-reveal='search'] {
-  --home-reveal-delay: 210ms;
+.home-reveal[data-home-reveal='card-4'] {
+  --home-reveal-delay: 180ms;
 }
 
-.home-reveal[data-home-reveal='contact'] {
-  --home-reveal-delay: 280ms;
+.home-reveal[data-home-reveal='card-5'] {
+  --home-reveal-delay: 240ms;
+}
+
+.home-reveal[data-home-reveal='card-6'] {
+  --home-reveal-delay: 300ms;
+}
+
+.home-reveal[data-home-reveal='card-7'] {
+  --home-reveal-delay: 360ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home-reveal,
   .home-reveal[data-home-reveal] {
     animation: none;
-  }
-}
-
-/* ===== 首页移动端全屏（<768px）=====
-   桌面（≥768px）继续用 Hero 大色块卡片；移动端去掉卡片外观、内容铺满可用视口。
-   `:has(.home-page)` 把「禁止上下滚动」限定在首页挂载期间：离开首页后选择器
-   自动失效，滚动自然恢复，不需要 JS 写/清 body 样式，也不会留下路由切换残留。 */
-@media (max-width: 767.98px) {
-  html:has(.home-page),
-  body:has(.home-page) {
-    overflow: hidden;
-    overscroll-behavior: none;
-  }
-
-  .site-shell:has(.home-page) {
-    height: 100vh; /* 老浏览器回退 */
-    height: 100dvh;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .site-shell:has(.home-page) main {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    min-height: 0;
-    padding: 0;
-    overflow: hidden;
-  }
-
-  /* Layout 的路由内容容器：让它和 main 一起撑满剩余高度。 */
-  .site-shell:has(.home-page) main > div {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    width: 100%;
-    max-width: none;
-    min-height: 0;
-    margin: 0;
-  }
-
-  .home-page {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    width: 100%;
-    max-width: none;
-    min-height: 0;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-  }
-
-  .home-page .home-hero {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    justify-content: center;
-    width: 100%;
-    max-width: none;
-    min-height: 0;
-    margin: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    padding: 1.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px) + var(--cookie-notice-height, 0px));
-    overflow: hidden;
-  }
-
-  /* 联系方式：移动端 2 列紧凑网格（桌面仍是横向 flex 行）。 */
-  .home-page .home-contact-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.125rem 0.25rem;
-    margin-top: 1.25rem;
-  }
-
-  .home-page .home-contact-grid > * {
-    justify-content: flex-start;
-    padding-inline: 0.4rem;
-    white-space: nowrap;
-  }
-
-  .home-page .home-contact-grid svg {
-    width: 0.875rem;
-    height: 0.875rem;
-  }
-
-  /* 首页移动端禁用滚动后，常驻返回顶部没有可用目标，隐藏以避免浮层噪音。 */
-  .site-shell:has(.home-page) .back-to-top-btn {
-    display: none;
-  }
-
-  /* 文章入口贴底时给安全区留白，避免 CTA 与浏览器底栏相贴。 */
-  .home-page .home-articles-cta {
-    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
   }
 }
 

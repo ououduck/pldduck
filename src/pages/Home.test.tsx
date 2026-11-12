@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToString } from 'react-dom/server';
 import { HelmetProvider } from 'react-helmet-async';
@@ -9,13 +9,27 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { Home } from './Home';
 import { siteConfig } from '@config/site.config';
 import { ISSUE_SUBSCRIPTION_URL } from '@/components/IssueSubscriptionCard';
+import { getHomeStats } from '@/services/homeStats';
 import { getInitialPosts } from '@/services/posts';
+import { fillVercountSpans } from '@/services/vercount';
 import { copyTextToClipboard } from '@/utils/clipboard';
 import { assetUrl } from '@/utils/siteUrl';
 
 vi.mock('@/utils/clipboard', () => ({ copyTextToClipboard: vi.fn() }));
+// Vercount 上报：避免 jsdom 里发起真实网络请求（回填行为由 vercount.test.ts 覆盖）。
+vi.mock('@/services/vercount', () => ({
+  pingVercount: vi.fn(),
+  fillVercountSpans: vi.fn(),
+  VERCUNT_PENDING_TEXT: '加载中',
+}));
+// 服务状态轮询收敛在全局 store：只订阅、不请求。状态文案断言由 SiteStatusBadge.test.tsx 覆盖。
+vi.mock('@/services/siteStatusStore', () => ({
+  subscribeSiteStatus: vi.fn(() => () => {}),
+  subscribeWorkersLimit: vi.fn(() => () => {}),
+}));
 
 const mockedCopyTextToClipboard = vi.mocked(copyTextToClipboard);
+const mockedFillVercountSpans = vi.mocked(fillVercountSpans);
 
 const LocationProbe = () => {
   const location = useLocation();
@@ -66,7 +80,7 @@ describe('Home', () => {
     document.head.querySelectorAll('[data-rh="true"]').forEach((element) => element.remove());
   });
 
-  it('首帧渲染站主身份：头像、名字（h1）与作者介绍原文', () => {
+  it('首帧渲染站主身份：头像、名字（h1）、身份与作者介绍原文', () => {
     renderHome();
 
     expect(screen.getByRole('heading', { level: 1, name: siteConfig.author.name })).toBeInTheDocument();
@@ -75,6 +89,7 @@ describe('Home', () => {
       assetUrl(siteConfig.author.avatar),
     );
     expect(screen.getByText(siteConfig.author.bio)).toBeInTheDocument();
+    expect(screen.getByText(siteConfig.author.role)).toBeInTheDocument();
   });
 
   it('深色唯一：模板首帧即 dark，没有浅色主题与 localStorage 启动脚本', () => {
@@ -86,80 +101,114 @@ describe('Home', () => {
     expect(indexHtml).not.toContain('prefers-color-scheme: light');
   });
 
-  it('首页使用大色块 hero 面板与克制的 CSS 入场结构（无内联动画、SSR 可确定）', () => {
+  it('小部件布局：七张卡片按固定顺序挂载，入场由 CSS 类驱动（无内联动画）', () => {
     renderHome();
 
-    const hero = document.querySelector('.home-hero');
-    expect(hero).not.toBeNull();
-    expect(hero?.querySelector('.home-hero-glow')).not.toBeNull();
+    const grid = document.querySelector('.home-widgets');
+    expect(grid).not.toBeNull();
 
-    const reveals = Array.from(document.querySelectorAll('[data-home-reveal]'));
-    expect(reveals.map((element) => element.getAttribute('data-home-reveal'))).toEqual([
-      'avatar',
-      'title',
-      'bio',
-      'search',
-      'contact',
+    const widgets = Array.from(document.querySelectorAll('.home-widget'));
+    expect(widgets).toHaveLength(7);
+    expect(widgets.map((element) => element.getAttribute('data-home-reveal'))).toEqual([
+      'card-1',
+      'card-2',
+      'card-3',
+      'card-4',
+      'card-5',
+      'card-6',
+      'card-7',
     ]);
     // 入场完全由 CSS 类驱动：SSR/首帧不写内联动画样式，避免水合差异。
-    reveals.forEach((element) => expect(element.getAttribute('style')).toBeNull());
-  });
-
-  it('不再有主题切换入口（深色唯一）', () => {
-    renderHome();
-    expect(screen.queryByRole('button', { name: /切换外观主题|切换深浅色/ })).not.toBeInTheDocument();
-  });
-
-  it('桌面保留 Hero 卡片，移动端用全屏/紧凑网格的 class 钩子', () => {
-    renderHome();
-
-    const page = document.querySelector('.home-page');
-    const hero = page?.querySelector('.home-hero');
-    expect(page).not.toBeNull();
-    expect(hero).not.toBeNull();
-    // 桌面卡片外观仍由这些类提供；<768px 的媒体查询再把背景/圆角覆盖为透明无卡片。
-    expect(hero?.className).toContain('rounded-overlay');
-    expect(hero?.className).toContain('bg-surface');
-
-    const contactGrid = document.querySelector('.home-contact-grid');
-    expect(contactGrid).not.toBeNull();
-    expect(contactGrid?.querySelectorAll('a, button').length).toBeGreaterThanOrEqual(6);
-  });
-
-  it('移动端无滚动规则由 CSS :has 限定在首页（离开路由自动恢复）', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
-
-    expect(css).toContain('html:has(.home-page)');
-    expect(css).toContain('body:has(.home-page)');
-    expect(css).toContain('@media (max-width: 767.98px)');
-    expect(css).toContain('.home-page .home-hero');
-    expect(css).toContain('.home-page .home-contact-grid');
-    // 首次访问的 Cookie 提示条不遮挡联系方式：移动端高度预算里预留其高度。
-    expect(css).toContain('var(--cookie-notice-height');
-  });
-
-  it('首页下方有“看看文章”跳转：移动端同款按钮 + 桌面卡片与最新两篇文章', () => {
-    renderHome();
-
-    const articleLinks = screen.getAllByRole('link', { name: /看看文章/ });
-    expect(articleLinks.length).toBeGreaterThanOrEqual(2);
-    articleLinks.forEach((link) => expect(link).toHaveAttribute('href', '/posts'));
-
-    const latest = getInitialPosts()
-      .slice()
-      .sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date))
-      .slice(0, 2);
-    latest.forEach((post) => {
-      expect(screen.getByRole('link', { name: post.title })).toHaveAttribute('href', `/post/${post.id}`);
+    document.querySelectorAll('[data-home-reveal]').forEach((element) => {
+      expect(element.getAttribute('style')).toBeNull();
     });
 
-    expect(document.querySelector('.home-articles-cta')).not.toBeNull();
+    // 卡片标题是 h2（h1 只有名片卡的名字），层级仍是 h1 → h2。
+    const h1s = screen.getAllByRole('heading', { level: 1 });
+    expect(h1s).toHaveLength(1);
+    expect(screen.getAllByRole('heading', { level: 2 }).length).toBeGreaterThanOrEqual(6);
   });
 
-  it('首页承载联系方式与订阅入口：GitHub / 邮箱 / RSS / 更新订阅 / 项目仓库', () => {
+  it('访问统计卡：Vercount 三项计数锚点齐备，首帧是「加载中」占位', () => {
     renderHome();
 
-    const githubLink = screen.getByRole('link', { name: /GitHub/ });
+    ['site_pv', 'site_uv', 'page_pv'].forEach((key) => {
+      const span = document.getElementById(`vercount_value_${key}`);
+      expect(span).not.toBeNull();
+      expect(span).toHaveTextContent('加载中');
+    });
+
+    // 挂载时从模块缓存补一次回填：span 晚于 Layout 的上报完成才挂载时不至于停在加载态。
+    expect(mockedFillVercountSpans).toHaveBeenCalled();
+
+    // 「今日」维度 Vercount 公开接口不提供：首页不得出现会误导访客的今日数字。
+    expect(screen.queryByText(/今日/)).not.toBeInTheDocument();
+  });
+
+  it('推荐阅读：最近更新的三篇，链接指向文章页', () => {
+    renderHome();
+
+    const featured = getInitialPosts()
+      .slice()
+      .sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date))
+      .slice(0, 3);
+    expect(featured).toHaveLength(3);
+
+    featured.forEach((post) => {
+      expect(screen.getByRole('link', { name: new RegExp(post.title.slice(0, 6)) })).toHaveAttribute(
+        'href',
+        `/post/${post.id}`,
+      );
+    });
+
+    expect(screen.getByRole('link', { name: /看看文章/ })).toHaveAttribute('href', '/posts');
+  });
+
+  it('写作档案：累计篇数、锚点年份与 12 根月份柱', () => {
+    renderHome();
+
+    const stats = getHomeStats();
+    const chart = document.querySelector('[role="img"][aria-label*="每月文章数"]');
+    expect(chart).not.toBeNull();
+    expect(chart?.querySelectorAll('[data-month]')).toHaveLength(12);
+    // 柱高按篇数换算，全部是构建期算出的确定值（不依赖时钟）。
+    expect(stats.months).toHaveLength(12);
+    expect(stats.anchorYear).not.toBeNull();
+
+    // 累计篇数 / 锚点年份篇数可能同值，断言只看写作档案卡内部。
+    const writingWidget = document.getElementById('home-writing');
+    expect(writingWidget).not.toBeNull();
+    expect(within(writingWidget as HTMLElement).getAllByText(String(stats.postCount)).length).toBeGreaterThan(0);
+    expect(within(writingWidget as HTMLElement).getByText(`${stats.anchorYear} 年`)).toBeInTheDocument();
+  });
+
+  it('标签云：热门标签指向文章列表的标签筛选', () => {
+    renderHome();
+
+    const stats = getHomeStats();
+    expect(stats.tags.length).toBeGreaterThan(0);
+    const topTag = stats.tags[0];
+    expect(screen.getByRole('link', { name: new RegExp(topTag.name) })).toHaveAttribute(
+      'href',
+      `/posts?tag=${encodeURIComponent(topTag.name)}`,
+    );
+  });
+
+  it('服务状态卡：首帧中性、始终可点击跳转状态页', () => {
+    renderHome();
+
+    const statusLink = screen.getByRole('link', { name: /服务状态/ });
+    expect(statusLink).toHaveAttribute('target', '_blank');
+    expect(statusLink).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(statusLink).toHaveAttribute('data-status', 'unavailable');
+    expect(statusLink).toHaveTextContent('服务状态');
+  });
+
+  it('联系方式卡：GitHub / 邮箱 / RSS / 更新订阅 / 项目仓库', () => {
+    renderHome();
+
+    // 用完整可访问名称定位：标签云里也有「GitHub Actions」这类含 GitHub 的标签链接。
+    const githubLink = screen.getByRole('link', { name: /^GitHub（外部站点/ });
     expect(githubLink).toHaveAttribute('href', siteConfig.social.github);
     expect(githubLink).toHaveAttribute('target', '_blank');
     expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer');
@@ -171,6 +220,9 @@ describe('Home', () => {
     expect(screen.getByRole('link', { name: /RSS 订阅/ })).toHaveAttribute('href', assetUrl('/feed.xml'));
     expect(screen.getByRole('link', { name: /更新订阅/ })).toHaveAttribute('href', ISSUE_SUBSCRIPTION_URL);
     expect(screen.getByRole('link', { name: /项目仓库/ })).toHaveAttribute('href', siteConfig.friendsPage.repoUrl);
+
+    const nav = screen.getByRole('navigation', { name: '联系方式' });
+    expect(nav.querySelectorAll('a, button').length).toBeGreaterThanOrEqual(6);
   });
 
   it('首页搜索表单提交后进入全站搜索页', async () => {
@@ -217,14 +269,8 @@ describe('Home', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('复制失败，请手动复制 QQ 号'));
   });
 
-  it('不再渲染任何门户内容：无站点入口、开源项目、关于本站与订阅卡', () => {
+  it('不再渲染门户内容：无站点入口、开源项目、关于本站与订阅卡', () => {
     renderHome();
-
-    // 唯一允许的 h2 是首页下方的「看看文章」入口，不恢复门户区块标题。
-    const h2s = screen.queryAllByRole('heading', { level: 2 });
-    expect(h2s).toHaveLength(1);
-    expect(h2s[0]).toHaveTextContent('看看文章');
-    expect(screen.queryAllByRole('article')).toHaveLength(0);
 
     ['站点入口', '开源项目', '关于本站', '订阅新文章提醒', '站内搜索'].forEach((text) => {
       expect(screen.queryByText(text)).not.toBeInTheDocument();
@@ -233,6 +279,19 @@ describe('Home', () => {
     collectPortalCopy().forEach((text) => {
       expect(screen.queryByText(text)).not.toBeInTheDocument();
     });
+  });
+
+  it('首页小部件布局是 CSS 网格：桌面多列、手机单列，且不再锁滚动', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
+
+    expect(css).toContain('.home-widgets');
+    expect(css).toContain('grid-template-columns: repeat(12, minmax(0, 1fr))');
+    expect(css).toContain('grid-template-columns: repeat(6, minmax(0, 1fr))');
+    // 移动端改成上下滑动看卡片：旧的「首页禁止滚动」锁必须彻底移除。
+    expect(css).not.toContain('html:has(.home-page)');
+    expect(css).not.toContain('body:has(.home-page)');
+    // 最后一张卡不被 Cookie 提示条遮住。
+    expect(css).toContain('var(--cookie-notice-height');
   });
 
   it('SSR 首帧确定：连续两次服务端渲染输出完全一致', () => {

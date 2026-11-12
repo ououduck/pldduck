@@ -35,8 +35,8 @@
 
 **明确禁止恢复的旧内容**：门户入口磁贴与次级链接、开源项目清单、「关于本站」与折腾记录、
 技术栈清单、助记词 / tagline / 状态标签、新文章订阅卡（`IssueSubscriptionCard` 组件本体）。
-`config/portal.config.json` 仍存在且仍由加载器合并为 `siteConfig.portal`（暂保留），但**首页不再消费**；
-不要因为它还在就恢复门户渲染。
+`config/portal.config.json` 与 `siteConfig.portal` 已于 2026-11 整体清理（首页早已不消费）；
+不要再建回这个文件/字段，也不要恢复门户渲染。
 
 全站页面底部不再渲染全局 Footer（`Layout` 没有 `Footer` 组件），版权只在侧栏底部；首页不得自己补页脚、
 版权或备案信息。
@@ -159,7 +159,7 @@
 - 把「更新订阅」写成硬编码 URL 或渲染 `IssueSubscriptionCard`：统一用 `ISSUE_SUBSCRIPTION_URL`。
 - 删掉 RSS / 更新订阅 / 项目仓库、或把联系方式搬回侧栏「订阅与联系」分组：这些入口已由用户确认
   统一放在首页（规则 4）。
-- 看到 `config/portal.config.json` 仍存在，就以为首页还该消费它：它只是历史配置，暂保留 ≠ 恢复渲染。
+- 看到历史分支/旧文档里的 `config/portal.config.json` 或 `siteConfig.portal`，就以为首页还该消费它：两者已于 2026-11 移除，别复活。
 - 作者头像直接用 `/logo-96.png` 裸路径：必须过 `assetUrl()`，子路径部署下否则 404。
 - 把 QQ 二维码做成全屏遮罩 / 焦点陷阱弹窗：用户要的是贴在按钮上方的小悬浮层（非模态 popover），
   不锁滚动、不抢焦点、不加全屏背景；把它直接 `absolute` 写在卡片里则会被 `.home-reveal` 的 transform /

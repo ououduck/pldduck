@@ -29,7 +29,6 @@
   "friendsPage": {
     "repoUrl": "https://github.com/ououduck/pldduck",
     "repoFriendsUrl": "https://github.com/ououduck/pldduck/tree/main/friends",
-    "repoFriendsDir": "friends",
     "applyUrl": "https://github.com/ououduck/pldduck/issues/new?template=friend-link-application.yml"
   },
   "content": {

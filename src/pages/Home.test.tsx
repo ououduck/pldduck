@@ -48,24 +48,6 @@ const renderHome = () =>
     </HelmetProvider>,
   );
 
-/** 门户配置里的全部可见文案：首页任何一个出现在 DOM 里都说明门户内容死灰复燃。 */
-const collectPortalCopy = (): string[] => {
-  const portal = siteConfig.portal ?? {};
-  return [
-    portal.tagline,
-    portal.status,
-    ...(portal.tags ?? []),
-    portal.memory?.label,
-    portal.memory?.prompt,
-    portal.memory?.detail,
-    portal.identity,
-    ...(portal.stack ?? []),
-    ...(portal.entries ?? []).flatMap((entry) => [entry.title, entry.description, entry.note]),
-    ...(portal.links ?? []).map((link) => link.title),
-    ...(portal.projects ?? []).flatMap((project) => [project.title, project.description, project.tag]),
-  ].filter((value): value is string => Boolean(value));
-};
-
 describe('Home', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -247,10 +229,6 @@ describe('Home', () => {
     renderHome();
 
     ['站点入口', '开源项目', '关于本站', '订阅新文章提醒', '站内搜索'].forEach((text) => {
-      expect(screen.queryByText(text)).not.toBeInTheDocument();
-    });
-
-    collectPortalCopy().forEach((text) => {
       expect(screen.queryByText(text)).not.toBeInTheDocument();
     });
   });

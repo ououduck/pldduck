@@ -93,12 +93,11 @@ describe('PagesCMS 集合：filename 模板与 slug 字段约束（回归：Inva
  */
 const configCollections = [
   { collection: 'siteConfig', file: 'config/site.config.json' },
-  { collection: 'portalConfig', file: 'config/portal.config.json' },
   { collection: 'commentsConfig', file: 'config/comments.config.json' },
   { collection: 'friendBlacklist', file: 'config/friend-blacklist.json' },
 ];
 
-describe('PagesCMS 站点配置字段与三份配置文件一一对应', () => {
+describe('PagesCMS 站点配置字段与各份配置文件一一对应', () => {
   const findField = (fields, name) => (fields ?? []).find((field) => field.name === name);
 
   const collectMissing = (value, fields, trail, acc) => {
@@ -138,15 +137,6 @@ describe('PagesCMS 站点配置字段与三份配置文件一一对应', () => {
     });
   }
 
-  it('首页入口磁贴的每个字段都可编辑（新增磁贴属性时不能漏声明）', () => {
-    const fields = pagesConfig.content.find((item) => item.name === 'portalConfig')?.fields;
-    const portalJson = JSON.parse(readFileSync(path.join(repoRoot, 'config/portal.config.json'), 'utf8'));
-    const entryFields = new Set((findField(fields, 'entries')?.fields ?? []).map((f) => f.name));
-    for (const entry of portalJson.entries ?? []) {
-      expect([...Object.keys(entry)].filter((key) => !entryFields.has(key))).toEqual([]);
-    }
-  });
-
   it('social.qq 与 social.qqQrCode 已声明（首页 QQ 二维码弹窗的数据源）', () => {
     const fields = pagesConfig.content.find((item) => item.name === 'siteConfig')?.fields;
     const socialFields = findField(fields, 'social')?.fields ?? [];
@@ -157,7 +147,7 @@ describe('PagesCMS 站点配置字段与三份配置文件一一对应', () => {
     expect(qrField?.description).toEqual(expect.any(String));
   });
 
-  it('三份配置文件键不重叠（合并时不会出现后者静默覆盖前者）', () => {
+  it('配置文件键不重叠（合并时不会出现后者静默覆盖前者）', () => {
     const keySets = configCollections.map(
       ({ file }) => new Set(Object.keys(JSON.parse(readFileSync(path.join(repoRoot, file), 'utf8')))),
     );
@@ -170,7 +160,7 @@ describe('PagesCMS 站点配置字段与三份配置文件一一对应', () => {
 });
 
 /**
- * 字段声明合法性守护（回归：CMS「首页内容」里几个板块整块不显示）。
+ * 字段声明合法性守护（回归：数组字段写成 `type: list` 后编辑器整块不显示）。
  *
  * Pages CMS 没有 `type: list` 这个字段类型：数组一律写成「字段自身类型 + list: true」
  * （对象列表 = type: object + list: true + fields，字符串列表 = type: string + list: true）。
@@ -210,7 +200,7 @@ describe('PagesCMS 字段声明：type 与键名必须是 Pages CMS 认识的写
   const allFields = pagesConfig.content.flatMap((entry) => walkFields(entry.fields, [entry.name]));
 
   it('遍历到了字段树（防止 walker 失效退化成空断言）', () => {
-    expect(allFields.length).toBeGreaterThan(80);
+    expect(allFields.length).toBeGreaterThan(40);
   });
 
   it('每个字段的 type 都在受支持清单内（含回归：不存在 type: list）', () => {
@@ -229,16 +219,10 @@ describe('PagesCMS 字段声明：type 与键名必须是 Pages CMS 认识的写
     expect(allFields.filter(({ field }) => 'hint' in field).map(({ where }) => where)).toEqual([]);
   });
 
-  it('首页内容的 5 个数组字段都按 list: true 声明', () => {
-    const fields = pagesConfig.content.find((item) => item.name === 'portalConfig')?.fields ?? [];
-    for (const name of ['tags', 'stack', 'entries', 'links', 'projects']) {
-      expect(fields.find((item) => item.name === name)?.list, name).toBeTruthy();
-    }
-    // 对象列表必须自带 fields，否则 CMS 渲染不出可编辑项。
-    for (const name of ['entries', 'links', 'projects']) {
-      const field = fields.find((item) => item.name === name);
-      expect(field?.type, name).toBe('object');
-      expect(field?.fields?.length > 0, name).toBe(true);
-    }
+  it('友链黑名单的 domains 按 list: true 声明', () => {
+    const fields = pagesConfig.content.find((item) => item.name === 'friendBlacklist')?.fields ?? [];
+    const domains = fields.find((item) => item.name === 'domains');
+    expect(domains?.type).toBe('string');
+    expect(domains?.list).toBe(true);
   });
 });

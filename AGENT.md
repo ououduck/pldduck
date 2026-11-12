@@ -50,7 +50,7 @@
     - **缓存与超时固定**：Worker 成功结果写 Cache API 60 秒、上游 5 秒超时且**不重试**、**失败不写缓存**；前端每 60 秒轮询（仅 `siteStatusStore` 一份 timer）、8 秒超时、不重试、不做结果缓存。静态资源不得进 Worker（`run_worker_first` 只允许 `/api/*`）。
     - 改这条链路必须同步 `ai-rules/site-status.md`，并跑 `worker/index.test.mjs`、`src/services/siteStatus.test.ts`、`src/services/siteStatusStore.test.ts`、`src/components/SiteStatusBadge.test.tsx`、`src/components/WorkersLimitToast.test.tsx`。
 14. **首页与全站外壳**：
-    - 首页以站主身份为主（头像、名字、`author.bio` 介绍），另含全站搜索表单、联系方式/订阅入口（GitHub / 邮箱 / QQ / RSS / 更新订阅 / 项目仓库）与「看看文章」CTA（桌面卡片 + 最新两篇标题；移动端 pill）。**不得**恢复门户入口、内容列表、开源项目、关于本站、技术栈、订阅卡或状态标签；CTA 最多两篇标题、不是文章列表。`config/portal.config.json` 仍存在但首页不再消费，详见 `ai-rules/home.md`。
+    - 首页以站主身份为主（头像、名字、`author.bio` 介绍），另含全站搜索表单、联系方式/订阅入口（GitHub / 邮箱 / QQ / RSS / 更新订阅 / 项目仓库）与「看看文章」CTA（桌面卡片 + 最新两篇标题；移动端 pill）。**不得**恢复门户入口、内容列表、开源项目、关于本站、技术栈、订阅卡或状态标签；CTA 最多两篇标题、不是文章列表。门户配置（`config/portal.config.json` / `siteConfig.portal`）已于 2026-11 移除，详见 `ai-rules/home.md`。
     - 全站**不再渲染页面底部 Footer**（`Layout` 无 `Footer` 组件，页面中不得出现 `contentinfo`）；版权只在侧栏底部 `SidebarFooter`，顺序固定为 导航清单 → 服务状态入口 → 版权（版权在最底）；`fillHeight` 下只有中间导航清单滚动，状态入口与版权固定在底部。侧栏分组只有 主页 / 栏目 / 工具（「订阅与联系」已删除，联系方式与订阅入口统一在首页；「标签」「站内搜索」导航项也已删除，标签筛选在文章列表、搜索在顶栏/命令面板）。
     - **Workers 上限提示**：状态请求返回 HTTP 1027/429 时，由全站唯一 store（`src/services/siteStatusStore.ts`）触发一次顶部提示，文案逐字「今日 Workers 请求次数达到上限，部分功能受限」，3 秒自动收回，**每标签页 10 分钟最多一次**；`WorkersLimitToast` 只订阅、不请求、不缓存，不得改成逐组件轮询，也不得增加关闭按钮或持续动画。
     - **首页小部件布局**：首页是站主身份 + 全站搜索 + 联系方式/订阅 + 访问统计 + 内容小部件的

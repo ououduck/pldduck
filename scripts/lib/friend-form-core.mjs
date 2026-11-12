@@ -18,7 +18,7 @@ import { registrableHost } from './friend-backlink.mjs';
 /** 机器人评论的自循环标记：正文含此串的事件一律跳过（见 ai-rules/friends.md 规则 7）。 */
 export const FRIEND_ISSUE_MARKER = '<!-- pldduck-friend-bot:v1 -->';
 
-/** 写入目录硬编码：CMS 可改的 repoFriendsDir 不能指挥机器人往哪写。 */
+/** 写入目录硬编码：CMS 可改的配置值不能指挥机器人往哪写。 */
 export const FRIENDS_DIR = 'friends';
 
 /** 表单字段契约（顺序 = 模板中 inputs 的顺序，label = GitHub 渲染出的三级标题）。 */

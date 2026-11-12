@@ -1,7 +1,7 @@
 /**
- * 站点配置加载器：读取 config/ 下的三份站点配置并合并成**一份对外对象**（含环境变量覆盖），
- * 供全部构建脚本共用。拆分只为 CMS 编辑体验（改首页文案不必翻几十个字段），
- * 消费方一律通过合并后的 siteConfig.portal / siteConfig.comments 访问，形状与拆分前一致。
+ * 站点配置加载器：读取 config/ 下的两份站点配置并合并成**一份对外对象**（含环境变量覆盖），
+ * 供全部构建脚本共用。拆分只为 CMS 编辑体验（站点基础信息 / 评论与留言板），
+ * 消费方一律通过合并后的 siteConfig.comments / siteConfig.guestbook 访问，形状与拆分前一致。
  */
 
 import fs from 'fs';
@@ -11,10 +11,9 @@ import { getBasePath, withBasePath } from './base-path.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// 站点配置数据源：与客户端 config/site.config.ts 共用同一批 JSON（PagesCMS 三个集合可编辑）。
+// 站点配置数据源：与客户端 config/site.config.ts 共用同一批 JSON（PagesCMS 两个集合可编辑）。
 const SITE_CONFIG_FILES = {
   site: path.join(__dirname, '../config/site.config.json'),
-  portal: path.join(__dirname, '../config/portal.config.json'),
   comments: path.join(__dirname, '../config/comments.config.json'),
 };
 
@@ -92,7 +91,7 @@ const readConfigFile = (file, { logger, allowFallback }) => {
 };
 
 /**
- * 读取三份站点配置并合并为拆分前的单一形状（含环境变量覆盖）。
+ * 读取两份站点配置并合并为拆分前的单一形状（含环境变量覆盖）。
  *
  * fail-closed：任一配置文件缺失/损坏/非对象时默认抛错中止构建 —— 静默回退到
  * localhost 默认值会让 sitemap/robots/feed 全部生成 localhost 地址却正常出包
@@ -101,10 +100,9 @@ const readConfigFile = (file, { logger, allowFallback }) => {
  */
 export const loadSiteConfig = ({ logger, allowFallback = false } = {}) => {
   const site = readConfigFile(SITE_CONFIG_FILES.site, { logger, allowFallback }) ?? DEFAULT_SITE_CONFIG;
-  const portal = readConfigFile(SITE_CONFIG_FILES.portal, { logger, allowFallback }) ?? {};
   const comments = readConfigFile(SITE_CONFIG_FILES.comments, { logger, allowFallback }) ?? {};
 
-  const raw = { ...site, ...comments, portal };
+  const raw = { ...site, ...comments };
   const configuredUrl = process.env.VITE_SITE_URL || raw.url;
 
   return {

@@ -102,7 +102,7 @@ content:
       - { name: keywords, label: 关键词（子串匹配）, type: string, list: true }
       - { name: patterns, label: 正则表达式（忽略大小写）, type: string, list: true }
 
-  # ── 站点配置：按用途拆成三份文件（站点配置 / 首页内容 / 评论与留言板），
+  # ── 站点配置：按用途拆成两份文件（站点配置 / 评论与留言板），
   #    构建期与运行期各加载器再合并回同一份 siteConfig，消费方无需感知拆分 ──
   - name: siteConfig
     label: 站点配置
@@ -158,7 +158,6 @@ content:
         fields:
           - { name: repoUrl, label: 仓库地址, type: string }
           - { name: repoFriendsUrl, label: 友链目录地址, type: string }
-          - { name: repoFriendsDir, label: 友链目录名, type: string }
           - { name: applyUrl, label: 友链申请 Issue 地址, type: string }
       - name: content
         label: 文章内容仓库（"在 GitHub 上编辑此文"入口使用）
@@ -166,62 +165,6 @@ content:
         fields:
           - { name: repoUrl, label: 内容仓库地址, type: string }
           - { name: defaultBranch, label: 默认分支, type: string }
-
-  # ── 首页内容（config/portal.config.json）：构建期与运行期都合并回 siteConfig.portal ──
-  - name: portalConfig
-    label: 首页内容
-    type: file
-    path: config/portal.config.json
-    format: json
-    fields:
-      # 数组一律写成「字段类型 + list: true」：Pages CMS 没有 type: list 这个字段类型
-      # （对象列表 = type: object + list: true + fields，字符串列表 = type: string + list: true），
-      # 写成 type: list 时该字段解析不出编辑器，CMS 里整块不显示。
-      - { name: tagline, label: 一句话定位, type: string }
-      - { name: status, label: 状态徽标文案, type: string }
-      - { name: tags, label: 徽标标签, type: string, list: true }
-      - name: memory
-        label: 助记词
-        type: object
-        fields:
-          - { name: label, label: 小标题, type: string }
-          - { name: prompt, label: 提示语, type: string }
-          - { name: detail, label: 解释内容, type: string }
-      - { name: identity, label: 关于本站正文, type: text }
-      - { name: stack, label: 技术栈, type: string, list: true }
-      - name: entries
-        label: 站点入口磁贴
-        type: object
-        list: true
-        fields:
-          - { name: title, label: 标题, type: string, required: true }
-          - { name: description, label: 描述, type: text }
-          - { name: url, label: 地址（站内以 / 开头，外链写完整 URL）, type: string, required: true }
-          - name: icon
-            label: 图标名
-            description: posts / archive / shuoshuo / friends / search / guestbook / cover / watermark，未识别时回退到 Sparkles
-            type: string
-          - { name: note, label: 右下角备注, type: string }
-      - name: links
-        label: 次级链接
-        type: object
-        list: true
-        fields:
-          - { name: title, label: 标题, type: string, required: true }
-          - { name: url, label: 地址, type: string, required: true }
-          - name: icon
-            label: 图标名
-            description: 与入口磁贴共用同一套图标名（见 src/pages/Home.tsx 的 PORTAL_ICONS）
-            type: string
-      - name: projects
-        label: 开源项目
-        type: object
-        list: true
-        fields:
-          - { name: title, label: 项目名, type: string, required: true }
-          - { name: description, label: 描述, type: text }
-          - { name: url, label: 仓库地址, type: string, required: true }
-          - { name: tag, label: 技术栈标签, type: string }
 
   # ── 评论与留言板（config/comments.config.json）：合并回 siteConfig 的 giscusEnabled / comments / guestbook ──
   - name: commentsConfig

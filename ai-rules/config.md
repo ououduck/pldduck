@@ -2,12 +2,12 @@
 
 ## 功能概述
 
-站点/构建/内容配置分层：站点配置按用途拆成三份 JSON（`config/site.config.json` 站点信息、`config/portal.config.json` 历史门户配置（首页已改为极简个人主页、不再消费，暂保留）、`config/comments.config.json` 评论与留言板，三者 CMS 均可编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方，因此 `siteConfig.portal` / `siteConfig.comments` / `siteConfig.guestbook` 的读取形状与拆分前一致；另有部署运行配置 `wrangler.jsonc`、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。文章 category 已删除，随之配套的白名单配置文件也已从 `config/` 移除：构建期不再校验 category，文章元数据只有 `tags`。
+站点/构建/内容配置分层：站点配置按用途拆成两份 JSON（`config/site.config.json` 站点信息、`config/comments.config.json` 评论与留言板，均可在 CMS 编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方；另有部署运行配置 `wrangler.jsonc`、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。文章 category 已删除，随之配套的白名单配置文件也已从 `config/` 移除：构建期不再校验 category，文章元数据只有 `tags`。历史门户配置 `config/portal.config.json` 已于 2026-11 整体移除（首页早已改为小部件布局、不再消费它）。
 
 ## 关键文件
 
-- `config/site.config.json` / `config/portal.config.json` / `config/comments.config.json` + `scripts/site-config-loader.mjs`（fail-closed 加载 + 三份合并）
-- `config/site.config.ts`（同一份三文件合并的 TS 出口，字段类型接口的唯一归属地）
+- `config/site.config.json` / `config/comments.config.json` + `scripts/site-config-loader.mjs`（fail-closed 加载 + 两份合并）
+- `config/site.config.ts`（同一份两文件合并的 TS 出口，字段类型接口的唯一归属地）
 - `config/routes.mjs`（路由清单唯一数据源，见 [routes-single-source.md](routes-single-source.md)）
 - `config/tsconfig.json` / `tailwind.config.js` / `postcss.config.js`
 - `vite.config.ts` / `vite.ssr.config.ts` / `vitest.config.ts`
@@ -16,8 +16,8 @@
 
 ## 修改规则（必须遵守）
 
-1. **fail-closed**：三份配置文件任一缺失/损坏/URL 非法时构建必须抛错中止（禁止静默回退默认值）；合并顺序固定为 `{...site, ...comments, portal}`，三份的顶层键**不得重名**（`scripts/pagescms-config.test.mjs` 有守护）。
-2. **CMS 字段白名单同步**：.pages.yml 的 `siteConfig` / `portalConfig` / `commentsConfig` 三个集合的 fields 必须与对应 JSON 实际键一一对应（缺字段 CMS 保存会静默丢字段）；新增配置文件必须同时补集合 + 补漂移测试的 `configCollections`。
+1. **fail-closed**：两份配置文件任一缺失/损坏/URL 非法时构建必须抛错中止（禁止静默回退默认值）；合并顺序固定为 `{...site, ...comments}`，两份的顶层键**不得重名**（`scripts/pagescms-config.test.mjs` 有守护）。
+2. **CMS 字段白名单同步**：.pages.yml 的 `siteConfig` / `commentsConfig` / `friendBlacklist` 集合的 fields 必须与对应 JSON 实际键一一对应（缺字段 CMS 保存会静默丢字段）；新增配置文件必须同时补集合 + 补漂移测试的 `configCollections`。
 3. **环境变量文档化**：脚本实际读取的每个环境变量必须在 .env.example 中注释说明（含默认值/语义/CI vs 本地）；数值型变量支持显式 0（parseEnvNumber 语义）。
 4. **构建配置**：修改 tsconfig/vite/tailwind 需全量回归（typecheck + 构建 + 测试）；启用的严格项不得擅自关闭。
 5. **路径别名**：`@/*`（src）、`@config/*`（config）语义保持，新增目录不得引入新别名。
@@ -53,7 +53,7 @@
 - 看到旧文档/旧代码提到 category 白名单就把它建回来：该配置文件已随文章 category 功能删除，构建期不再校验 category，`generated/posts.json` 也只有 `tags`；新增配置文件必须同时补 `.pages.yml` 集合与漂移测试；
 - 站点配置的读者是**两份加载器**（构建侧 mjs + 运行侧 TS），两侧合并逻辑必须同步修改，否则 CI 产物与页面运行时配置不一致；
 - site.config.json 的 author/social、comments.config.json 的 comments/guestbook 等嵌套结构被多处消费，增删字段需全局检索消费方；
-- `config/portal.config.json` 仍被加载器合并、仍由 PagesCMS 管理，但**首页已不消费**（见 [home.md](home.md)）：改它不会影响首页，也不要因此恢复门户渲染；若要整体移除，需同时改加载器、`.pages.yml` 集合与 `scripts/pagescms-config.test.mjs` 的 `configCollections`；
+- `config/portal.config.json` / `siteConfig.portal` 已于 2026-11 整体清理（首页那时早已改为小部件布局、不再消费）：不要再建回这个文件/集合，也不要在首页重新渲染门户入口/开源项目/关于本站/技术栈；新增首页内容请改小部件组件；
 - `statusPageUrl` 被误当成「敏感配置」塞进 `.env` 或与 `BETTERSTACK_API_TOKEN` 写在一起：它随前端产物公开下发，放错位置会同时泄露 Token 并让状态入口失效；反之把 Token 写进 `config/site.config.json` 或 `VITE_*` 变量等于公开泄露。
 
 ## 破例条款

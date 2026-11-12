@@ -555,8 +555,8 @@ describe('模板与解析器的契约（漂移守卫）', () => {
     expect(REJECT_CONTACT_EMAIL).toBe(siteConfig.social.rawEmail);
   });
 
-  it('写入目录硬编码值与 CMS 配置一致', () => {
-    expect(FRIENDS_DIR).toBe(siteConfig.friendsPage.repoFriendsDir);
+  it('写入目录硬编码为 friends（不读任何 CMS 配置）', () => {
+    expect(FRIENDS_DIR).toBe('friends');
   });
 });
 

@@ -144,12 +144,11 @@ pldduck/
 
 ## 配置
 
-站点配置按用途拆成三份，加载时合并为同一个 `siteConfig` 对象（消费方无需感知拆分）：
+站点配置按用途拆成两份，加载时合并为同一个 `siteConfig` 对象（消费方无需感知拆分）：
 
 | 文件 | 内容 | PagesCMS 集合 |
 | --- | --- | --- |
 | `config/site.config.json` | 标题、描述、SEO、logo、社交、作者、内容开关、服务状态页地址 | 站点配置 |
-| `config/portal.config.json` | 历史门户配置：标语、状态、标签、入口、链接、项目；首页已不再消费（暂保留） | 首页内容 |
 | `config/comments.config.json` | Giscus 评论与留言板参数 | 评论与留言板 |
 
 ### 服务状态相关配置

@@ -1464,7 +1464,7 @@ export const CoverGenerator: React.FC = () => {
             feedback.kind === 'error'
               ? 'border-dashed border-ink bg-paper font-semibold text-ink dark:border-white dark:bg-zinc-900 dark:text-white'
               : feedback.kind === 'success'
-                ? 'border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink'
+                ? 'border-accent bg-accent text-background'
                 : 'border-zinc-400 bg-paper text-zinc-700 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300'
           }`}
         >
@@ -1660,7 +1660,7 @@ export const CoverGenerator: React.FC = () => {
                           >
                             <div className="absolute inset-x-0 bottom-0 p-4 text-left">
                               <div
-                                className={`text-base font-bold ${template.id === 'white' ? 'text-ink' : 'text-white'}`}
+                                className={`text-base font-bold ${template.id === 'white' ? 'text-background' : 'text-white'}`}
                               >
                                 {template.name}
                               </div>
@@ -2692,7 +2692,7 @@ export const CoverGenerator: React.FC = () => {
                             aria-pressed={activeRatioLabel === ratio.label}
                             className={`min-h-11 rounded-control border-2 px-3 py-2 text-sm font-semibold transition-colors ${
                               activeRatioLabel === ratio.label
-                                ? 'border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink'
+                                ? 'border-accent bg-accent text-background'
                                 : 'border-zinc-200 text-zinc-600 hover:border-ink dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-white'
                             }`}
                           >
@@ -2717,7 +2717,7 @@ export const CoverGenerator: React.FC = () => {
                             aria-pressed={exportFormat === f}
                             className={`min-h-11 rounded-control border-2 px-3 py-2 text-sm font-semibold uppercase transition-colors ${
                               exportFormat === f
-                                ? 'border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink'
+                                ? 'border-accent bg-accent text-background'
                                 : 'border-zinc-200 text-zinc-600 hover:border-ink dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-white'
                             }`}
                           >
@@ -2762,7 +2762,7 @@ export const CoverGenerator: React.FC = () => {
                           type="button"
                           onClick={() => setTransparentBackground(false)}
                           aria-pressed={!transparentBackground}
-                          className={`min-h-11 rounded-control border-2 px-3 py-2 text-xs font-semibold ${!transparentBackground ? 'border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink' : 'border-zinc-200 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400'}`}
+                          className={`min-h-11 rounded-control border-2 px-3 py-2 text-xs font-semibold ${!transparentBackground ? 'border-accent bg-accent text-background' : 'border-zinc-200 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400'}`}
                         >
                           跟随模板底色
                         </button>
@@ -2771,7 +2771,7 @@ export const CoverGenerator: React.FC = () => {
                           onClick={() => setTransparentBackground(true)}
                           disabled={exportFormat !== 'png'}
                           aria-pressed={transparentBackground && exportFormat === 'png'}
-                          className={`min-h-11 rounded-control border-2 px-3 py-2 text-xs font-semibold ${transparentBackground && exportFormat === 'png' ? 'border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink' : 'border-zinc-200 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400'} disabled:cursor-not-allowed disabled:opacity-40`}
+                          className={`min-h-11 rounded-control border-2 px-3 py-2 text-xs font-semibold ${transparentBackground && exportFormat === 'png' ? 'border-accent bg-accent text-background' : 'border-zinc-200 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400'} disabled:cursor-not-allowed disabled:opacity-40`}
                         >
                           透明背景（PNG）
                         </button>
@@ -2841,7 +2841,7 @@ export const CoverGenerator: React.FC = () => {
                     <button
                       type="button"
                       onClick={savePreset}
-                      className="min-h-11 shrink-0 rounded-control bg-ink px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-white dark:text-ink dark:hover:bg-zinc-200"
+                      className="min-h-11 shrink-0 rounded-control bg-accent px-3 py-2 text-sm font-semibold text-background transition-colors hover:bg-zinc-200"
                     >
                       保存
                     </button>
@@ -2911,7 +2911,7 @@ export const CoverGenerator: React.FC = () => {
                   type="button"
                   onClick={downloadCover}
                   disabled={isGenerating || isExporting}
-                  className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-control border border-ink bg-ink px-4 py-2.5 font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white dark:bg-white dark:text-ink dark:hover:bg-zinc-200"
+                  className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-control border border-accent bg-accent px-4 py-2.5 font-semibold text-background transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Download size={18} />
                   下载封面
@@ -2923,7 +2923,7 @@ export const CoverGenerator: React.FC = () => {
                   disabled={isGenerating || isExporting}
                   className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-control border px-4 py-2.5 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                     copied
-                      ? 'border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink'
+                      ? 'border-accent bg-accent text-background'
                       : 'border-zinc-400 text-zinc-700 hover:border-ink hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:border-white dark:hover:bg-zinc-900'
                   }`}
                 >

@@ -173,7 +173,7 @@ export const BatchCoverDialog: React.FC<BatchCoverDialogProps> = ({ isOpen, onCl
               <button
                 type="button"
                 onClick={() => onGenerate(items)}
-                className="mt-4 min-h-11 w-full rounded-control bg-ink px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-ink dark:hover:bg-zinc-200"
+                className="mt-4 min-h-11 w-full rounded-control bg-accent px-4 py-3 text-sm font-semibold text-background hover:bg-zinc-200"
               >
                 开始生成 ZIP
               </button>

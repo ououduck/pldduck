@@ -36,8 +36,11 @@ interface PaginationProps {
 
 const buttonClass =
   'inline-flex h-11 min-w-11 items-center justify-center rounded-control border border-zinc-300 bg-paper px-3 text-sm font-semibold text-zinc-700 transition-[background-color,border-color,color,opacity,transform,box-shadow] duration-150 active:scale-[.98] hover:border-ink hover:bg-zinc-100 hover:text-ink hover:shadow-[0_1px_2px_rgba(24,24,27,0.08)] disabled:cursor-not-allowed disabled:opacity-30 disabled:active:scale-100 dark:border-zinc-700 dark:bg-void dark:text-zinc-300 dark:hover:border-white dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:shadow-none';
+// 激活页码是「反色」按钮：底色取 accent（近白），文字取 background（近黑）。
+// 深色下 bg-ink / text-white 都是近白，写在一起会变成白底白字（见 ai-rules/theme.md 陷阱）。
+// 这里给出完整类名而不是拼接 buttonClass，避免 dark:text-zinc-300 等同属性类覆盖文字色。
 const activeButtonClass =
-  'border-ink bg-ink text-white shadow-[0_1px_3px_rgba(24,24,27,0.35)] hover:border-ink hover:bg-ink hover:text-white dark:border-white dark:bg-white dark:text-ink dark:shadow-none dark:hover:border-white dark:hover:bg-white dark:hover:text-ink';
+  'inline-flex h-11 min-w-11 items-center justify-center rounded-control border border-accent bg-accent px-3 text-sm font-semibold text-background transition-[background-color,border-color,color,opacity,transform] duration-150 active:scale-[.98] hover:border-accent hover:bg-zinc-300 hover:text-background';
 
 export const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
   const [pageInput, setPageInput] = useState(String(currentPage));
@@ -106,7 +109,7 @@ export const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages,
               onMouseDown={(event) => event.preventDefault()}
               aria-current={currentPage === item ? 'page' : undefined}
               aria-label={`第 ${item} 页`}
-              className={`${buttonClass} ${currentPage === item ? activeButtonClass : ''}`}
+              className={currentPage === item ? activeButtonClass : buttonClass}
             >
               {item}
             </button>

@@ -22,6 +22,18 @@ describe('Pagination', () => {
     expect(current).toHaveAttribute('aria-current', 'page');
   });
 
+  it('当前页按钮使用反色语义类，深色下不会白底白字', () => {
+    render(<Pagination currentPage={2} totalPages={3} onPageChange={vi.fn()} />);
+    const current = screen.getByRole('button', { name: '第 2 页' });
+    // 反色按钮：accent（近白）底 + background（近黑）字。深色 Token 下
+    // bg-ink / text-white 都是近白，二者写在一起就是截图中「按钮过白不可见」的回归。
+    expect(current).toHaveClass('bg-accent', 'text-background');
+    expect(current.className).not.toMatch(/dark:bg-white|dark:text-ink|text-white/);
+
+    // 未激活页码仍是中性灰底，不能顺手把整排页码反色。
+    expect(screen.getByRole('button', { name: '第 1 页' })).not.toHaveClass('bg-accent');
+  });
+
   it('点击页码触发 onPageChange', async () => {
     const user = userEvent.setup();
     const onPageChange = vi.fn();

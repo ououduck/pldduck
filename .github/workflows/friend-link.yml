@@ -73,7 +73,8 @@ jobs:
     # 自动收录需要写仓库文件（全部通过时）；没通过的路径只出证据、不写。
     if: >-
       github.event.sender.type != 'Bot' && (
-        (github.event_name == 'issues' && (github.event.action == 'opened' || github.event.action == 'edited' || github.event.action == 'reopened')) ||
+        (github.event_name == 'issues' && (github.event.action == 'opened' || github.event.action == 'edited' || github.event.action == 'reopened') &&
+          (contains(github.event.issue.labels.*.name, 'friend-link') || contains(github.event.issue.body, '### 站点名称'))) ||
         (github.event_name == 'issue_comment' && github.event.action == 'created' && contains(github.event.issue.labels.*.name, 'friend-link')) ||
         (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'detect')
       )

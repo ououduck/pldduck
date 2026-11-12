@@ -421,14 +421,8 @@ const FOOTER = [
   '',
   '---',
   '',
-  '*由 GitHub Actions 自动发布。检测结论只是审核参考，**是否收录由站长确认**（打上 `friend-approved` 标签即入库，`friend-rejected` 即拒绝）。*',
+  '*由 GitHub Actions 自动发布。检测全部通过会自动收录并关闭本 Issue；没通过则转站长人工处理（打上「审核通过」标签即入库）。*',
 ].join('\n');
-
-/**
- * 拒绝评论的页脚：不能带「打标签即入库」那句 —— 收到拒绝的人没有打标签的权限，
- * 那句话对他只是误导。
- */
-const REJECT_FOOTER = ['', '---', '', '*由 GitHub Actions 自动发布。*'].join('\n');
 
 /**
  * 组装机器人评论（统一带自循环标记与页脚）。
@@ -497,7 +491,7 @@ export const renderDetectComment = ({ validated, filename, result, siteUrl }) =>
     title: hit ? '反链检测：已看到链接，等待站长确认' : '反链检测：暂未见链接（或无法判定），等待站长确认',
     paragraphs: [
       hit
-        ? `已在你的页面上检测到指向本站的链接。**这只是参考证据**，站长确认后（打上 \`friend-approved\` 标签）才会写入友链页。`
+        ? `已在你的页面上检测到指向本站的链接。**检测全部通过会自动收录并关闭本 Issue**；其他环节没通过时才会转站长人工确认。`
         : `这次**没有**可靠地检测到指向本站的静态链接：${result?.message ?? '检测未完成'}`,
       hit
         ? ''
@@ -508,7 +502,7 @@ export const renderDetectComment = ({ validated, filename, result, siteUrl }) =>
             '2. 只认 `<a href>`：图片、RSS、`rel=canonical`、跳转都不算。',
             '3. 常见的挂链位置：首页页脚、友情链接/friends 单独页、关于页。',
             '',
-            '如果你确实已经挂好了，也可以直接等站长人工确认 —— 检测结论不决定收录。',
+            '如果你确实已经挂好了，也可以直接等站长人工确认 —— 检测通过会自动收录，没通过才转人工。',
           ].join('\n'),
     ],
     sections: [
@@ -520,24 +514,37 @@ export const renderDetectComment = ({ validated, filename, result, siteUrl }) =>
 };
 
 /**
- * 人工放行后的收录评论（含 commit sha 与部署状态）。
+ * 收录评论（自动收录与人工放行共用；含 commit sha 与部署状态）。
  * @param {object} input
  * @param {object} input.record
  * @param {string} input.filename
  * @param {string} input.commitSha 写入后的 commit sha
- * @param {object} [input.result] 放行时顺手重跑的检测证据（可为失败结论）
+ * @param {object} [input.result] 检测证据（自动收录时就是本次命中的结果）
  * @param {boolean} [input.deployed] 是否已成功触发 deploy.yml
  * @param {string} [input.backlinkUrl] 申报的反链页面
+ * @param {boolean} [input.auto] 是否由「全部检测通过」自动收录（2026-11 用户授权）
  * @returns {string}
  */
-export const renderApprovedComment = ({ record, filename, commitSha, result, deployed = true, backlinkUrl = '' }) =>
+export const renderApprovedComment = ({
+  record,
+  filename,
+  commitSha,
+  result,
+  deployed = true,
+  backlinkUrl = '',
+  auto = false,
+}) =>
   renderComment({
-    title: '已收录：站长审核通过，友链文件已写入',
+    title: auto ? '已收录：自动检测全部通过，友链文件已写入' : '已收录：站长审核通过，友链文件已写入',
     paragraphs: [
-      `站长已人工确认，本条友链写入 \`${FRIENDS_DIR}/${filename}.json\`（commit \`${String(commitSha ?? '').slice(0, 7)}\`）。`,
-      result?.verdict === 'found'
-        ? `反链检测同时命中，证据见下。`
-        : `注意：自动反链检测**未**命中（${result?.message ?? '未执行'}），本条为人工放行。`,
+      auto
+        ? `表单、站点与头像的可达性、反链检测全部通过，本条友链已自动写入 \`${FRIENDS_DIR}/${filename}.json\`（commit \`${String(commitSha ?? '').slice(0, 7)}\`）。`
+        : `站长已人工确认，本条友链写入 \`${FRIENDS_DIR}/${filename}.json\`（commit \`${String(commitSha ?? '').slice(0, 7)}\`）。`,
+      auto
+        ? '反链检测命中，证据见下；本 Issue 已自动关闭。'
+        : result?.verdict === 'found'
+          ? `反链检测同时命中，证据见下。`
+          : `注意：自动反链检测**未**命中（${result?.message ?? '未执行'}），本条为人工放行。`,
       deployed
         ? '已自动触发 `Deploy to Cloudflare Worker`，站点要等那次运行跑完才会更新（不是立刻生效）。'
         : '⚠️ 自动触发部署失败，请到 Actions 手动运行 `Deploy to Cloudflare Worker`。',
@@ -546,17 +553,6 @@ export const renderApprovedComment = ({ record, filename, commitSha, result, dep
       ['入库信息', recordRows(record, { filename, backlinkUrl })],
       ['最后一次检测', detectionRows(result)],
     ],
-  });
-
-/** 拒绝评论：固定文案，不含任何用户输入。 */
-export const renderRejectComment = () =>
-  renderComment({
-    title: '友链申请未通过',
-    paragraphs: [
-      `您的友链出于某些原因被 PLDDUCK 拒绝了，请联系 ${REJECT_CONTACT_EMAIL}`,
-      '本 Issue 不会写入任何友链文件，并已关闭；如需补充信息重新申请，请开一个新的 Issue。',
-    ],
-    footer: REJECT_FOOTER,
   });
 
 /** 站点无法访问时的固定话术（站长指定，逐字保留）。 */
@@ -568,7 +564,8 @@ export const AVATAR_UNREACHABLE_NOTICE =
   '你的网站可以正常访问，但**头像地址**经自动检测拿不到图片。请把头像换成公开可直链访问的图片地址（同样不要屏蔽海外）。';
 
 /**
- * 可达性检查失败 → 自动驳回评论。
+ * 可达性检查失败 → 转人工审核的评论（2026-11 用户授权：不再自动关闭）。
+ * 站点/头像在境外打不开只是「自动流程走不下去」，最终收不收由站长决定。
  * @param {object} input
  * @param {{url: string, reachable: boolean, reason: string}} [input.site] 站点地址检查结果
  * @param {{url: string, reachable: boolean, reason: string}} [input.avatar] 头像地址检查结果
@@ -580,15 +577,14 @@ export const renderUnreachableComment = ({ site, avatar }) => {
   if (site) rows.push(['站点地址', describe(site)]);
   if (avatar) rows.push(['头像地址', describe(avatar)]);
   return renderComment({
-    title: '自动检测：无法访问，本次申请不予通过',
+    title: '自动检测：站点或头像无法访问，需人工确认',
     paragraphs: [
       site && !site.reachable ? UNREACHABLE_NOTICE : '',
       site && site.reachable && avatar && !avatar.reachable ? AVATAR_UNREACHABLE_NOTICE : '',
       '检测运行在境外的 GitHub Actions 上：从你本地能打开不代表这里能打开，防火墙丢弃、连接超时、CDN 返回 403 都会被判定为无法访问。',
     ],
     sections: rows.length > 0 ? [['访问检查', rows]] : [],
-    note: '本 Issue 已关闭。解除屏蔽后**重开本 Issue** 会立刻重新检测；站长也随时可以人工放行（打 `friend-approved`）。',
-    footer: REJECT_FOOTER,
+    note: '本 Issue **保持开启**，等站长人工确认：确认可以收录就打「审核通过」标签，决定不收就直接关闭本 Issue。解除屏蔽后**重开本 Issue** 会立刻重新检测。',
   });
 };
 

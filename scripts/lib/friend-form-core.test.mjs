@@ -22,7 +22,6 @@ import {
   renderBlockedComment,
   renderComment,
   renderDetectComment,
-  renderRejectComment,
   renderUnreachableComment,
   suggestFilename,
   validateFriendRecord,
@@ -385,7 +384,6 @@ describe('评论渲染', () => {
   it('每条评论都带自循环标记', () => {
     for (const body of [
       renderComment({ title: 'x' }),
-      renderRejectComment(),
       renderBlockedComment({ title: 'y', reasons: ['z'] }),
       renderDetectComment({
         validated: validateFriendRecord(validValues()),
@@ -400,16 +398,6 @@ describe('评论渲染', () => {
     ]) {
       expect(body).toContain(FRIEND_ISSUE_MARKER);
     }
-  });
-
-  it('拒绝文案是固定串 + 站点公开邮箱，不含任何用户输入', () => {
-    const body = renderRejectComment();
-    expect(body).toContain('您的友链出于某些原因被 PLDDUCK 拒绝了');
-    expect(body).toContain(REJECT_CONTACT_EMAIL);
-    expect(body).not.toContain('阿叶');
-    // 收到拒绝的人没有打标签权限，页脚不能教他「打 friend-approved 即入库」。
-    expect(body).not.toContain('friend-approved');
-    expect(body).toContain('已关闭');
   });
 
   it('用户文本一律进行内代码：拼不出可点链接、裸露 HTML 或多行字段', () => {
@@ -486,6 +474,21 @@ describe('评论渲染', () => {
     expect(body).toContain('friends/ayeez.json');
   });
 
+  it('自动收录评论：标题与正文写明自动检测通过，不再说「人工放行」', () => {
+    const record = validateFriendRecord(validValues()).record;
+    const body = renderApprovedComment({
+      record,
+      filename: 'ayeez',
+      commitSha: 'abc123def',
+      result: { verdict: 'found', message: '命中', stats: { anchorCount: 3 } },
+      deployed: true,
+      auto: true,
+    });
+    expect(body).toContain('自动检测全部通过');
+    expect(body).toContain('已自动关闭');
+    expect(body).not.toContain('站长已人工确认');
+  });
+
   it('部署触发失败时如实说明要手动部署', () => {
     const body = renderApprovedComment({
       record: validateFriendRecord(validValues()).record,
@@ -545,7 +548,7 @@ describe('模板与解析器的契约（漂移守卫）', () => {
   });
 });
 
-describe('renderUnreachableComment（可达性闸门自动驳回）', () => {
+describe('renderUnreachableComment（可达性检查转人工）', () => {
   const site = { url: 'https://blog.example.com', reachable: false, reason: 'HTTP 403（禁海外）' };
   const avatar = { url: 'https://cdn.example.com/a.png', reachable: true, reason: 'HTTP 200' };
 
@@ -570,9 +573,11 @@ describe('renderUnreachableComment（可达性闸门自动驳回）', () => {
     expect(body).toContain('头像地址');
   });
 
-  it('用拒绝页脚：不能出现「打上 friend-approved 即入库」那类审核提示', () => {
+  it('转人工：提示站长可打「审核通过」放行，且不谎称已关闭', () => {
     const body = renderUnreachableComment({ site, avatar });
-    expect(body).not.toContain('friend-approved` 标签即入库');
+    expect(body).toContain('审核通过');
+    expect(body).toContain('保持开启');
+    expect(body).not.toContain('本 Issue 已关闭');
     expect(body).toContain('重开本 Issue');
   });
 

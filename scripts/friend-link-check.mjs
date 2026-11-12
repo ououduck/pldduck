@@ -6,9 +6,8 @@
  * 读事件载荷、发网络请求、调 GitHub REST。
  *
  * 铁律（见 ai-rules/friends.md 规则 3/5/6）：
- *   - 自动检测只产出证据，**只有站长的 friend-approved 标签会写文件**；
- *     唯一的自动结论是「站点/头像在境外确认打不开」→ 自动驳回并关闭（不写文件，
- *     站长想放过就重开 Issue 再打 friend-approved）；
+ *   - 检测通过（表单合法 + 站点/头像可达 + 反链命中）→ 自动写入并关闭 Issue；没通过只出证据，
+ *     转站长人工（打「审核通过」标签走同一条写入路径）。写入路径只有一条，自动与人工共用。
  *   - GITHUB_TOKEN 的 push 不触发任何 workflow，所以记录校验必须在写入之前完成，
  *     收录通知与部署都要机器人自己发（workflow_dispatch 自 2022-09 起允许 GITHUB_TOKEN 调用）；
  *   - 写入目录硬编码 friends/，文件名只从 issue 提交者 login 派生，一次只动一个文件。
@@ -65,7 +64,6 @@ import {
   renderApprovedComment,
   renderBlockedComment,
   renderDetectComment,
-  renderRejectComment,
   renderUnreachableComment,
   suggestFilename,
   validateFriendRecord,
@@ -110,8 +108,9 @@ const LABELS = Object.freeze({
   missing: 'friend-backlink-missing',
   needsInfo: 'friend-needs-info',
   unreachable: 'friend-unreachable',
-  approved: 'friend-approved',
-  rejected: 'friend-rejected',
+  // 唯一的「放行」标签：自动收录时机器人自己打；自动流程没通过时站长手动打，
+  // 走同一条写入路径（2026-11 用户授权：不再区分「人工确认」和「人工拒绝」两个标签）。
+  approved: '审核通过',
   added: 'friend-added',
 });
 /** 互斥的结论标签：机器人自己摘放，人工标签（approved/rejected）永不触碰。 */
@@ -195,12 +194,12 @@ const syncDetectionLabel = async (issue, wanted) => {
   if (wanted) await addLabels(issue.number, [wanted]);
 };
 
-const closeIssue = async (number) => {
+const closeIssue = async (number, reason = 'not_planned') => {
   if (DRY_RUN) {
-    logger.info('DRY_RUN: 跳过关闭 Issue', { issue: number });
+    logger.info('DRY_RUN: 跳过关闭 Issue', { issue: number, reason });
     return;
   }
-  await githubRequest('PATCH', issueEndpoint(number), { body: { state: 'closed', state_reason: 'not_planned' } });
+  await githubRequest('PATCH', issueEndpoint(number), { body: { state: 'closed', state_reason: reason } });
 };
 
 /* ------------------------------------------------------------------ */
@@ -469,7 +468,7 @@ const resolveApplication = (issue) => {
 const issueUrl = (number) => `https://github.com/${OWNER}/${REPO}/issues/${number}`;
 
 /* ------------------------------------------------------------------ */
-/* A. 检测阶段：只读，只出证据                                          */
+/* A. 检测阶段：全部通过自动收录，其余只出证据转人工                     */
 /* ------------------------------------------------------------------ */
 
 const VERDICT_LABEL = {
@@ -487,26 +486,24 @@ const runDetect = async (issue) => {
     return;
   }
 
-  /* 可达性闸门：站点或头像在境外根本打不开 → 自动驳回并关闭 Issue。
-     这是唯一由机器人自己下的结论（用户 2026-10 授权，见 ai-rules/friends.md 规则 3），
-     且只驳回、永远不写文件。 */
+  /* 可达性检查：站点或头像在境外根本打不开 → 不自动收录，转人工（2026-11 用户授权：
+     只有「全部通过」才自动上线；不通过一律留给站长决定，Issue 保持开启）。 */
   const site = { url: validated.record.url, ...(await probeUrl(validated.record.url)) };
   const avatar = { url: validated.record.avatar, ...(await probeUrl(validated.record.avatar)) };
   if (!site.reachable || !avatar.reachable) {
     await postComment(issue.number, renderUnreachableComment({ site, avatar }));
     await syncDetectionLabel(issue, LABELS.unreachable);
-    await closeIssue(issue.number);
     await notify(
-      'friend-rejected',
+      'friend-review',
       [
-        `【友链自动驳回】#${issue.number} ${validated.record.name}`,
+        `【友链待人工】#${issue.number} ${validated.record.name}（站点/头像打不开）`,
         `站点：${site.reachable ? '可访问' : '打不开'} — ${sanitizeLogValue(site.reason)}`,
         `头像：${avatar.reachable ? '可访问' : '打不开'} — ${sanitizeLogValue(avatar.reason)}`,
         `申请人：${issue.user?.login || '未知'}`,
         issueUrl(issue.number),
       ].join('\n'),
     );
-    logger.info('可达性检查未通过，已自动驳回并关闭', {
+    logger.info('可达性检查未通过，转人工', {
       issue: issue.number,
       siteReachable: site.reachable,
       avatarReachable: avatar.reachable,
@@ -520,6 +517,39 @@ const runDetect = async (issue) => {
     siteUrl: validated.record.url,
   });
 
+  /* 全部通过（表单合法 + 站点/头像可达 + 反链命中）→ 自动写入、触发部署、关闭 Issue。
+     这是 2026-11 用户明确授权的行为：happy path 不再需要人工打标签。 */
+  if (verdict.verdict === BACKLINK_VERDICTS.FOUND) {
+    let published;
+    try {
+      published = await publishRecord({ issue, validated, filename, verdict, source: 'auto' });
+    } catch (error) {
+      logger.error('自动收录写入失败，转人工', { issue: issue.number, error: formatError(error) });
+      await postComment(
+        issue.number,
+        renderBlockedComment({
+          title: '自动收录写入失败',
+          reasons: ['写入或部署环节出错，已停止自动流程（未确认写入成功）。'],
+          next: '站长可检查 Actions 日志后重新打「审核通过」标签手动放行。',
+        }),
+      );
+      await notify('friend-review', `【友链需人工】#${issue.number} 自动收录失败\n${issueUrl(issue.number)}`);
+      return;
+    }
+    if (published.published) {
+      await syncDetectionLabel(issue, LABELS.ok);
+      await closeIssue(issue.number, 'completed');
+    }
+    logger.info('自动收录流程结束', {
+      issue: issue.number,
+      published: published.published,
+      reason: published.reason,
+      rendered: Boolean(verdict.stats?.rendered),
+    });
+    return;
+  }
+
+  /* 未通过：只出证据 + 标签，转人工（Issue 不自动关闭）。 */
   const body = renderDetectComment({ validated, filename, result: verdict, siteUrl: SITE_URL });
   await postComment(issue.number, body);
   await syncDetectionLabel(issue, VERDICT_LABEL[verdict.verdict] ?? LABELS.needsInfo);
@@ -537,7 +567,7 @@ const runDetect = async (issue) => {
       .filter(Boolean)
       .join('\n'),
   );
-  logger.info('检测完成', {
+  logger.info('检测未通过，转人工', {
     issue: issue.number,
     verdict: verdict.verdict,
     checked: checked ? sanitizeUrlForLogs(checked) : '',
@@ -546,7 +576,7 @@ const runDetect = async (issue) => {
 };
 
 /* ------------------------------------------------------------------ */
-/* B. 执行阶段：friend-approved 是唯一写入路径                          */
+/* B. 写入阶段：自动收录与人工放行共用同一条写入路径                      */
 /* ------------------------------------------------------------------ */
 
 /* 读文件 / 写文件 / dispatch 的实现在 lib/friend-repo-io（与失联巡检共用），这里只留本路径的判据。 */
@@ -568,22 +598,19 @@ const writeRepoFile = ({ filePath, content, message, sha, canonicalUrl }) =>
 /** 触发部署（deploy.yml 只允许 main，payload 按其守卫形状给）。 */
 const dispatchDeploy = () => repoClient.dispatchWorkflow(DEPLOY_WORKFLOW);
 
-const runApply = async (issue) => {
-  const { validated, filename, blocked, comment } = resolveApplication(issue);
-  if (blocked) {
-    // 人工放行时表单坏了：不写，说明原因，等站长改完重新打标签。
-    await postComment(
-      issue.number,
-      `${comment}\n\n> 本次 friend-approved 未执行：正文在等待期间被改动过。改正后请重新打标签。`,
-    );
-    logger.warn('审核通过但表单不可用，未写入', { issue: issue.number, reason: blocked });
-    await notify(
-      'friend-review',
-      `【友链需人工】#${issue.number} 已通过审核但${blocked}，未写入\n${issueUrl(issue.number)}`,
-    );
-    return;
-  }
-
+/**
+ * 写一条友链记录并触发部署（自动收录与人工放行共用，护栏完全一致）：
+ * 写前校验、目录硬编码、一次只动一个文件、sha 乐观锁、写后回读。
+ *
+ * @param {object} input
+ * @param {object} input.issue
+ * @param {object} input.validated validateFriendRecord 的结果
+ * @param {string} input.filename 拟写入的文件名（不含 .json）
+ * @param {object} input.verdict 检测结论（自动收录时就是本次命中的结果）
+ * @param {'auto' | 'manual'} input.source 自动收录 / 人工放行
+ * @returns {Promise<{ published: boolean, reason?: string }>}
+ */
+const publishRecord = async ({ issue, validated, filename, verdict, source }) => {
   const { record, canonicalUrl, backlinkUrl } = validated;
 
   /* 本流程只做「新增收录」：申请类型字段已于 2026-10 经用户授权从表单与模板里删除，
@@ -603,7 +630,7 @@ const runApply = async (issue) => {
       issue: issue.number,
       existing: matched.map((item) => item.filename).join(','),
     });
-    return;
+    return { published: false, reason: 'duplicate' };
   }
 
   const filePath = `${FRIENDS_DIR}/${filename}.json`;
@@ -630,7 +657,7 @@ const runApply = async (issue) => {
       content: json,
       sha: existing?.sha,
       canonicalUrl,
-      message: `feat(friends): 收录友链 ${record.name}（人工审核通过，#${issue.number}）`,
+      message: `feat(friends): 收录友链 ${record.name}（${source === 'auto' ? '自动检测通过' : '人工审核通过'}，#${issue.number}）`,
     });
     commitSha = written?.commit?.sha || '';
 
@@ -648,14 +675,6 @@ const runApply = async (issue) => {
     if (!parsedBack || parsedBack.url !== record.url || parsedBack.name !== record.name) {
       logger.error('回读校验不通过：文件内容与本次记录不一致', { file: filePath });
     }
-  }
-
-  // 顺手重跑一次检测作为证据（失败不阻断：人工放行优先）。
-  let verdict = null;
-  try {
-    verdict = (await detectBacklink({ pageUrl: pickDetectionUrl(validated), siteUrl: record.url })).verdict;
-  } catch (error) {
-    logger.warn('放行后的补充检测失败（不影响收录）', { error: formatError(error) });
   }
 
   let deployed = true;
@@ -679,9 +698,10 @@ const runApply = async (issue) => {
       result: verdict,
       deployed,
       backlinkUrl,
+      auto: source === 'auto',
     }),
   );
-  await addLabels(issue.number, [LABELS.link, LABELS.added, VERDICT_LABEL[verdict?.verdict] ?? LABELS.needsInfo]);
+  await addLabels(issue.number, [LABELS.link, LABELS.approved, LABELS.added]);
 
   await notify(
     'friend-added',
@@ -694,21 +714,40 @@ const runApply = async (issue) => {
       issueUrl(issue.number),
     ].join('\n'),
   );
-  logger.info('友链已入库', { file: filePath, deployed });
+  logger.info('友链已入库', { file: filePath, source, deployed });
+  return { published: true };
 };
 
-/* ------------------------------------------------------------------ */
-/* C. 拒绝：固定文案 + 关闭，不写任何文件                               */
-/* ------------------------------------------------------------------ */
+/**
+ * 人工放行（站长打「审核通过」标签）：重跑一次检测作为证据后写入。
+ * 检测失败不阻断 —— 人工放行优先，评论里会写明「人工放行」。
+ */
+const runApply = async (issue) => {
+  const { validated, filename, blocked, comment } = resolveApplication(issue);
+  if (blocked) {
+    // 人工放行时表单坏了：不写，说明原因，等站长改完重新打标签。
+    await postComment(
+      issue.number,
+      `${comment}\n\n> 本次「审核通过」未执行：正文在等待期间被改动过。改正后请重新打标签。`,
+    );
+    logger.warn('审核通过但表单不可用，未写入', { issue: issue.number, reason: blocked });
+    await notify(
+      'friend-review',
+      `【友链需人工】#${issue.number} 已通过审核但${blocked}，未写入\n${issueUrl(issue.number)}`,
+    );
+    return;
+  }
 
-const runReject = async (issue) => {
-  await postComment(issue.number, renderRejectComment());
-  await closeIssue(issue.number);
-  await notify(
-    'friend-rejected',
-    `【友链已拒绝】#${issue.number} ${issue.title || ''}\n已回复拒绝文案并关闭 Issue，未写入任何文件\n${issueUrl(issue.number)}`,
-  );
-  logger.info('已按站长的拒绝标签回复并关闭', { issue: issue.number });
+  let verdict = null;
+  try {
+    verdict = (await detectBacklink({ pageUrl: pickDetectionUrl(validated), siteUrl: validated.record.url })).verdict;
+  } catch (error) {
+    logger.warn('放行后的补充检测失败（不影响收录）', { error: formatError(error) });
+  }
+
+  const published = await publishRecord({ issue, validated, filename, verdict, source: 'manual' });
+  // 人工放行同样在文件写入后关闭 Issue（与自动收录保持一致）。
+  if (published.published) await closeIssue(issue.number, 'completed');
 };
 
 /* ------------------------------------------------------------------ */
@@ -759,20 +798,19 @@ const resolveRoute = (eventName, payload) => {
     const number = Number(process.env.FRIEND_ISSUE || '');
     if (!Number.isInteger(number) || number <= 0)
       return { action: 'skip', reason: 'workflow_dispatch 缺少合法的 issue 号' };
-    if (!['detect', 'apply', 'reject'].includes(mode)) return { action: 'skip', reason: `未知 mode: ${mode}` };
+    if (!['detect', 'apply'].includes(mode)) return { action: 'skip', reason: `未知 mode: ${mode}` };
     return { action: mode === 'detect' ? 'detect' : mode, issueNumber: number, manual: true };
   }
 
   if (eventName === 'issues') {
     const label = payload.label?.name ?? '';
     if (payload.action === 'labeled') {
+      // 唯一的放行标签：自动流程没通过时站长手动打，触发人工放行写入。
+      // 其余的标签事件（含 friend-link）一律不触发检测 —— 模板/页面预填会在创建时带上
+      // friend-link，GitHub 还会额外发一次 labeled，两边都触发会让一次申请跑两遍检测、
+      // 发两条重复评论（2026-11 修复）。
       if (label === LABELS.approved) return { action: 'apply' };
-      if (label === LABELS.rejected) return { action: 'reject' };
-      // friend-link 不在这里触发检测：模板/页面预填都会在**创建时**带上这个标签，
-      // GitHub 会额外发一次 labeled 事件 —— 若这里也返回 detect，一次申请会跑两遍
-      // 检测、发两条一模一样的评论（2026-11 修复）。检测只由 opened/edited/reopened
-      // 与申请人评论触发（见 ai-rules/friends.md 规则 8）。
-      return { action: 'skip', reason: `该标签不触发检测：${sanitizeLogValue(label) || '(空)'}` };
+      return { action: 'skip', reason: `该标签不触发处理：${sanitizeLogValue(label) || '(空)'}` };
     }
     if (['opened', 'edited', 'reopened'].includes(payload.action)) {
       if (!isFriendApplication(payload.issue)) return { action: 'skip', reason: '非友链 Issue' };
@@ -939,7 +977,6 @@ const main = async () => {
 
   if (route.action === 'detect') await runDetect(issue);
   else if (route.action === 'apply') await runApply(issue);
-  else if (route.action === 'reject') await runReject(issue);
 };
 
 // 只有作为主模块直接运行时才执行：被测试或其他脚本 import 时不得有任何副作用

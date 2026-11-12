@@ -42,7 +42,7 @@ const SiteNavList: React.FC<SiteNavListProps> = ({
   <div className="flex flex-col gap-4">
     {navGroups.map((group) => (
       <div key={group.label}>
-        <p className="sidebar-nav-group-title mb-1.5 truncate px-2 text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+        <p className="sidebar-nav-group-title mb-1.5 truncate px-2 text-[11px] font-medium uppercase tracking-[0.12em] text-content-tertiary">
           {group.label}
         </p>
         <nav aria-label={`${labelPrefix}${group.label}`}>
@@ -54,8 +54,11 @@ const SiteNavList: React.FC<SiteNavListProps> = ({
                 isActive ? ACTIVE_ROW_CLASS : ''
               }`;
               const label = <span className="nav-item-label min-w-0 flex-1 truncate">{item.label}</span>;
+              // 角标文字透明度下限 80%：70% 时 #a3a3a3 叠在 surface 上只有 4.17:1，低于
+              // WCAG AA 的 4.5:1（Lighthouse 对比度审计会逐项报）；80% 为 5.06:1，激活行
+              // 反白底 10.9:1，悬停行（文字转亮 + surface-muted 底）10.47:1。
               const hint = (
-                <span className="nav-item-hint max-w-[46%] shrink-0 truncate text-right text-[10px] font-normal opacity-70">
+                <span className="nav-item-hint max-w-[46%] shrink-0 truncate text-right text-[10px] font-normal opacity-80">
                   {item.hint}
                 </span>
               );

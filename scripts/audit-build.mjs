@@ -168,6 +168,11 @@ if (!fs.existsSync(headersPath)) {
   if (sourceUsesClarity && !headers.includes('https://www.clarity.ms')) {
     errors.push('CSP is missing the required Clarity origin');
   }
+  // Clarity 的引导脚本会把真正的追踪脚本从 scripts.clarity.ms 下发，只放行 www
+  // 时脚本会被 script-src 拦掉（2026-11 线上控制台报错），故两处源都必须存在。
+  if (sourceUsesClarity && !headers.includes('https://scripts.clarity.ms')) {
+    errors.push('CSP is missing the Clarity script CDN origin (scripts.clarity.ms)');
+  }
   if (sourceUsesVercount && !headers.includes("connect-src 'self' https://events.vercount.one")) {
     errors.push('CSP connect-src is missing the Vercount API origin');
   }

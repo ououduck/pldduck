@@ -34,6 +34,11 @@
   --color-surface-muted: #1f1f1f; /* hover / 弱底块 */
   --color-text: #fafafa; /* 正文与主文字 */
   --color-text-secondary: #a3a3a3; /* 次要文字：导航标签、页名、品牌身份 */
+  /* 三级文字：分组标题等「比次要文字更弱、但仍须可读」的标签。
+     下限由 WCAG AA 反推：浅到 #71717a（zinc-500）时叠在 surface(#141414) 上只有
+     3.81:1，Lighthouse 对比度审计会直接报错；本值 5.70:1，叠 surface-muted 5.10:1，
+     移动抽屉底（#09090b）6.15:1，均可读。改这个值必须重新验算这三处。 */
+  --color-text-tertiary: #8f8f8f;
   --color-border: #262626; /* 发丝线边框 */
   --color-accent: #fafafa; /* 强调/链接色：与正文同墨色 */
   --color-success: #34d399;

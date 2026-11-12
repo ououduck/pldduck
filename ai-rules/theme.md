@@ -15,11 +15,13 @@
 
 - **深色 Token**：`--color-background` = `#0a0a0a`、`--color-surface` = `#141414`、
   `--color-surface-muted` = `#1f1f1f`、`--color-text` = `#fafafa`、`--color-text-secondary` = `#a3a3a3`、
+  `--color-text-tertiary` = `#8f8f8f`（三级文字：分组标题等弱化小字，surface 上 5.70:1 /
+  surface-muted 上 5.10:1，**不得再浅**）、
   `--color-border` = `#262626`、`--color-accent` = `#fafafa`、`--color-focus-ring` = `#fafafa`。
   兼容类 `paper` = `#141414`、`ink` = `#fafafa`、`void` = `#0a0a0a`。
   `success` / `warning` / `danger` 仍保留语义色（成功 / 告警 / 错误 / 失联），只用于状态，不得当装饰色。
 - **Tailwind 语义类**：`bg-background` / `bg-surface` / `bg-surface-muted` / `text-content` /
-  `text-content-muted` / `border-line` / `text-accent` / `text-success` 等。
+  `text-content-muted` / `text-content-tertiary` / `border-line` / `text-accent` / `text-success` 等。
 - **字体**：站点只有一套阅读字体 `--font-sans`（与文章正文同源，Microsoft YaHei 链）；`--font-serif` 保留为同值别名；
   `config/tailwind.config.js` 的 `fontFamily.serif` 映射 `var(--font-sans)`，`fontFamily.sans` 与 `--font-sans` 必须同步维护。
 - **间距**：`--space-1`…`--space-12`（4px 基准），供 CSS 与内联样式引用；Tailwind 间距刻度不变。
@@ -71,6 +73,10 @@
 - 把首页 reveal 改成 framer-motion、JS 延迟挂载或 `opacity:0` 初始 inline style：SSR/无 JS 会空白，且与 reduced-motion 分支脱节。
 - 删掉 `@media (prefers-reduced-motion: reduce)` 的 `.home-reveal { animation: none }`：对动效敏感用户会看到错落入场。
 - 写 `bg-surface/50`、`border-line/70` 之类的透明度修饰：`var()` 颜色不支持 `/opacity`；需要弱底就新增 Token。
+- 用 `text-zinc-500` / `dark:text-zinc-500`(#71717a) 弱化 10–11px 小字：叠在 surface(#141414) 上只有
+  3.81:1，低于 WCAG AA 的 4.5:1，Lighthouse「背景色和前景色没有足够高的对比度」会逐项报。三级文字一律用
+  `text-content-tertiary`；改用 `opacity` 弱化时不得低于 80%（`opacity-70` 的 #a3a3a3 叠 surface 只有 4.17:1）。
+  两条下限都由 `scripts/security-headers.test.mjs` 的对比度用例守着，改完用真浏览器截图复核仍属必须。
 - 只改 `--font-sans` 而不同步 `config/tailwind.config.js` 的 `fontFamily.sans/serif`（或反之）：CSS 与工具类会落到两套字体链。
 - 重新引入 Playfair Display / Google Fonts 或任何装饰衬线字体栈：`index.html` 已删除字体 preload/stylesheet，恢复会多一次外部请求且与文章正文割裂。
 - 文章正文/阅读模式排版只改 Tailwind 工具类或 `Post.tsx` 内联样式：正文排版以 `index.css` 的 `.post-prose` / `.reading-mode-article` 为准。

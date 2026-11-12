@@ -2,13 +2,21 @@
 # frame-ancestors). CSP 放行站点实际使用的源：Clarity/Vercount 分析、giscus
 # 评论 client.js 与 iframe、外部图床/头像（https:）。全站不加载 Web Font，
 # 故 style-src / font-src 不再放行 Google Fonts（2026-11 统一阅读字体时收紧）。
+#
+# 两个「仓库里搜不到 URL」的第三方脚本必须单独说明，否则下次收紧 CSP 时必被删掉：
+#  1. Clarity：index.html 里只写了 `https://www.clarity.ms/tag/<id>` 引导脚本，
+#     它会把真正的追踪脚本从 `https://scripts.clarity.ms/<版本>/clarity.js` 下发
+#     （2026-11 控制台报错即源于只放行了 www 子域）。上报走 `*.clarity.ms`。
+#  2. Cloudflare Web Analytics：beacon.min.js 由 Cloudflare 边缘在 HTML 末尾**自动
+#     注入**，源码里没有引用；RUM 数据上报到 `https://cloudflareinsights.com`。
+#     若在 Cloudflare 控制台关闭 Web Analytics，可同步删掉这两个源。
 /*
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: SAMEORIGIN
   Permissions-Policy: geolocation=(), microphone=(), camera=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.clarity.ms https://giscus.app; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' https://events.vercount.one https://www.clarity.ms https://*.clarity.ms; frame-src 'self' https://giscus.app; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.clarity.ms https://scripts.clarity.ms https://giscus.app https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' https://events.vercount.one https://www.clarity.ms https://*.clarity.ms https://cloudflareinsights.com; frame-src 'self' https://giscus.app; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
 
 # HTML and the service worker must revalidate so deployments cannot mix versions.
 /*.html

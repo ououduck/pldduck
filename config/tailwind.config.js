@@ -69,6 +69,8 @@ export default {
         'surface-muted': 'var(--color-surface-muted)',
         content: 'var(--color-text)',
         'content-muted': 'var(--color-text-secondary)',
+        // 三级文字（分组标题等弱化标签）：值必须维持对比度 ≥ 4.5:1，见 index.css 注释。
+        'content-tertiary': 'var(--color-text-tertiary)',
         line: 'var(--color-border)',
         accent: 'var(--color-accent)',
         success: 'var(--color-success)',

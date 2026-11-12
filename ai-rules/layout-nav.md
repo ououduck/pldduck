@@ -35,7 +35,7 @@
 
 13. **顶栏视觉轻量化**：保留 `.site-navbar` 类名与高度量级（`min-h-14 sm:min-h-16`）—— `--article-heading-offset` 由 Layout 实测该元素高度得出，文章目录/胶囊导航/工具栏都依赖这个偏移；**不得**删类名或改高度而不复核这些消费方。页名是轻量文字（13px `font-medium`、`text-content-muted`），**不得**加 `uppercase` / 大字距 / 大字重（中文加字距只会显碎）。搜索是 ghost 按钮（`topbar-ghost-button`，44×44 点击区、透明底、hover `surface-muted`），外观由 `src/index.css` 的 `.site-navbar` 规则统一；**没有主题切换按钮**（全站深色唯一），背景 `bg-surface`、边框 `border-line`、文字走 Token，**不得**在组件里再写一套 `dark:` 边框/底色。
 
-14. **侧栏 Token 配色**：激活行固定 `bg-content text-background`（近白底 + 近黑字，仅一套深色 Token）；静态文字色与 hover 底由 `src/index.css` 的 `.nav-item` Token 规则统一（桌面侧栏、移动抽屉、侧栏底部服务状态入口四处一致），**不得**在 `SiteSidebar` 里用 `dark:` 逐处覆盖。分组标题 11px / `tracking-[0.12em]`；导航图标 `strokeWidth={1.75}`（28px 图标槽不变）。**不得**改动 rail 宽度、展开/收起机制、`fillHeight` 固定布局与底部顺序（导航 → 服务状态入口 → 版权）；改配色只改设计 Token 或 `.nav-item` 全局规则。
+14. **侧栏 Token 配色**：激活行固定 `bg-content text-background`（近白底 + 近黑字，仅一套深色 Token）；静态文字色与 hover 底由 `src/index.css` 的 `.nav-item` Token 规则统一（桌面侧栏、移动抽屉、侧栏底部服务状态入口四处一致），**不得**在 `SiteSidebar` 里用 `dark:` 逐处覆盖。分组标题 11px / `tracking-[0.12em]` / 颜色走 `text-content-tertiary`（#8f8f8f：surface 上 5.70:1、surface-muted 上 5.10:1）；角标 `nav-item-hint` 继承 `.nav-item` 的次要文字色再用透明度弱化，**透明度不得低于 80%**（`opacity-70` 时叠 surface 只有 4.17:1，低于 4.5:1，Lighthouse 对比度审计会逐项报；80% 为 5.06:1，悬停行因文字转亮反而更高）；导航图标 `strokeWidth={1.75}`（28px 图标槽不变）。**不得**改动 rail 宽度、展开/收起机制、`fillHeight` 固定布局与底部顺序（导航 → 服务状态入口 → 版权）；改配色只改设计 Token 或 `.nav-item` 全局规则。
 
 ## 常见陷阱
 

@@ -16,7 +16,7 @@ URL 约定：列表 `/posts`（可带 `?tag=` / `?q=` / `?sort=` / `?page=`；�
 
 - `src/pages/Posts.tsx`
 - `src/components/PostCard.tsx`（`variant="banner"` 横向横幅：封面 + 文字，`bg-surface-muted` 大色块、`rounded-overlay`，移动端封面铺满 + 遮罩叠字（无分享）/`sm+` 图左文右 34%；`variant="card"` 竖排变体保留；React.memo）
-- `src/components/TagsPanel.tsx`（桌面右侧 sticky 标签卡 + 移动端右侧入口/侧板弹窗；`TagList` 提供「全部文章 + 标签」筛选）
+- `src/components/TagsPanel.tsx`（桌面右侧 sticky 标签卡 + 移动端右侧入口/侧板弹窗；`TagList` 是桌面卡片与移动侧板共用的「全部文章 + 标签」筛选，标签项为一行三个的紧凑小按钮网格，不显示计数）
 - `config/routes.mjs` 的 `/posts`、`/posts/:id` 与 `/tags` 重定向条目（见 `routes-single-source.md`）
 - `src/hooks/usePostSearch.ts`（搜索 hook：防抖 + requestId 竞态 + 空查询兜底）
 - `src/utils/postSelection.ts` / `postSorting.ts` / `homeQuery.ts`（精选/排序/URL 查询状态；`canonicalizeHomeQuery` 负责丢弃已下线的 category 参数）
@@ -35,7 +35,7 @@ URL 约定：列表 `/posts`（可带 `?tag=` / `?q=` / `?sort=` / `?page=`；�
 9. **SEO 标题**：`<Seo title=…>` 只写**前缀**（`文章` / `标签：X` / `搜索：X`），站点名后缀由 `Seo.tsx` 按「页面名 | 站点名」拼接；自己再拼一次会得到「X | 站点名 | 站点名」。默认标题**不得**用 `siteConfig.title`：那会命中 `Seo.tsx` 的首页覆盖分支，让 `/posts` 与 `/` 输出同一个 title，形成软重复。
 10. **路由新增**：`/posts` 是 SSG 静态页（`ssg: 'static'`，产物 `dist/posts/index.html`）；`/posts/:id` 只做跳转，不得给它加 `ssg`/`sitemap`，否则会把误写 URL 预渲染成可索引页面；`/tags` 只保留重定向条目（`sw: true`，无 `ssg`/`sitemap`/`preload`），不得把独立标签页加回来。
 11. **横幅列表视觉**：条目是 `PostCard variant="banner"`——`bg-surface-muted` 大色块 + `rounded-overlay`，`<sm` 是封面铺满 + 底部渐变遮罩叠标题/信息/一行摘要的电影感卡片（`min-h-48`，无分享），`sm+` 恢复图左文右（封面 34%、`min-h-52`）；标题用 `font-sans`（精选更大），元信息/标签低对比。**不得**恢复旧的竖排卡片网格、整块边框/白底/阴影，也不得加回 category 胶囊或 category 筛选条（文章 category 已删除）；标签链接一律 `/posts?tag=<encoded>`（不再是 `/tags?tag=`）。
-12. **标签卡与移动标签弹窗**：桌面右侧 `TagsPanel` 是 `lg:sticky` 的 `w-64` surface-muted 卡片（标题「标签」+ 标签数 + 可滚动列表，`max-h-[calc(100vh-7rem)]`）；移动端是贴右侧中部的「标签」按钮（`aria-expanded`/`aria-controls`，点击打开 `role="dialog"` 侧板，`useModalOverlay` 负责滚动锁、Escape 关闭与焦点陷阱，选完标签后关闭）。标签项是同一页面内的筛选 toggle，`aria-pressed` 合法且应保留；激活项 `bg-content text-background`，计数用 `tabular-nums`。**不得**把弹窗改成 navigate 到独立标签页，也不得去掉 Escape/焦点管理。
+12. **标签卡与移动标签弹窗**：桌面右侧 `TagsPanel` 是 `lg:sticky` 的 `w-64` surface-muted 卡片（外框 `rounded-overlay bg-surface-muted p-4`、`max-h-[calc(100vh-7rem)]` 与标题行「标签 + N 个」保持不变）；移动端是贴右侧中部的「标签」按钮（`aria-expanded`/`aria-controls`，点击打开 `role="dialog"` 侧板，`useModalOverlay` 负责滚动锁、Escape 关闭与焦点陷阱，选完标签后关闭）。标签列表 `TagList` 由桌面卡片与移动侧板共用，2026-11 用户确认改为**紧凑小按钮网格**：`grid grid-cols-3` 一排三个、`text-[11px]` 小字号、`min-h-8`，**视觉上只显示标签文字、不显示文章数**（数量只保留在 `aria-label` 的「筛选标签 X，共 N 篇文章」里，供读屏使用），顺序由调用方 `buildTagList` 按文章数降序（同数按中文名）给出；未选中是 `bg-background` 小色块，激活项反色成白底 `bg-content text-background`，超长标签 `truncate`（`title`/`aria-label` 留全名）。「全部文章」是清除筛选的入口，独占一整行。标签项是同一页面内的筛选 toggle，`aria-pressed` 合法且应保留。**不得**把标签项改回一行一个、占满整行且右侧带计数的纵向长列表，也**不得**在视觉上恢复计数（会撑开小按钮、重新变成长列表）；同样**不得**把弹窗改成 navigate 到独立标签页，或去掉 Escape/焦点管理。
 13. **PostCard 双 variant 与搜索一致性**：`variant="banner"` 同时用于 `/posts` 列表与 `/search` 结果（Search 也是单列横幅，移动端同样封面铺满 + 遮罩叠字）；`variant="card"` 竖排变体保留（测试/未来场景），但生产搜索结果**不得**再切回 `CompactPostCard` 或三列网格。两 variant 必须保持相同信息层级（标题/摘要/日期/阅读时长/分享，横幅在 `sm+` 另带标签行），`card` 仍要 `h-full` 且由父容器控制列宽；**不得**把 `PostCard` 改成只支持 banner，也**不得**把 category 信息位加回任一 variant。
 14. **搜索/排序行、继续阅读与骨架**：没有 category tab（该功能已删除），页面顶部只留「搜索框 + 排序切换按钮」同一行（搜索 `flex-1` 左、`SortToggle` `shrink-0` 右，`aria-pressed`），**不得**再拆成两行或恢复分类栏；继续阅读是 `rounded-overlay bg-surface-muted p-4 md:p-5` 的卡片（顶部小标题/进度 + 继续/放弃操作 + 细进度线），**不得**退回无底色的细横条；继续阅读 Link 必须传 `state={{ continueReading: true }}`，文章页据此对首次阅读位置恢复使用平滑滚动（减少「跳转即瞬移」的割裂）；横幅列表骨架与 banner 同构（封面块 + 文字条）；加载/搜索中不得整块闪回骨架（旧结果保留）。
 

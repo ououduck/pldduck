@@ -573,9 +573,9 @@ describe('renderUnreachableComment（可达性检查转人工）', () => {
     expect(body).toContain('头像地址');
   });
 
-  it('转人工：提示站长可打「审核通过」放行，且不谎称已关闭', () => {
+  it('转人工：提示站长可打 friend-approved 放行，且不谎称已关闭', () => {
     const body = renderUnreachableComment({ site, avatar });
-    expect(body).toContain('审核通过');
+    expect(body).toContain('friend-approved');
     expect(body).toContain('保持开启');
     expect(body).not.toContain('本 Issue 已关闭');
     expect(body).toContain('重开本 Issue');

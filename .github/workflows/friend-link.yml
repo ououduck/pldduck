@@ -7,7 +7,7 @@
 #         → 触发 deploy.yml → 评论「已收录」→ 自动关闭 Issue（2026-11 用户授权，
 #         happy path 不再需要人工打标签）
 #       · 任一环节没通过 → 只出证据 + 标签 + 飞书「待审核」，Issue 保持开启，等站长人工处理
-#   站长人工处理：打「审核通过」→ apply job 复用同一条写入路径并关闭 Issue；
+#   站长人工处理：打 `friend-approved`→ apply job 复用同一条写入路径并关闭 Issue；
 #   决定不收就直接手动关闭 Issue（不再有单独的「拒绝」标签与机器人拒绝评论）。
 #
 # 为什么自动收录也只走这一条写入路径（机制事实，别改回去）：
@@ -18,7 +18,7 @@
 #     不等于内容可信 —— 站长仍可随时在 Pages CMS 下架（机器人永不删文件）。
 #
 # 护栏：
-#   1) 写入只在「表单校验通过 + 站点/头像可达 + 反链命中」或站长手动打「审核通过」时发生，
+#   1) 写入只在「表单校验通过 + 站点/头像可达 + 反链命中」或站长手动打 `friend-approved` 时发生，
 #      且 sender.type == 'Bot' 一律跳过；
 #   2) 写入目录硬编码 friends/，文件名只从 issue 提交者 login 派生，并在写前断言路径不可穿越；
 #   3) 一次只动一个文件（写后核对 commit.files 与回读内容）；
@@ -33,13 +33,13 @@
 #
 # 一次性配置（GitHub 侧，零新增 Secret）：
 #   建 7 个 label：friend-link / friend-backlink-ok / friend-backlink-missing /
-#   friend-needs-info / friend-unreachable / 审核通过 / friend-added；
+#   friend-needs-info / friend-unreachable / friend-approved / friend-added；
 #   确认 main 分支没有分支保护（有的话机器人写文件会 403，需要改走 PR）。
 name: Friend Link Check
 
 on:
   issues:
-    # labeled 只用于「审核通过」（人工放行入口）；检测只认 opened/edited/reopened。
+    # labeled 只用于 `friend-approved`（人工放行入口）；检测只认 opened/edited/reopened。
     # **不要**把 labeled(friend-link) 加进 detect —— 模板与页面预填都会在创建时
     # 带上该标签，GitHub 会额外发一次 labeled 事件，两个分支同时命中会让一次申请
     # 跑两遍检测、发两条重复评论（2026-11 修复）。
@@ -125,10 +125,10 @@ jobs:
         run: node scripts/friend-link-check.mjs
 
   apply:
-    # 人工放行入口：只有「审核通过」标签或手动 dispatch 的 apply 才会进来。
+    # 人工放行入口：只有 `friend-approved` 标签或手动 dispatch 的 apply 才会进来。
     if: >-
       github.event.sender.type != 'Bot' && (
-        (github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == '审核通过') ||
+        (github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == 'friend-approved') ||
         (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'apply')
       )
     runs-on: ubuntu-latest

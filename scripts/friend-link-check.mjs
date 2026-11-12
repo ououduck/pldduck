@@ -7,7 +7,7 @@
  *
  * 铁律（见 ai-rules/friends.md 规则 3/5/6）：
  *   - 检测通过（表单合法 + 站点/头像可达 + 反链命中）→ 自动写入并关闭 Issue；没通过只出证据，
- *     转站长人工（打「审核通过」标签走同一条写入路径）。写入路径只有一条，自动与人工共用。
+ *     转站长人工（打 `friend-approved` 标签走同一条写入路径）。写入路径只有一条，自动与人工共用。
  *   - GITHUB_TOKEN 的 push 不触发任何 workflow，所以记录校验必须在写入之前完成，
  *     收录通知与部署都要机器人自己发（workflow_dispatch 自 2022-09 起允许 GITHUB_TOKEN 调用）；
  *   - 写入目录硬编码 friends/，文件名只从 issue 提交者 login 派生，一次只动一个文件。
@@ -110,7 +110,7 @@ const LABELS = Object.freeze({
   unreachable: 'friend-unreachable',
   // 唯一的「放行」标签：自动收录时机器人自己打；自动流程没通过时站长手动打，
   // 走同一条写入路径（2026-11 用户授权：不再区分「人工确认」和「人工拒绝」两个标签）。
-  approved: '审核通过',
+  approved: 'friend-approved',
   added: 'friend-added',
 });
 /** 互斥的结论标签：机器人自己摘放，人工标签（approved/rejected）永不触碰。 */
@@ -530,7 +530,7 @@ const runDetect = async (issue) => {
         renderBlockedComment({
           title: '自动收录写入失败',
           reasons: ['写入或部署环节出错，已停止自动流程（未确认写入成功）。'],
-          next: '站长可检查 Actions 日志后重新打「审核通过」标签手动放行。',
+          next: '站长可检查 Actions 日志后重新打 `friend-approved` 标签手动放行。',
         }),
       );
       await notify('friend-review', `【友链需人工】#${issue.number} 自动收录失败\n${issueUrl(issue.number)}`);
@@ -719,7 +719,7 @@ const publishRecord = async ({ issue, validated, filename, verdict, source }) =>
 };
 
 /**
- * 人工放行（站长打「审核通过」标签）：重跑一次检测作为证据后写入。
+ * 人工放行（站长打 `friend-approved` 标签）：重跑一次检测作为证据后写入。
  * 检测失败不阻断 —— 人工放行优先，评论里会写明「人工放行」。
  */
 const runApply = async (issue) => {
@@ -728,7 +728,7 @@ const runApply = async (issue) => {
     // 人工放行时表单坏了：不写，说明原因，等站长改完重新打标签。
     await postComment(
       issue.number,
-      `${comment}\n\n> 本次「审核通过」未执行：正文在等待期间被改动过。改正后请重新打标签。`,
+      `${comment}\n\n> 本次 \`friend-approved\` 未执行：正文在等待期间被改动过。改正后请重新打标签。`,
     );
     logger.warn('审核通过但表单不可用，未写入', { issue: issue.number, reason: blocked });
     await notify(

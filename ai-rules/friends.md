@@ -6,7 +6,7 @@
 
 `friends/*.json` 有**两条互不相交的写入路径**，各改各的键：
 
-- **A 道 · 申请入库**（`.github/workflows/friend-link.yml`）：先做**可达性探测**（站点地址与头像在境外打不开就转人工，不自动关闭），能访问时再抓取对方页面做**反链检测（静态抓取优先，未命中用无头浏览器渲染兜底）**。**全部检测通过（表单合法 + 站点/头像可达 + 反链命中）→ 机器人自动写入、触发部署并关闭 Issue**（2026-11 用户授权，happy path 不再人工审核）；**任一环节没通过 → 只出证据、保持开启，转站长人工**：确认收录就打「审核通过」标签（走同一条写入路径），决定不收就直接手动关闭 Issue（没有单独的拒绝标签）。此道只写展示字段，**永不触碰 `unavailable`**。
+- **A 道 · 申请入库**（`.github/workflows/friend-link.yml`）：先做**可达性探测**（站点地址与头像在境外打不开就转人工，不自动关闭），能访问时再抓取对方页面做**反链检测（静态抓取优先，未命中用无头浏览器渲染兜底）**。**全部检测通过（表单合法 + 站点/头像可达 + 反链命中）→ 机器人自动写入、触发部署并关闭 Issue**（2026-11 用户授权，happy path 不再人工审核）；**任一环节没通过 → 只出证据、保持开启，转站长人工**：确认收录就打 `friend-approved` 标签（走同一条写入路径），决定不收就直接手动关闭 Issue（没有单独的拒绝标签）。此道只写展示字段，**永不触碰 `unavailable`**。
 - **B 道 · 失联巡检**（`.github/workflows/friend-availability-audit.yml`，每天 02:00 UTC 定时 + Pages CMS 手动按钮）：探测每条记录的站点 URL，**双向**同步 `unavailable`（下线标失联、恢复移回上方），并**覆盖站长在 CMS 里的手工勾选**（2026-10 用户明确授权）。此道只写 `unavailable` 这一个键，其余字段原样透传。
 
 失联状态未配置时默认视为正常；前端两条路径都只读。
@@ -35,8 +35,8 @@
 
 4. **自动收录 + 失败转人工（2026-11 用户授权）**：反链检测（`opened`/`edited`/`reopened`/申请人评论触发：先 `findBacklink` 静态解析，未命中且页面可达时再用 `renderPage` 无头浏览器渲染一次）有两条出路：
    - **全部通过（表单合法 + 站点/头像可达 + 反链 `found`）→ 机器人自动写文件、触发部署并关闭 Issue**，评论标题写明「已收录：自动检测全部通过」并附检测证据；
-   - **任一环节没通过（表单异常 / 站点或头像打不开 / `not-found` / `js-only` / `restricted` / `fetch-error` / `offsite`）→ 只产出证据评论 + 检测标签 + 飞书「待审核」，Issue 保持开启，等站长人工处理**：确认收录就打「审核通过」标签（`publishRecord` 走同一条写入路径，写完自动关闭）；决定不收就直接手动关闭 Issue —— **不再有「拒绝」标签与固定拒绝文案**。
-     **检测触发面只有四个事件**：`opened` / `edited` / `reopened` / 申请人或协作者的新评论（`issue_comment.created`）。**`issues.labeled` 只认「审核通过」，`friend-link` 标签不触发检测** —— 模板与页面预填都会在创建时打上该标签，GitHub 会额外发一次 `labeled`，两边都触发会让一次申请连发两条重复评论（2026-11 修复；workflow 的 `on.issues` 注释、`friend-link-check.mjs` 的 `resolveRoute` 注释与 `findBacklink` 触发面都在案，改回两边触发会重新出现重复评论）。**标签不是检测门槛**：外部申请人没有仓库写权限时，GitHub 不会把预填链接里的 `labels=friend-link` 应用到他们创建的空白 Issue 上（2026-11 实测：正文预填成功、标签为空、申请被静默跳过），所以 `opened`/`edited`/`reopened` 与评论重测同时接受「有 `friend-link` 标签」**或**「正文含两个必填段标题」（`looksLikeFriendApplication`，判定逻辑在 `friend-form-core.mjs` 并有单测）；检测结束/收录后机器人自己补打 `friend-link` 标签，后续评论重测不受影响。**可达性检查**（2026-10 授权，2026-11 改为转人工）：检测前先探申报的站点地址与头像，任一在 Actions 出口（境外 IP）拿不到 2xx/3xx —— 连接超时/被拒、DNS 失败、4xx（含 403 的禁海外/反爬）、5xx —— 即回复固定话术 `UNREACHABLE_NOTICE`（或 `AVATAR_UNREACHABLE_NOTICE`）、打 `friend-unreachable`、**保持开启**、推飞书「待人工」，跳过反链检测；站长确认可放过就打「审核通过」，不收就直接关闭。
+   - **任一环节没通过（表单异常 / 站点或头像打不开 / `not-found` / `js-only` / `restricted` / `fetch-error` / `offsite`）→ 只产出证据评论 + 检测标签 + 飞书「待审核」，Issue 保持开启，等站长人工处理**：确认收录就打 `friend-approved` 标签（`publishRecord` 走同一条写入路径，写完自动关闭）；决定不收就直接手动关闭 Issue —— **不再有「拒绝」标签与固定拒绝文案**。
+     **检测触发面只有四个事件**：`opened` / `edited` / `reopened` / 申请人或协作者的新评论（`issue_comment.created`）。**`issues.labeled` 只认 `friend-approved`，`friend-link` 标签不触发检测** —— 模板与页面预填都会在创建时打上该标签，GitHub 会额外发一次 `labeled`，两边都触发会让一次申请连发两条重复评论（2026-11 修复；workflow 的 `on.issues` 注释、`friend-link-check.mjs` 的 `resolveRoute` 注释与 `findBacklink` 触发面都在案，改回两边触发会重新出现重复评论）。**标签不是检测门槛**：外部申请人没有仓库写权限时，GitHub 不会把预填链接里的 `labels=friend-link` 应用到他们创建的空白 Issue 上（2026-11 实测：正文预填成功、标签为空、申请被静默跳过），所以 `opened`/`edited`/`reopened` 与评论重测同时接受「有 `friend-link` 标签」**或**「正文含两个必填段标题」（`looksLikeFriendApplication`，判定逻辑在 `friend-form-core.mjs` 并有单测）；检测结束/收录后机器人自己补打 `friend-link` 标签，后续评论重测不受影响。**可达性检查**（2026-10 授权，2026-11 改为转人工）：检测前先探申报的站点地址与头像，任一在 Actions 出口（境外 IP）拿不到 2xx/3xx —— 连接超时/被拒、DNS 失败、4xx（含 403 的禁海外/反爬）、5xx —— 即回复固定话术 `UNREACHABLE_NOTICE`（或 `AVATAR_UNREACHABLE_NOTICE`）、打 `friend-unreachable`、**保持开启**、推飞书「待人工」，跳过反链检测；站长确认可放过就打 `friend-approved`，不收就直接关闭。
 5. **反链判定口径**（改动必须同步本节，不得只写在代码注释里）：
    - 只认 `<a href>` 解析出的绝对 http(s) 地址；host 必须**精确等于或为子域**于 `www.pldduck.com` / `pldduck.com`（`pldduck.com.evil.net`、`evil-pldduck.com` 不算命中）。
    - 判定前先剥离 HTML 注释（主题里注释掉的友链是最可能的假阳性来源）；`<img src>`、`rel=canonical`、`meta refresh`、JS 字符串里的链接一律不算。
@@ -46,7 +46,7 @@
    - **静态优先 + 渲染兜底（2026-11）**：先走静态 `findBacklink`；只有「页面拿到了 HTML、但结论是 `not-found` / `js-only`」时才用无头浏览器（`scripts/lib/render-html.mjs`）渲染一次，把主文档与所有 iframe 的绝对锚点交给 `findBacklinkInAnchors` —— **判定口径与静态路径完全同源**，不许为渲染结果另立一套。渲染失败/超时/被站点拦截一律退回静态结论，绝不等同于「没挂链」；命中后仍按自动收录规则写入，未命中一律转人工。证据评论必须写明「检测方式：静态 HTML / 浏览器渲染（含 JS 挂件）」。渲染器的 SSRF 护栏（与 `lib/http.mjs` 三层防御配合，缺一不可）：渲染前 `isSafePublicHttpUrl`；页面**每个**子请求都过 `context.route`（协议白名单 + localhost/私网 IP 字面量直接 abort + 域名再走一次 DNS 私网校验）；图片/媒体/字体不加载、子请求总数设上限、关闭下载与 Service Worker。
    - **假阴性便宜**（申请人可改正文重测、站长可人工放行），**假阳性只影响展示质量**（只写展示字段、机器人永不删文件，站长可在 Pages CMS 下架），所以口径宁严不误；自动收录只发生在 `found`，其余结论一律转人工，任何 verdict 都不替站长拒绝。
 6. **写入护栏**（A/B 两条路径各一套，全部为硬约束）：
-   - **A 段 · 写入（自动收录与「审核通过」手动放行共用 `publishRecord`）**：**触发器只有两个** —— 自动检测全部通过，或站长手动打「审核通过」标签；两者走同一函数、同一套护栏，不许另开写入路径。
+   - **A 段 · 写入（自动收录与 `friend-approved` 手动放行共用 `publishRecord`）**：**触发器只有两个** —— 自动检测全部通过，或站长手动打 `friend-approved` 标签；两者走同一函数、同一套护栏，不许另开写入路径。
    - 目录**硬编码 `friends/`**，不读 `siteConfig.friendsPage.repoFriendsDir`（CMS 可改的配置值不能指挥机器人往哪写；有漂移测试守着）。
    - 文件名只从 `issue.user.login` 派生，断言 `^[A-Za-z0-9_-]{1,64}$` 且路径归一化后不变；禁止任何来自正文的文本参与文件名。
    - 记录必须经 `validateFriendRecord`（协议限 http/https、名称≤50/简介≤120、去控制字符与零宽、host 不得是 IP 字面量或本站域名）**再写**；必须带 `filename` 键（缺了它 Pages CMS 会生成 `.json` 点文件）。
@@ -61,7 +61,7 @@
    - **不可达占比 ≥50%（且样本 ≥4）判为「是我们出不去，不是它们挂了」，整轮熔断**：丢弃全部写入（含恢复），只报告。单靠 3 个上限挡不住出口 IP 被封 —— 每晚标 3 个、五晚就清空友链，所以主力护栏是熔断 + 冻结，上限只是最后一道。
    - 只认 dispatch `payload.repository.ref == main` 且 `GITHUB_REF` 为 `refs/heads/main`；有实际提交才 `workflow_dispatch` 调 `deploy.yml` 一次。
 7. **机制事实**：**GITHUB_TOKEN 的 push 不会触发任何 workflow**（GitHub 防自循环）。所以机器人提交 `friends/*.json` 后 `ci.yml` 与 `push: main` 的飞书通知都不会跑 —— 记录校验必须在写入前完成（`generate-site-data.mjs` 对坏记录只 warn+skip，靠 CI 兜不住），收录通知必须由机器人自己发，部署必须由机器人 `workflow_dispatch` 调 `deploy.yml`（该能力自 2022-09 起官方支持，需 `actions: write`）。
-8. **防自循环**：`labeled` 分支只处理「审核通过」（`friend-link` 标签**不**触发检测，见规则 4 的重复触发说明），且要求 `sender.type != 'Bot'`；机器人评论正文嵌 `<!-- pldduck-friend-bot:v1 -->` 标记，带标记的评论一律跳过；评论重测只认 Issue 作者或 `author_association ∈ {OWNER,MEMBER,COLLABORATOR}`；机器人永不编辑 Issue 正文（否则自触发 `edited`）。
+8. **防自循环**：`labeled` 分支只处理 `friend-approved`（`friend-link` 标签**不**触发检测，见规则 4 的重复触发说明），且要求 `sender.type != 'Bot'`；机器人评论正文嵌 `<!-- pldduck-friend-bot:v1 -->` 标记，带标记的评论一律跳过；评论重测只认 Issue 作者或 `author_association ∈ {OWNER,MEMBER,COLLABORATOR}`；机器人永不编辑 Issue 正文（否则自触发 `edited`）。
 9. **搜索过滤**：`getFriendDomain`（new URL 解析）结果必须预计算 Map 缓存（禁止每次击键对全部友链重复解析）；大小写统一用 toLowerCase（非 toLocaleLowerCase，locale 无关）。
 10. **SSG 确定性**：友链列表与失联分组首帧由 `getInitialFriends()` 渲染。
 11. **无卡片光效**：友链已改为卡片式条目（surface/surface-muted 色块，见规则 13），历史 `useSpotlight` / `SpotlightLayer` 已删除；**不得**恢复 pointermove 光斑、卡片高亮层或重边框，交互反馈只靠 hover 色块/文字色（见规则 12/13）。
@@ -73,8 +73,8 @@
 
 - Issue 表单只有 `required` 校验（GitHub 至今未实现正则/长度/URL 校验），模板里的 `description` 只是提示 —— 真正的校验在 `friend-form-core.mjs`。改模板字段 label 必须同步 `FRIEND_FIELDS`，漂移测试会变红。
 - Issue 表单的正文段序与 label 是解析契约；解析有任何异常（缺段/重复段/乱序）都判 `ambiguous` 转人工，**绝不猜测字段值**。
-- 反链检测以**静态抓取**为主、未命中时用无头浏览器兜底渲染（2026-11），但 JS 挂件仍可能因加载慢、被墙或反爬拦截而漏检；「请放服务端直出的 `<a href>`」这句提醒写在**Issue 模板的「申请须知」**与检测评论里（页面申请卡已于 2026-10 经用户授权删掉这段重复说明，勾选项只保留「我已在自己的站点上添加了指向本站的链接」），别把它从模板里也删掉 —— 申请人绕过页面直接用模板时，那是唯一能看到口径的地方。渲染兜底的开关是 `FRIEND_RENDER_FALLBACK`（默认开）、单次超时与总预算见 `.env.example`。
-- **可达性闸门跑在境外出口 IP 上**：开了禁海外的站点、带防盗链的头像 CDN 都可能被判打不开而转人工（Issue 保持开启）。误判的补救是让申请人重开 Issue（会立刻重测）或站长直接打「审核通过」；不要为了少转人工就把 403 之类改成「不算失败」—— 那等于把闸门关掉。探测只读 64 KB，别拿它当内容检测用。
+- 反链检测以**静态抓取**为主、未命中时用无头浏览器兜底渲染（2026-11），JS 挂件也能识别，但仍可能因加载慢、被墙或反爬拦截而漏检；「不要求服务端直出，但服务端直出的 `<a href>` 最稳」这句提醒写在**Issue 模板的「申请须知」**与检测评论里（页面申请卡已于 2026-10 经用户授权删掉这段重复说明，勾选项只保留「我已在自己的站点上添加了指向本站的链接」），别把它从模板里也删掉 —— 申请人绕过页面直接用模板时，那是唯一能看到口径的地方。渲染兜底的开关是 `FRIEND_RENDER_FALLBACK`（默认开）、单次超时与总预算见 `.env.example`。
+- **可达性闸门跑在境外出口 IP 上**：开了禁海外的站点、带防盗链的头像 CDN 都可能被判打不开而转人工（Issue 保持开启）。误判的补救是让申请人重开 Issue（会立刻重测）或站长直接打 `friend-approved`；不要为了少转人工就把 403 之类改成「不算失败」—— 那等于把闸门关掉。探测只读 64 KB，别拿它当内容检测用。
 - `friend.unavailable` 由 B 段巡检维护：**站长在 CMS 里的手工勾选会被下一轮巡检覆写**（2026-10 授权，不是 bug）。前端只读，A 段机器人也永不写它。目前**没有「让某条永久留在失联列表」的开关** —— 想留住就只靠巡检判定维持，或临时别跑那个 workflow；别为此在记录里私加新键（生成器与 CMS 都不认）。
 - B 段按记录里的 `filename` 键定位文件，键与真实文件名不一致就判「记录不可用」跳过并告警 —— 仓库里已有实例（`friends/xeiu.json` 内写 `filename: "Xe_iu"`）。这类历史漂移要**先修数据**再谈巡检，别放宽匹配（放宽等于让一个文件去改另一个文件）。
 - 巡检探测跑在 Actions 出口 IP 上，本地 `--dry-run` 复现时若开着 Clash/Surge 的 TUN 代理，fake-IP 会让全部站点被 IP 级 SSRF 校验拦成 `BLOCKED`（结论是「冻结不动」，不会误写，但报告毫无意义）；按 `ai-rules/broken-links.md` 的代理例外处理，必要时显式设 `ALLOW_PROXY_ARTIFACT_DNS=1`。

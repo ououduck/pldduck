@@ -421,7 +421,7 @@ const FOOTER = [
   '',
   '---',
   '',
-  '*由 GitHub Actions 自动发布。检测全部通过会自动收录并关闭本 Issue；没通过则转站长人工处理（打上「审核通过」标签即入库）。*',
+  '*由 GitHub Actions 自动发布。检测全部通过会自动收录并关闭本 Issue；没通过则转站长人工处理（打上 `friend-approved` 标签即入库）。*',
 ].join('\n');
 
 /**
@@ -498,7 +498,7 @@ export const renderDetectComment = ({ validated, filename, result, siteUrl }) =>
         : [
             '请检查以下几点后修改本 Issue 的正文（或在本 Issue 下评论一句，检测会自动重跑）：',
             '',
-            `1. 链接必须写成服务端直出的 \`<a href="${siteUrl}">\`：本次已用无头浏览器渲染过一次，但加载慢、被墙或被站点反爬拦住的 JS 挂件仍可能漏检。`,
+            `1. 链接可以是 JS 渲染的（机器人会用无头浏览器再查一次）；服务端直出的 \`<a href="${siteUrl}">\` 仍然最稳 —— 加载慢、被墙或被站点反爬拦截时仍可能漏检。`,
             '2. 只认 `<a href>`：图片、RSS、`rel=canonical`、跳转都不算。',
             '3. 常见的挂链位置：首页页脚、友情链接/friends 单独页、关于页。',
             '',
@@ -584,7 +584,7 @@ export const renderUnreachableComment = ({ site, avatar }) => {
       '检测运行在境外的 GitHub Actions 上：从你本地能打开不代表这里能打开，防火墙丢弃、连接超时、CDN 返回 403 都会被判定为无法访问。',
     ],
     sections: rows.length > 0 ? [['访问检查', rows]] : [],
-    note: '本 Issue **保持开启**，等站长人工确认：确认可以收录就打「审核通过」标签，决定不收就直接关闭本 Issue。解除屏蔽后**重开本 Issue** 会立刻重新检测。',
+    note: '本 Issue **保持开启**，等站长人工确认：确认可以收录就打 `friend-approved` 标签，决定不收就直接关闭本 Issue。解除屏蔽后**重开本 Issue** 会立刻重新检测。',
   });
 };
 

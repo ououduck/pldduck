@@ -25,12 +25,13 @@ body:
         7. **本表单只用于新增收录**：已收录的条目要改名称/地址/简介/头像，或想把友链下架，
            请邮件联系 pldduck@outlook.com，不要重复开 Issue（同一站点地址会被判「已收录」并退回）。
 
+  # 示例占位统一用本站信息（与 config/site.config.json 同步；改站点名/域名/简介/LOGO 时一起改）。
   - type: input
     id: name
     attributes:
       label: 站点名称
       description: 展示在友链卡片上的名字（不超过 50 字）
-      placeholder: 阿叶的小站
+      placeholder: 跑路的duck
     validations:
       required: true
       maxLength: 50
@@ -40,7 +41,7 @@ body:
     attributes:
       label: 站点地址
       description: 站点首页完整地址，http/https，不要写 IP、不要带账号信息
-      placeholder: https://blog.example.com
+      placeholder: https://www.pldduck.com
     validations:
       required: true
       maxLength: 500
@@ -50,7 +51,7 @@ body:
     attributes:
       label: 反链页面地址
       description: 实际挂着本站链接的那个页面（必须与站点地址同域）。留空则检测站点首页
-      placeholder: https://blog.example.com/links
+      placeholder: https://www.pldduck.com/friends
     validations:
       required: false
       maxLength: 500
@@ -60,7 +61,7 @@ body:
     attributes:
       label: 头像地址
       description: 直接可访问的图片链接（http/https），建议 128×128 以上
-      placeholder: https://cdn.example.com/avatar.png
+      placeholder: https://www.pldduck.com/logo.png
     validations:
       required: true
       maxLength: 500
@@ -70,7 +71,7 @@ body:
     attributes:
       label: 站点简介
       description: 一两句话说清你的站点在写什么（不超过 120 字）
-      placeholder: 记录前端学习与生活随笔
+      placeholder: 跑路的duck的小站
     validations:
       required: true
       maxLength: 120

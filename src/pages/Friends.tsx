@@ -111,6 +111,20 @@ const initialFriends = getInitialFriends();
 /** 站点头像绝对地址：友链头像缺失或加载失败时的兜底，避免出现空头像。 */
 const SITE_AVATAR = absoluteSiteUrl(siteConfig.logo, siteConfig.url);
 
+/**
+ * 本站友链信息：①「本站友链信息」卡展示与复制文本，② 申请表单的示例占位，两处共用。
+ * 示例必须跟随本站配置 —— 不再写死别人的站点（旧文案是「阿叶的小站」），
+ * 否则申请人会拿错示例、站长改站点名后两处也对不上。
+ */
+const SITE_INFO = {
+  name: siteConfig.title,
+  description: siteConfig.description,
+  url: siteConfig.url,
+  // 展示位与「LOGO：」复制文本共用同一个值，必须是绝对地址 —— 申请人要把它挂到自己站上，
+  // 站内相对路径（/logo.png）对他们没有任何意义。
+  avatar: absoluteSiteUrl(siteConfig.logo, siteConfig.url),
+};
+
 /** 已收录条目的信息修改联系邮箱：不接 Issue 流程，也不为此新增配置键。 */
 const FRIEND_EDIT_CONTACT_EMAIL = 'pldduck@outlook.com';
 
@@ -191,7 +205,7 @@ const FriendApplyForm = () => {
               value={form.name}
               onChange={updateField('name')}
               maxLength={50}
-              placeholder="阿叶的小站"
+              placeholder={SITE_INFO.name}
             />
           </div>
           <div>
@@ -204,7 +218,7 @@ const FriendApplyForm = () => {
               value={form.description}
               onChange={updateField('description')}
               maxLength={120}
-              placeholder="前端与生活方式记录"
+              placeholder={SITE_INFO.description}
             />
           </div>
           <div>
@@ -217,7 +231,7 @@ const FriendApplyForm = () => {
               value={form.url}
               onChange={updateField('url')}
               maxLength={500}
-              placeholder="https://ayee.example.com"
+              placeholder={SITE_INFO.url}
             />
           </div>
           <div>
@@ -230,7 +244,7 @@ const FriendApplyForm = () => {
               value={form.avatar}
               onChange={updateField('avatar')}
               maxLength={500}
-              placeholder="https://ayee.example.com/avatar.png"
+              placeholder={SITE_INFO.avatar}
             />
           </div>
           <div>
@@ -243,7 +257,7 @@ const FriendApplyForm = () => {
               value={form.backlinkUrl}
               onChange={updateField('backlinkUrl')}
               maxLength={500}
-              placeholder="https://ayee.example.com/links"
+              placeholder={`${SITE_INFO.url}/friends`}
             />
           </div>
         </div>
@@ -339,14 +353,7 @@ export const Friends = () => {
     };
   }, [loadAttempt]);
 
-  const siteInfo = {
-    name: siteConfig.title,
-    description: siteConfig.description,
-    url: siteConfig.url,
-    // 展示位与「LOGO：」复制文本共用同一个值，必须是绝对地址 —— 申请人要把它挂到自己站上，
-    // 站内相对路径（/logo.png）对他们没有任何意义。
-    avatar: absoluteSiteUrl(siteConfig.logo, siteConfig.url),
-  };
+  const siteInfo = SITE_INFO;
 
   // 域名解析结果预计算（new URL 解析与 hosts 剥离）：搜索过滤每次击键不再对
   // 全部友链重复解析 URL。

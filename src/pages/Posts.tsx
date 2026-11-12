@@ -1,5 +1,5 @@
 /**
- * 文章页：精选/最新文章网格、站内搜索、分类/排序/分页筛选与继续阅读。
+ * 文章页：精选/最新文章网格、站内搜索、标签/排序/分页筛选与继续阅读。
  * 首页（/）只做导流，文章列表的全部交互集中在这里。
  */
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
@@ -13,8 +13,6 @@ import { Seo } from '../components/Seo';
 import { PostCard } from '@/components/PostCard';
 import { usePostSearch } from '@/hooks/usePostSearch';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { useScrollEdgeFade } from '@/hooks/useScrollEdgeFade';
-import { mergeClassName } from '@/utils/classNames';
 import { ContentStatus, LoadingStatus } from '@/components/ContentStatus';
 import { TagsPanel, type TagSummary } from '@/components/TagsPanel';
 import { sortPosts } from '@/utils/postSorting';
@@ -29,13 +27,12 @@ import { clearSearchQueryParams, setSearchQueryParams } from '@/utils/searchPara
 
 const ShareModal = lazy(() => import('../components/ShareModal').then((m) => ({ default: m.ShareModal })));
 
-const ALL_CATEGORY = '全部';
 /** 与导航项「文章」同字，但不从 Layout 引入（那是组件私有常量）。 */
 const PAGE_TITLE = '文章';
 // 列表页自己的 description：不复用 siteConfig.description（那是首页的），
 // 两个 URL 共用同一句描述在搜索结果里会被判为软重复。
 const PAGE_DESCRIPTION =
-  '跑路的duck 的全部文章列表，按时间倒序排列，支持分类筛选、关键词搜索与分页浏览，涵盖前端开发、后端运维、AI 工具与效率软件测评。';
+  '跑路的duck 的全部文章列表，按时间倒序排列，支持标签筛选、关键词搜索与分页浏览，涵盖前端开发、后端运维、AI 工具与效率软件测评。';
 // 分页与精选槽位固定为常量（不随视口变化）：SSR 与客户端水合后首帧完全一致，
 // 避免媒体查询导致的文章数/布局重排（CLS）。网格列数由 Tailwind 响应式类原生控制。
 const POSTS_PER_PAGE = 9;
@@ -44,8 +41,6 @@ const initialPosts = getInitialPosts();
 
 /** 列表与骨架屏共用同一套竖向节奏，避免加载前后行距跳动。 */
 const POSTS_LIST_CLASS = 'flex flex-col gap-5';
-
-const getCategories = (posts: PostMetadata[]) => Array.from(new Set(posts.map((post) => post.category)));
 
 /** 从文章元数据汇总标签（去首尾空白、按文章数降序、同数按中文名排序）。 */
 const buildTagList = (posts: PostMetadata[]): TagSummary[] => {
@@ -125,87 +120,42 @@ const LoadingGrid: React.FC<{ heroSlots: number; label: string; hasFeatured: boo
   );
 };
 
-const filterAndSortPosts = (
-  posts: PostMetadata[],
-  selectedCategory: string,
-  selectedTag: string | null,
-  sortOrder: 'newest' | 'oldest',
-) => {
-  let filteredPosts =
-    selectedCategory === ALL_CATEGORY ? posts : posts.filter((post) => post.category === selectedCategory);
-
-  if (selectedTag) {
-    filteredPosts = filteredPosts.filter((post) =>
-      (Array.isArray(post.tags) ? post.tags : []).some((tag) => tag.trim() === selectedTag),
-    );
-  }
+const filterAndSortPosts = (posts: PostMetadata[], selectedTag: string | null, sortOrder: 'newest' | 'oldest') => {
+  const filteredPosts = selectedTag
+    ? posts.filter((post) => (Array.isArray(post.tags) ? post.tags : []).some((tag) => tag.trim() === selectedTag))
+    : posts;
 
   return sortPosts(filteredPosts, sortOrder);
 };
 
 interface FilterBarProps {
-  categories: string[];
-  selected: string;
-  onSelect: (category: string) => void;
   sortOrder: 'newest' | 'oldest';
   onToggleSort: () => void;
 }
 
-const FilterBar: React.FC<FilterBarProps> = ({ categories, selected, onSelect, sortOrder, onToggleSort }) => {
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const { fadeStart, fadeEnd } = useScrollEdgeFade(scrollerRef);
-
-  return (
-    <div className="flex items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800 sm:gap-4">
-      <div
-        ref={scrollerRef}
-        className={mergeClassName(
-          'filter-scroll-mask min-w-0 flex-1 overflow-x-auto overscroll-x-contain scroll-smooth no-scrollbar',
-          fadeStart && 'filter-scroll-mask-start',
-          fadeEnd && 'filter-scroll-mask-end',
-        )}
-      >
-        <div className="flex items-center gap-0.5 sm:gap-1" role="group" aria-label="文章分类筛选">
-          {[ALL_CATEGORY, ...categories].map((category) => (
-            <button
-              key={category}
-              onClick={() => onSelect(category)}
-              aria-pressed={selected === category}
-              className={`min-h-11 whitespace-nowrap px-2 text-sm font-medium transition-colors duration-150 ${
-                selected === category
-                  ? 'text-ink underline decoration-1 underline-offset-8 dark:text-white'
-                  : 'text-zinc-500 hover:text-ink dark:text-zinc-400 dark:hover:text-white'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 排序收成一个轻量切换按钮：图标 + 当前排序词，aria-pressed 跟随「最早优先」态。 */}
-      <button
-        type="button"
-        onClick={onToggleSort}
-        aria-pressed={sortOrder === 'oldest'}
-        aria-label={`按${sortOrder === 'newest' ? '最新' : '最早'}优先排序`}
-        title="切换排序方式"
-        className="inline-flex min-h-11 shrink-0 items-center gap-1.5 px-2 text-sm text-zinc-500 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-400 dark:hover:text-white dark:focus-visible:outline-zinc-100"
-      >
-        {sortOrder === 'newest' ? (
-          <ArrowDownWideNarrow size={15} aria-hidden="true" />
-        ) : (
-          <ArrowUpWideNarrow size={15} aria-hidden="true" />
-        )}
-        <span>{sortOrder === 'newest' ? '最新' : '最早'}</span>
-      </button>
-    </div>
-  );
-};
+const FilterBar: React.FC<FilterBarProps> = ({ sortOrder, onToggleSort }) => (
+  <div className="mb-1 flex justify-end">
+    {/* 排序收成一个轻量切换按钮：图标 + 当前排序词，aria-pressed 跟随「最早优先」态。 */}
+    <button
+      type="button"
+      onClick={onToggleSort}
+      aria-pressed={sortOrder === 'oldest'}
+      aria-label={`按${sortOrder === 'newest' ? '最新' : '最早'}优先排序`}
+      title="切换排序方式"
+      className="inline-flex min-h-11 shrink-0 items-center gap-1.5 px-2 text-sm text-zinc-500 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-400 dark:hover:text-white dark:focus-visible:outline-zinc-100"
+    >
+      {sortOrder === 'newest' ? (
+        <ArrowDownWideNarrow size={15} aria-hidden="true" />
+      ) : (
+        <ArrowUpWideNarrow size={15} aria-hidden="true" />
+      )}
+      <span>{sortOrder === 'newest' ? '最新' : '最早'}</span>
+    </button>
+  </div>
+);
 
 export const Posts = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const categoryFromUrl = searchParams.get('category');
   const tagFromUrl = (searchParams.get('tag') || '').trim();
   const queryFromUrl = searchParams.get('q') || '';
   // 用户最近一次通过输入框编辑的查询值：用于区分「URL 更新还在 startTransition
@@ -215,11 +165,9 @@ export const Posts = () => {
   const handledLoadAttemptRef = useRef(-1);
   const homeQueryState = useMemo(() => getHomeQueryState(searchParams), [searchParams]);
   const [allPosts, setAllPosts] = useState<PostMetadata[]>(initialPosts);
-  const [categories, setCategories] = useState<string[]>(() => getCategories(initialPosts));
-  // 分类/排序/页码一律以默认值作为初始 state（SSG 预渲染的是无参首页，
+  // 标签/排序/页码一律以默认值作为初始 state（SSG 预渲染的是无参列表页，
   // 首帧用默认值可保证带参直访时客户端首帧与服务端 HTML 一致，水合无冲突）；
   // URL 中的真实状态由下方 effect 在水合后同步（与 ?q= 搜索框的处理一致）。
-  const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORY);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [loading, setLoading] = useState(initialPosts.length === 0);
@@ -237,7 +185,7 @@ export const Posts = () => {
     });
 
   const shouldReduceMotion = useReducedMotion();
-  // 标签清单来自全量文章（右侧卡片常驻），计数不随搜索/分类变化。
+  // 标签清单来自全量文章（右侧卡片常驻），计数不随搜索/标签筛选变化。
   const allTags = useMemo(() => buildTagList(allPosts), [allPosts]);
   const tagNames = useMemo(() => new Set(allTags.map((tag) => tag.name)), [allTags]);
 
@@ -271,7 +219,6 @@ export const Posts = () => {
         }
 
         setAllPosts(posts);
-        setCategories(getCategories(posts));
         setLoadError(null);
       } catch (error) {
         console.error('首页数据加载失败:', error);
@@ -302,32 +249,7 @@ export const Posts = () => {
     setCurrentPage(homeQueryState.page);
   }, [homeQueryState, searchParams, setSearchParams]);
 
-  useEffect(() => {
-    if (!categoryFromUrl) {
-      setSelectedCategory(ALL_CATEGORY);
-      return;
-    }
-
-    if (categories.includes(categoryFromUrl)) {
-      setSelectedCategory(categoryFromUrl);
-      return;
-    }
-
-    if (categories.length > 0) {
-      setSearchParams(
-        (previous) => {
-          const nextParams = new URLSearchParams(previous);
-          nextParams.delete('category');
-          nextParams.delete('page');
-          return nextParams;
-        },
-        { replace: true },
-      );
-      setSelectedCategory(ALL_CATEGORY);
-    }
-  }, [categories, categoryFromUrl, setSearchParams]);
-
-  // URL 中的 tag 同步到状态；非法 tag 清理参数并回到全部标签。
+  // URL 中的 tag 同步到状态；非法 tag 清理参数并回到全部文章。
   useEffect(() => {
     const nextTag = tagFromUrl && tagNames.has(tagFromUrl) ? tagFromUrl : null;
 
@@ -366,8 +288,8 @@ export const Posts = () => {
   }, [queryFromUrl, searchQuery, setSearchQuery]);
 
   const displayedPosts = useMemo(
-    () => filterAndSortPosts(results, selectedCategory, selectedTag, sortOrder),
-    [results, selectedCategory, selectedTag, sortOrder],
+    () => filterAndSortPosts(results, selectedTag, sortOrder),
+    [results, selectedTag, sortOrder],
   );
   const continueReading = useMemo(() => {
     if (!latestReading || isReadingComplete(latestReading.progress)) return null;
@@ -396,11 +318,8 @@ export const Posts = () => {
   const { totalPages } = paginationData;
 
   useEffect(() => {
-    const categoryStateFromUrl =
-      categoryFromUrl && categories.includes(categoryFromUrl) ? categoryFromUrl : ALL_CATEGORY;
     const tagStateFromUrl = tagFromUrl && tagNames.has(tagFromUrl) ? tagFromUrl : null;
-    const filtersAreSynced =
-      selectedCategory === categoryStateFromUrl && selectedTag === tagStateFromUrl && searchQuery === queryFromUrl;
+    const filtersAreSynced = selectedTag === tagStateFromUrl && searchQuery === queryFromUrl;
     const initialSearchIsPending = Boolean(queryFromUrl.trim()) && results === allPosts;
 
     if (loading || isSearching || !filtersAreSynced || initialSearchIsPending || currentPage <= totalPages) {
@@ -411,41 +330,18 @@ export const Posts = () => {
     setSearchParams((previous) => setHomeQueryParam(previous, 'page', totalPages), { replace: true });
   }, [
     allPosts,
-    categories,
-    categoryFromUrl,
     currentPage,
     isSearching,
     loading,
     queryFromUrl,
     results,
     searchQuery,
-    selectedCategory,
     selectedTag,
     setSearchParams,
     tagFromUrl,
     tagNames,
     totalPages,
   ]);
-
-  const handleSelectCategory = (category: string) => {
-    setSelectedCategory(category);
-    setCurrentPage(1);
-    setSearchParams(
-      (previous) => {
-        const nextParams = new URLSearchParams(previous);
-
-        if (category === ALL_CATEGORY) {
-          nextParams.delete('category');
-        } else {
-          nextParams.set('category', category);
-        }
-        nextParams.delete('page');
-
-        return nextParams;
-      },
-      { replace: true },
-    );
-  };
 
   const handleSelectTag = (tag: string | null) => {
     setSelectedTag(tag);
@@ -550,29 +446,19 @@ export const Posts = () => {
     [currentPosts, heroPost],
   );
 
-  // 分类筛选页（?category=xxx）为可索引内容页（robots: index,follow，canonical 自指），
+  // 标签筛选页（?tag=xxx）为可索引内容页（robots: index,follow，canonical 自指），
   // 输出独立的 title/description，避免与文章列表默认视图共用同一套标题造成软重复；
-  // 无效分类（URL 直接拼写）回退列表默认标题。
+  // 无效标签（URL 直接拼写）回退列表默认标题。
   // 只写前缀：站点名后缀由 Seo 组件统一拼接，这里再拼一次会得到「X - 站点名 - 站点名」。
-  const activeCategory = categoryFromUrl && categories.includes(categoryFromUrl) ? categoryFromUrl : null;
-  const categoryPostCount = activeCategory ? allPosts.filter((post) => post.category === activeCategory).length : 0;
   const activeTag = selectedTag;
   const activeTagCount = activeTag ? (allTags.find((tag) => tag.name === activeTag)?.count ?? 0) : 0;
   // 默认标题刻意不用 siteConfig.title：Seo 组件对等于站点名的 title 会套用首页专属的
   // seoHomeTitle（品牌 + 关键词），/posts 与 / 会得到同一个 title，正是软重复。
   const seoTitle =
-    hasSearchQuery && results.length > 0
-      ? `搜索：${searchQuery}`
-      : activeTag
-        ? `标签：${activeTag}`
-        : activeCategory
-          ? `分类：${activeCategory}`
-          : PAGE_TITLE;
+    hasSearchQuery && results.length > 0 ? `搜索：${searchQuery}` : activeTag ? `标签：${activeTag}` : PAGE_TITLE;
   const seoDescription = activeTag
     ? `${siteConfig.title}「${activeTag}」标签下的全部文章（共 ${activeTagCount} 篇），涵盖前端开发、后端运维、AI 工具与效率软件测评等主题。`
-    : activeCategory
-      ? `${siteConfig.title}「${activeCategory}」分类下的全部文章（共 ${categoryPostCount} 篇），涵盖前端开发、后端运维、AI 工具与效率软件测评等主题。`
-      : PAGE_DESCRIPTION;
+    : PAGE_DESCRIPTION;
 
   return (
     <div className="pb-8 md:pb-12">
@@ -598,7 +484,9 @@ export const Posts = () => {
                   /
                 </span>
                 <span className="text-[11px] font-medium normal-case tracking-normal">
-                  {continueReading.post.category} · 已阅读 {continueReadingProgress}%
+                  {continueReading.post.tags?.[0]
+                    ? `${continueReading.post.tags[0]} · 已阅读 ${continueReadingProgress}%`
+                    : `已阅读 ${continueReadingProgress}%`}
                 </span>
               </p>
               <h2 className="mt-0.5 line-clamp-2 text-base font-semibold text-content md:text-lg">
@@ -634,20 +522,14 @@ export const Posts = () => {
 
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1 space-y-5 md:space-y-7">
-          <FilterBar
-            categories={categories}
-            selected={selectedCategory}
-            onSelect={handleSelectCategory}
-            sortOrder={sortOrder}
-            onToggleSort={handleToggleSort}
-          />
+          <FilterBar sortOrder={sortOrder} onToggleSort={handleToggleSort} />
 
           <div className="mx-auto max-w-2xl">
             <SearchField
               value={searchQuery}
               onValueChange={handleSearchChange}
               onClear={handleClearSearch}
-              placeholder="搜索标题、摘要、分类与正文内容..."
+              placeholder="搜索标题、标签与正文内容..."
               aria-label="搜索文章"
             />
           </div>

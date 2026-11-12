@@ -70,7 +70,7 @@ export const Privacy = () => {
       <Seo title="隐私政策" description={PRIVACY_DESCRIPTION} url="/privacy" structuredData={privacyStructuredData} />
 
       <header className="rounded-overlay bg-surface p-6 md:p-8">
-        <h1 className="font-serif text-4xl font-bold tracking-tight text-content md:text-5xl">隐私政策</h1>
+        <h1 className="font-sans text-4xl font-bold tracking-tight text-content md:text-5xl">隐私政策</h1>
         <p className="mt-4 max-w-xl text-sm leading-7 text-content-muted md:text-base">
           这份说明解释本站如何处理你的浏览器数据、访问统计与评论信息。
         </p>
@@ -80,7 +80,7 @@ export const Privacy = () => {
       <article className="mt-4 space-y-4">
         {policySections.map((section) => (
           <section key={section.title} className="rounded-overlay bg-surface p-6 md:p-8">
-            <h2 className="font-serif text-xl font-bold text-content md:text-2xl">{section.title}</h2>
+            <h2 className="font-sans text-xl font-bold text-content md:text-2xl">{section.title}</h2>
             <div className="mt-3 space-y-3 text-sm leading-7 text-content-muted md:text-[15px] md:leading-8">
               {section.paragraphs.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
@@ -90,7 +90,7 @@ export const Privacy = () => {
         ))}
 
         <section className="rounded-overlay bg-surface p-6 md:p-8">
-          <h2 className="font-serif text-xl font-bold text-content md:text-2xl">联系</h2>
+          <h2 className="font-sans text-xl font-bold text-content md:text-2xl">联系</h2>
           <p className="mt-3 text-sm leading-7 text-content-muted md:text-[15px] md:leading-8">
             如对隐私政策或本站数据处理有疑问，可以发邮件到{' '}
             <a

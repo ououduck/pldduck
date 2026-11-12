@@ -4,7 +4,6 @@ title: 暗藏玄机的129.303亿美元收购抱抱脸
 excerpt: 英伟达以129.303亿美元收购抱抱脸，但是我为什么偏偏是129.303呢？这篇文章告诉你答案。
 date: 2026-09-06
 updatedAt: 2026-09-06
-category: 随笔
 tags:
   - Nvidia
   - HuggingFace

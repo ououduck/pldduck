@@ -46,8 +46,10 @@ const getLatestUpdate = (posts) => {
   }, getModifiedDate(posts[0]));
 };
 
-const renderCategory = (category) => (category ? `<category domain="category">${xmlEscape(category)}</category>` : '');
-
+/**
+ * 标签渲染为 RSS `<category domain="tag">`（RSS 2.0 规范字段，非文章分类）。
+ * 文章分类（category 字段）已彻底移除，站点仅使用标签组织内容。
+ */
 const renderTags = (tags) =>
   (Array.isArray(tags) ? tags : [])
     .filter((tag) => typeof tag === 'string' && tag.trim())
@@ -100,7 +102,6 @@ export const buildRssFeed = (
       <content:encoded>${wrapCdata(`<article>${contentHtml}</article>`)}</content:encoded>
       <pubDate>${publishedDate.toUTCString()}</pubDate>
       <atom:updated>${modifiedDate.toISOString()}</atom:updated>
-      ${renderCategory(post.category)}
       ${renderTags(post.tags)}
       ${renderAuthors(post, author || '')}
     </item>`;

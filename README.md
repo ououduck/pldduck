@@ -22,8 +22,8 @@
 
 | 模块 | 路径 | 说明 |
 | --- | --- | --- |
-| 首页（个人主页） | `/` | 七张小部件：名片卡（头像/名字/介绍/搜索）、访问统计（Vercount）、推荐阅读（最近 3 篇）、写作档案（近 12 个月柱状图）、联系方式（GitHub / 邮箱 / QQ 一键复制 / RSS / 更新订阅 / 项目仓库）、热门标签、服务状态；桌面多列铺满、手机单列纵向滑动，无门户入口与整页内容列表 |
-| 文章 | `/posts`、`/post/:id` | Markdown 驱动，构建期校验 frontmatter、分类白名单并过滤草稿 |
+| 首页（个人主页） | `/` | 七张小部件：名片卡（头像/名字/介绍/搜索）、访问统计（Vercount）、推荐阅读（最近 3 篇）、写作档案（近 12 个月柱状图）、联系方式（GitHub / 邮箱 / QQ 二维码 / RSS / 更新订阅 / 项目仓库）、热门标签、服务状态；桌面多列铺满、手机单列纵向滑动，无门户入口与整页内容列表 |
+| 文章 | `/posts`、`/post/:id` | Markdown 驱动，构建期校验 frontmatter 并过滤草稿；文章只有标签（`tags`），没有 category，列表页用标签筛选 |
 | 归档 / 标签 | `/archive`、`/posts?tag=` | 归档由构建期生成的站点数据派生；标签筛选在文章列表右侧标签卡（移动端标签弹窗），独立 `/tags` 页已退役 |
 | 说说 | `/shuoshuo` | 公告 Discussion 每条评论 = 一条说说，Giscus 内嵌，最新在前（旧 `/shuoshuo/:id` 301 回列表页）；评论与文章/留言板共用 Akismet + 关键词审核链路 |
 | 友情链接 | `/friends` | 可申请交换，含自动检测与人工审核流程（见「友链交换」） |
@@ -164,8 +164,8 @@ pldduck/
 `statusPageUrl` 当前配置为站长提供的实际 Better Stack 自定义状态页地址
 `https://status.pldduck.com`。
 
-另有 `config/content.config.json`（`postCategories` 分类白名单）与 `config/routes.mjs`（路由清单，
-预加载 / SSG / sitemap / 离线兜底全部由此派生）。
+另有 `config/routes.mjs`（路由清单，预加载 / SSG / sitemap / 离线兜底全部由此派生）。文章 category 与随之
+配套的白名单配置已随该功能下线：frontmatter 只保留 `tags`，构建期不再校验 category。
 
 ## 构建流程
 

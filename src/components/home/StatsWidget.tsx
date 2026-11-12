@@ -51,7 +51,7 @@ export const StatsWidget = () => {
               <dd className="mt-0.5">
                 <span
                   id={`vercount_value_${metric.key}`}
-                  className="font-serif text-lg font-bold leading-tight tracking-tight text-content tabular-nums sm:text-2xl"
+                  className="font-sans text-lg font-bold leading-tight tracking-tight text-content tabular-nums sm:text-2xl"
                 >
                   加载中
                 </span>

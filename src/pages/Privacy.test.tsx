@@ -17,7 +17,7 @@ describe('Privacy', () => {
   it('渲染隐私政策标题、卡片和联系渠道', () => {
     renderPrivacy();
 
-    expect(screen.getByRole('heading', { level: 1, name: '隐私政策' })).toHaveClass('font-serif');
+    expect(screen.getByRole('heading', { level: 1, name: '隐私政策' })).toHaveClass('font-sans');
     expect(screen.getByText('本站会保存什么')).toBeInTheDocument();
     expect(screen.getByText('访问统计')).toBeInTheDocument();
     expect(screen.getByText('评论与 GitHub')).toBeInTheDocument();

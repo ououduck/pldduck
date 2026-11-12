@@ -2,14 +2,13 @@
 
 ## 功能概述
 
-站点/构建/内容配置分层：站点配置按用途拆成三份 JSON（`config/site.config.json` 站点信息、`config/portal.config.json` 历史门户配置（首页已改为极简个人主页、不再消费，暂保留）、`config/comments.config.json` 评论与留言板，三者 CMS 均可编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方，因此 `siteConfig.portal` / `siteConfig.comments` / `siteConfig.guestbook` 的读取形状与拆分前一致；另有 `config/content.config.json`（分类白名单等）、部署运行配置 `wrangler.jsonc`、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。
+站点/构建/内容配置分层：站点配置按用途拆成三份 JSON（`config/site.config.json` 站点信息、`config/portal.config.json` 历史门户配置（首页已改为极简个人主页、不再消费，暂保留）、`config/comments.config.json` 评论与留言板，三者 CMS 均可编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方，因此 `siteConfig.portal` / `siteConfig.comments` / `siteConfig.guestbook` 的读取形状与拆分前一致；另有部署运行配置 `wrangler.jsonc`、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。文章 category 已删除，随之配套的白名单配置文件也已从 `config/` 移除：构建期不再校验 category，文章元数据只有 `tags`。
 
 ## 关键文件
 
 - `config/site.config.json` / `config/portal.config.json` / `config/comments.config.json` + `scripts/site-config-loader.mjs`（fail-closed 加载 + 三份合并）
 - `config/site.config.ts`（同一份三文件合并的 TS 出口，字段类型接口的唯一归属地）
 - `config/routes.mjs`（路由清单唯一数据源，见 [routes-single-source.md](routes-single-source.md)）
-- `config/content.config.json`
 - `config/tsconfig.json` / `tailwind.config.js` / `postcss.config.js`
 - `vite.config.ts` / `vite.ssr.config.ts` / `vitest.config.ts`
 - `wrangler.jsonc`（Worker 入口、Static Assets、`vars.BETTERSTACK_STATUS_PAGE_ID`）
@@ -51,6 +50,7 @@
 ## 常见陷阱
 
 - config/ 根目录（构建配置）与 src/config（已删除）勿混淆；
+- 看到旧文档/旧代码提到 category 白名单就把它建回来：该配置文件已随文章 category 功能删除，构建期不再校验 category，`generated/posts.json` 也只有 `tags`；新增配置文件必须同时补 `.pages.yml` 集合与漂移测试；
 - 站点配置的读者是**两份加载器**（构建侧 mjs + 运行侧 TS），两侧合并逻辑必须同步修改，否则 CI 产物与页面运行时配置不一致；
 - site.config.json 的 author/social、comments.config.json 的 comments/guestbook 等嵌套结构被多处消费，增删字段需全局检索消费方；
 - `config/portal.config.json` 仍被加载器合并、仍由 PagesCMS 管理，但**首页已不消费**（见 [home.md](home.md)）：改它不会影响首页，也不要因此恢复门户渲染；若要整体移除，需同时改加载器、`.pages.yml` 集合与 `scripts/pagescms-config.test.mjs` 的 `configCollections`；

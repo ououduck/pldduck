@@ -59,7 +59,7 @@ export const SiteTopBar: React.FC<SiteTopBarProps> = ({
             fetchPriority="auto"
             className="h-7 w-7 shrink-0 rounded-full bg-white object-cover"
           />
-          <span className="truncate font-serif text-lg font-bold tracking-tight text-ink dark:text-white">
+          <span className="truncate font-sans text-lg font-bold tracking-tight text-ink dark:text-white">
             {siteConfig.title}
           </span>
         </Link>

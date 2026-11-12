@@ -104,7 +104,7 @@ export const NotFound: React.FC = () => {
 
         {recentPosts.length > 0 && (
           <section aria-labelledby="not-found-recent-heading" className="mt-8 max-w-md">
-            <h2 id="not-found-recent-heading" className="mb-2 font-serif text-xl font-bold tracking-tight text-content">
+            <h2 id="not-found-recent-heading" className="mb-2 font-sans text-xl font-bold tracking-tight text-content">
               最近的文章
             </h2>
             <ul className="border-t border-line">

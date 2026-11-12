@@ -35,22 +35,11 @@ export default {
           '"Segoe UI Symbol"',
           '"Noto Color Emoji"',
         ],
-        // 衬线标题：拉丁字符用 Playfair Display（已随站点加载），中文回退链
-        // 优先思源宋体/华文宋体；Windows 无宋体系字体时回退微软雅黑（比 SimSun
-        // 在大字号下更清晰），SimSun 仅作最后兜底。
-        serif: [
-          '"Playfair Display"',
-          '"Noto Serif SC"',
-          '"Source Han Serif SC"',
-          '"Source Han Serif CN"',
-          '"Songti SC"',
-          '"STSong"',
-          '"Microsoft YaHei"',
-          '"SimSun"',
-          '"Times New Roman"',
-          'Times',
-          'serif',
-        ],
+        // 全站单一字族：serif 槽位不再是衬线——直接映射到阅读字体 Token，
+        // 让任何遗留的 font-serif class 也渲染成文章正文那套无衬线字体
+        // （2026-11 用户要求「全部改用文章页的字体增加可读性」，Playfair Display
+        // 与中文衬线回退链已移除，index.html 不再加载 Google Fonts）。
+        serif: ['var(--font-sans)'],
         mono: [
           '"JetBrains Mono"',
           '"Fira Code"',

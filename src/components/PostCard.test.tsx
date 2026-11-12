@@ -14,7 +14,6 @@ const makePost = (overrides: Partial<PostMetadata> = {}): PostMetadata => ({
   title: '测试文章标题',
   excerpt: '这是一段测试摘要',
   date: '2026-01-15',
-  category: '技术',
   filePath: '/posts/test-post.md',
   readTime: '5分钟阅读',
   tags: ['React', 'TypeScript', '测试'],
@@ -26,10 +25,11 @@ const baseProps = {
 };
 
 describe('PostCard', () => {
-  it('普通卡片渲染标题、分类、摘要与元信息', () => {
+  it('普通卡片渲染标题、标签、摘要与元信息', () => {
     renderWithRouter(<PostCard post={makePost()} {...baseProps} />);
     expect(screen.getByRole('heading', { name: '测试文章标题' })).toBeInTheDocument();
-    expect(screen.getByText('技术')).toBeInTheDocument();
+    // 分类已下线：卡片只展示标签行（链接到标签筛选页）。
+    expect(screen.getByRole('link', { name: 'React' })).toHaveAttribute('href', '/posts?tag=React');
     expect(screen.getByText('这是一段测试摘要')).toBeInTheDocument();
     expect(screen.getByText('2026-01-15')).toBeInTheDocument();
     expect(screen.getByText('5分钟阅读')).toBeInTheDocument();

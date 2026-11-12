@@ -36,11 +36,11 @@ describe('Watermark — 外壳与初始骨架', () => {
     });
   });
 
-  it('编辑式页头：serif「图片水印」标题，无英文大写眉题', () => {
+  it('编辑式页头：阅读字体「图片水印」标题，无英文大写眉题', () => {
     renderWatermark();
 
     const heading = screen.getByRole('heading', { level: 1, name: '图片水印' });
-    expect(heading).toHaveClass('font-serif');
+    expect(heading).toHaveClass('font-sans');
     expect(screen.queryByText('Image Watermark')).not.toBeInTheDocument();
     expect(screen.getByText(/所有处理都在本地完成，不会上传你的图片/)).toBeInTheDocument();
     // 预览面板不再有装饰性 Preview 眉题。

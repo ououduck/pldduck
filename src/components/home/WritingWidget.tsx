@@ -48,7 +48,7 @@ export const WritingWidget = () => {
         <div className="min-w-0 text-right">
           <p className="text-[11px] text-content-muted">{anchorYear === null ? '本年' : `${anchorYear} 年`}</p>
           <p className="mt-0.5 flex items-baseline justify-end gap-1">
-            <span className="font-serif text-lg font-semibold tabular-nums text-content">{yearPostCount}</span>
+            <span className="font-sans text-lg font-semibold tabular-nums text-content">{yearPostCount}</span>
             <span className="text-[11px] text-content-muted">篇</span>
           </p>
         </div>

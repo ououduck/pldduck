@@ -323,7 +323,7 @@ export const ArchivePage = () => {
 
       {/* 编辑式页头：去掉英文大写眉题，只留标题与右侧统计，底边一条发丝线 */}
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-line pb-5 md:pb-6">
-        <h1 className="font-serif text-3xl font-bold tracking-tight text-content md:text-4xl">归档</h1>
+        <h1 className="font-sans text-3xl font-bold tracking-tight text-content md:text-4xl">归档</h1>
         <p className="text-sm tabular-nums text-content-muted">
           共 {totalPosts} 篇文章 · {groups.length} 年
         </p>
@@ -514,10 +514,14 @@ export const ArchivePage = () => {
                                                   />
                                                 </h2>
                                                 <p className="min-w-0 break-words text-[11px] text-content-muted [overflow-wrap:anywhere] md:whitespace-nowrap">
-                                                  {post.category}{' '}
-                                                  <span aria-hidden="true" className="mx-1 opacity-60">
-                                                    ·
-                                                  </span>{' '}
+                                                  {post.tags?.[0] && (
+                                                    <>
+                                                      {post.tags[0]}{' '}
+                                                      <span aria-hidden="true" className="mx-1 opacity-60">
+                                                        ·
+                                                      </span>{' '}
+                                                    </>
+                                                  )}
                                                   {post.readTime}
                                                   {typeof post.commentCount === 'number' && (
                                                     <>

@@ -21,7 +21,6 @@ const mockPost: PostMetadata = {
   excerpt: '一篇关于 React 性能优化的实践总结。',
   date: '2026-01-15',
   tags: ['react'],
-  category: '前端',
   filePath: 'posts/mock-post.md',
   readTime: '5 分钟',
 };
@@ -132,6 +131,14 @@ describe('Search', () => {
     const contentScope = screen.getByRole('button', { name: '正文内容' });
     expect(contentScope).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: '全部' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('搜索范围只有三档：全部 / 正文内容 / 仅标题（分类档已下线）', () => {
+    renderSearch();
+    const scopeGroup = screen.getByRole('group', { name: '搜索范围' });
+    const scopeButtons = within(scopeGroup).getAllByRole('button');
+    expect(scopeButtons.map((button) => button.textContent)).toEqual(['全部', '正文内容', '仅标题']);
+    expect(screen.queryByRole('button', { name: '分类' })).not.toBeInTheDocument();
   });
 
   it('切换范围不丢查询：输入关键词后切范围，q 参数保留且 scope 写入', async () => {

@@ -46,7 +46,6 @@ const makePost = (overrides: Record<string, unknown> = {}) => ({
   title: '测试文章标题',
   excerpt: '这是文章摘要，用于列表展示。',
   date: '2026-03-14',
-  category: '技术',
   filePath: '/posts/test-post.md',
   readTime: '5分钟阅读',
   tags: ['React'],
@@ -89,6 +88,28 @@ describe('Post', () => {
     renderPost();
     expect(await screen.findByText('测试文章标题')).toBeInTheDocument();
     expect(screen.getByText('正文内容段落。')).toBeInTheDocument();
+  });
+
+  it('面包屑第 2 级为「文章」入口（分类已下线），标题区标签行走标签筛选', async () => {
+    renderPost();
+    await screen.findByText('测试文章标题');
+
+    const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(breadcrumb).getByRole('link', { name: '首页' })).toHaveAttribute('href', '/');
+    expect(within(breadcrumb).getByRole('link', { name: '文章' })).toHaveAttribute('href', '/posts');
+    // 分类已下线：面包屑不再输出分类名，也没有 ?category= 链接。
+    expect(within(breadcrumb).queryByText('技术')).not.toBeInTheDocument();
+    expect(breadcrumb.querySelector('a[href*="category="]')).toBeNull();
+
+    const tagGroup = screen.getByRole('group', { name: '文章标签' });
+    expect(within(tagGroup).getByRole('link', { name: '#React' })).toHaveAttribute('href', '/posts?tag=React');
+  });
+
+  it('无标签时不渲染标签行', async () => {
+    vi.mocked(postsService.getPostById).mockResolvedValue(makePost({ tags: [] }) as never);
+    renderPost();
+    await screen.findByText('测试文章标题');
+    expect(screen.queryByRole('group', { name: '文章标签' })).not.toBeInTheDocument();
   });
 
   it('移动端顶部重排：封面在标题前（order）、标题字号收敛；桌面顺序还原', async () => {

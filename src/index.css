@@ -42,16 +42,19 @@
   /* 焦点环：深色下纯白，保持黑白强对比。 */
   --color-focus-ring: #fafafa;
 
-  /* 字体语义：与 config/tailwind.config.js 的 fontFamily 保持一致（改一处要同步另一处）。
-     font-sans / font-serif 工具类仍走 Tailwind 配置，这里供 CSS 与后续阶段引用。 */
+  /* 字体语义：全站只有一套「阅读字体」——与文章正文同源的 Microsoft YaHei 链
+     （Windows 雅黑 / macOS 苹方，其次国产黑体与思源黑体，避免 Linux/Android 落到
+     低质量通用 sans-serif）。2026-11 用户要求「全部改用文章页的字体增加可读性」：
+     装饰性衬线（Playfair Display + 中文衬线回退）已整体移除，标题层级改由字号、
+     字重与留白区分。--font-serif 不再指向宋体/Playfair，只作为同值别名保留，
+     兼容历史 CSS 引用；Tailwind 侧 fontFamily.serif 同样映射到本 Token
+     （config/tailwind.config.js 的 fontFamily 必须与这里同步维护）。 */
   --font-sans:
     'Microsoft YaHei', 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Alibaba PuHuiTi', 'Noto Sans SC',
     'Source Han Sans SC', 'Noto Sans CJK SC', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     Roboto, 'Helvetica Neue', Arial, 'Plus Jakarta Sans', 'Noto Sans', sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  --font-serif:
-    'Playfair Display', 'Noto Serif SC', 'Source Han Serif SC', 'Source Han Serif CN', 'Songti SC', 'STSong',
-    'Microsoft YaHei', 'SimSun', 'Times New Roman', Times, serif;
+  --font-serif: var(--font-sans);
 
   /* 间距：4px 基准，供 CSS 与内联样式使用（Tailwind 的间距刻度保持不变）。 */
   --space-1: 0.25rem;
@@ -459,38 +462,6 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
-  }
-
-  /* 横向可滚动分类栏：只在内容确实被某一侧裁切时，才在该侧渐隐提示可滑动。
-     无条件渐隐会把静止贴边的首枚胶囊左边缘啃成一条半透明带（看着像模糊溢出），
-     所以两个 --fade-* 宽度由 useScrollEdgeFade 依据 scrollLeft/scrollWidth 切换，
-     默认 0（该侧不渐隐）；两侧都不渐隐时连蒙版都不挂，避免无谓的合成层。 */
-  .filter-scroll-mask {
-    --fade-start: 0px;
-    --fade-end: 0px;
-  }
-  .filter-scroll-mask-start {
-    --fade-start: 0.375rem;
-  }
-  .filter-scroll-mask-end {
-    --fade-end: 0.375rem;
-  }
-  .filter-scroll-mask-start,
-  .filter-scroll-mask-end {
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      black var(--fade-start),
-      black calc(100% - var(--fade-end)),
-      transparent 100%
-    );
-    mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      black var(--fade-start),
-      black calc(100% - var(--fade-end)),
-      transparent 100%
-    );
   }
 }
 

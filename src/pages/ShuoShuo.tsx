@@ -44,7 +44,7 @@ export const ShuoShuo = () => {
 
       {/* 说说页整体卡片化：页头与动态区各是一块大色块，不再用贯穿全页的发丝线。 */}
       <header className="rounded-overlay bg-surface p-6 md:p-8">
-        <h1 className="font-serif text-4xl font-bold tracking-tight text-content md:text-5xl">说说</h1>
+        <h1 className="font-sans text-4xl font-bold tracking-tight text-content md:text-5xl">说说</h1>
         <p className="mt-3 max-w-xl text-sm leading-7 text-content-muted md:text-base">
           这里是一块类似 PLDDUCK 朋友圈的短动态小天地。
         </p>

@@ -31,11 +31,11 @@ const renderShuoShuo = (initialEntry = '/shuoshuo') =>
   );
 
 describe('ShuoShuo', () => {
-  it('渲染衬线页面标题与介绍，不再输出英文眉题', () => {
+  it('渲染阅读字体页面标题与介绍，不再输出英文眉题', () => {
     renderShuoShuo();
     const heading = screen.getByRole('heading', { level: 1, name: '说说' });
     expect(heading).toBeInTheDocument();
-    expect(heading).toHaveClass('font-serif');
+    expect(heading).toHaveClass('font-sans');
     expect(screen.getByText('这里是一块类似 PLDDUCK 朋友圈的短动态小天地。')).toBeInTheDocument();
     expect(heading.closest('header')).toHaveClass('rounded-overlay', 'bg-surface');
     expect(screen.queryByText('ShuoShuo · Moments')).not.toBeInTheDocument();

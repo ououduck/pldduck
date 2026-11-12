@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToString } from 'react-dom/server';
 import { HelmetProvider } from 'react-helmet-async';
@@ -12,10 +12,8 @@ import { ISSUE_SUBSCRIPTION_URL } from '@/components/IssueSubscriptionCard';
 import { getHomeStats } from '@/services/homeStats';
 import { getInitialPosts } from '@/services/posts';
 import { fillVercountSpans } from '@/services/vercount';
-import { copyTextToClipboard } from '@/utils/clipboard';
 import { assetUrl } from '@/utils/siteUrl';
 
-vi.mock('@/utils/clipboard', () => ({ copyTextToClipboard: vi.fn() }));
 // Vercount 上报：避免 jsdom 里发起真实网络请求（回填行为由 vercount.test.ts 覆盖）。
 vi.mock('@/services/vercount', () => ({
   pingVercount: vi.fn(),
@@ -28,7 +26,6 @@ vi.mock('@/services/siteStatusStore', () => ({
   subscribeWorkersLimit: vi.fn(() => () => {}),
 }));
 
-const mockedCopyTextToClipboard = vi.mocked(copyTextToClipboard);
 const mockedFillVercountSpans = vi.mocked(fillVercountSpans);
 
 const LocationProbe = () => {
@@ -72,7 +69,6 @@ const collectPortalCopy = (): string[] => {
 describe('Home', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedCopyTextToClipboard.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -204,7 +200,7 @@ describe('Home', () => {
     expect(statusLink).toHaveTextContent('服务状态');
   });
 
-  it('联系方式卡：GitHub / 邮箱 / RSS / 更新订阅 / 项目仓库', () => {
+  it('联系方式卡：GitHub / 邮箱前缀 / RSS / 更新订阅 / 项目仓库', () => {
     renderHome();
 
     // 用完整可访问名称定位：标签云里也有「GitHub Actions」这类含 GitHub 的标签链接。
@@ -213,16 +209,28 @@ describe('Home', () => {
     expect(githubLink).toHaveAttribute('target', '_blank');
     expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer');
 
-    const mailLink = screen.getByRole('link', { name: siteConfig.social.rawEmail });
+    const mailLink = screen.getByRole('link', { name: `发送邮件到 ${siteConfig.social.rawEmail}` });
     expect(mailLink).toHaveAttribute('href', siteConfig.social.email);
     expect(mailLink).not.toHaveAttribute('target');
+    // 只显示 @ 前的名字，完整地址进可访问名称；不再用省略号截断。
+    expect(mailLink).toHaveTextContent(siteConfig.social.rawEmail.split('@')[0]);
+    expect(mailLink).not.toHaveTextContent(siteConfig.social.rawEmail);
+    expect(mailLink.className).not.toContain('truncate');
+    expect(mailLink.querySelector('.truncate')).toBeNull();
 
     expect(screen.getByRole('link', { name: /RSS 订阅/ })).toHaveAttribute('href', assetUrl('/feed.xml'));
     expect(screen.getByRole('link', { name: /更新订阅/ })).toHaveAttribute('href', ISSUE_SUBSCRIPTION_URL);
     expect(screen.getByRole('link', { name: /项目仓库/ })).toHaveAttribute('href', siteConfig.friendsPage.repoUrl);
 
     const nav = screen.getByRole('navigation', { name: '联系方式' });
-    expect(nav.querySelectorAll('a, button').length).toBeGreaterThanOrEqual(6);
+    // QQ 入口只在 QQ 号与二维码链接同时配置时出现；联系方式卡里不再有复制按钮。
+    const qqConfigured = Boolean(siteConfig.social.qq && siteConfig.social.qqQrCode);
+    if (qqConfigured) {
+      expect(screen.getByRole('button', { name: /QQ 二维码/ })).toBeInTheDocument();
+    } else {
+      expect(screen.queryByRole('button', { name: /QQ/ })).not.toBeInTheDocument();
+    }
+    expect(nav.querySelectorAll('a, button')).toHaveLength(qqConfigured ? 6 : 5);
   });
 
   it('首页搜索表单提交后进入全站搜索页', async () => {
@@ -233,40 +241,6 @@ describe('Home', () => {
     await user.type(input, 'Cloudflare{Enter}');
 
     expect(screen.getByTestId('location')).toHaveTextContent('/search?q=Cloudflare');
-  });
-
-  it('复制 QQ 号成功后给出状态播报', async () => {
-    const user = userEvent.setup();
-    renderHome();
-
-    const status = screen.getByRole('status');
-    expect(status).toHaveAttribute('aria-live', 'polite');
-
-    await user.click(screen.getByRole('button', { name: `复制 QQ 号 ${siteConfig.social.qq}` }));
-
-    expect(mockedCopyTextToClipboard).toHaveBeenCalledWith(siteConfig.social.qq);
-    await waitFor(() => expect(status).toHaveTextContent('QQ 号已复制到剪贴板'));
-  });
-
-  it('复制失败时如实反馈，不伪装成功', async () => {
-    const user = userEvent.setup();
-    mockedCopyTextToClipboard.mockResolvedValueOnce(false);
-    renderHome();
-
-    await user.click(screen.getByRole('button', { name: `复制 QQ 号 ${siteConfig.social.qq}` }));
-
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('复制失败，请手动复制 QQ 号'));
-    expect(screen.getByRole('status')).not.toHaveTextContent('已复制');
-  });
-
-  it('剪贴板抛错时同样按失败反馈，不产生未处理异常', async () => {
-    const user = userEvent.setup();
-    mockedCopyTextToClipboard.mockRejectedValueOnce(new Error('clipboard denied'));
-    renderHome();
-
-    await user.click(screen.getByRole('button', { name: `复制 QQ 号 ${siteConfig.social.qq}` }));
-
-    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('复制失败，请手动复制 QQ 号'));
   });
 
   it('不再渲染门户内容：无站点入口、开源项目、关于本站与订阅卡', () => {

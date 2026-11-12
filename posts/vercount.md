@@ -4,7 +4,6 @@ title: 不蒜子替代品 - Vercount
 excerpt: 不蒜子的性能和稳定性已经不能满足我的需求 于是PLDDUCK站点迁移到了新的站点计数器 - Vercount
 date: 2026-11-12
 updatedAt: 2026-11-12
-category: 技术
 tags:
   - Vercount
   - 网站统计

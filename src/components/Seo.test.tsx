@@ -28,18 +28,25 @@ describe('Seo', () => {
     expect(headAttr('meta[name="description"]', 'content')).toBeTruthy();
   });
 
-  it('canonical 保留内容型参数（category/tag/q）', () => {
-    renderSeo({ title: '分类', url: '/?category=前端' }, '/?category=前端');
+  it('canonical 保留内容型参数（tag/q）', () => {
+    renderSeo({ title: '标签', url: '/?tag=前端' }, '/?tag=前端');
     const canonical = headAttr('link[rel="canonical"]', 'href') ?? '';
-    expect(canonical).toContain('category=');
-    expect(canonical.endsWith('/?category=%E5%89%8D%E7%AB%AF')).toBe(true);
+    expect(canonical).toContain('tag=');
+    expect(canonical.endsWith('/?tag=%E5%89%8D%E7%AB%AF')).toBe(true);
+  });
+
+  it('canonical 丢弃已废弃的分类参数（category）', () => {
+    renderSeo({ title: '首页', url: '/?category=技术' }, '/?category=技术');
+    const canonical = headAttr('link[rel="canonical"]', 'href') ?? '';
+    expect(canonical).not.toContain('category');
+    expect(canonical.endsWith('/')).toBe(true);
   });
 
   it('canonical 丢弃纯 UI 参数（sort）', () => {
-    renderSeo({ title: '首页', url: '/?sort=oldest&category=技术' }, '/?sort=oldest&category=技术');
+    renderSeo({ title: '首页', url: '/?sort=oldest&tag=技术' }, '/?sort=oldest&tag=技术');
     const canonical = headAttr('link[rel="canonical"]', 'href') ?? '';
     expect(canonical).not.toContain('sort');
-    expect(canonical).toContain('category=');
+    expect(canonical).toContain('tag=');
   });
 
   it('canonical 页码大于 1 时保留', () => {
@@ -52,11 +59,11 @@ describe('Seo', () => {
     expect(headAttr('link[rel="canonical"]', 'href')).not.toContain('page=');
   });
 
-  it('canonical 参数按固定顺序归一化（category→page）', () => {
-    renderSeo({ title: '分类', url: '/?page=2&q=react&category=技术' }, '/?page=2&q=react&category=技术');
+  it('canonical 参数按固定顺序归一化（tag→q→page）', () => {
+    renderSeo({ title: '标签', url: '/?page=2&q=react&tag=技术' }, '/?page=2&q=react&tag=技术');
     const canonical = headAttr('link[rel="canonical"]', 'href') ?? '';
     const query = canonical.split('?')[1] ?? '';
-    expect(query).toBe('category=%E6%8A%80%E6%9C%AF&q=react&page=2');
+    expect(query).toBe('tag=%E6%8A%80%E6%9C%AF&q=react&page=2');
   });
 
   it('带 q 参数时输出 noindex', () => {
@@ -87,13 +94,13 @@ describe('Seo', () => {
       type: 'article',
       publishedTime: '2026-03-14',
       modifiedTime: '2026-03-20',
-      section: '技术',
       tags: ['React'],
       authors: ['跑路的duck'],
     });
     expect(headAttr('meta[property="og:type"]', 'content')).toBe('article');
     expect(headAttr('meta[property="article:published_time"]', 'content')).toBe('2026-03-14');
-    expect(headAttr('meta[property="article:section"]', 'content')).toBe('技术');
+    // 文章分类已下线：不再输出 article:section（Seo 也移除了 section prop）。
+    expect(headAttr('meta[property="article:section"]', 'content')).toBeNull();
     expect(headAttr('meta[property="article:tag"]', 'content')).toBe('React');
   });
 });

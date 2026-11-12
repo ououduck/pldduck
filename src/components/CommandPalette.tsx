@@ -133,7 +133,7 @@ export const CommandPalette: React.FC<{ onClose: () => void }> = ({ onClose }) =
           id: `post-${post.id}`,
           label: post.title,
           icon: <Search size={15} className="opacity-50" />,
-          hint: `${post.category} · ${post.date}`,
+          hint: [post.tags.slice(0, 2).join(' / '), post.date].filter(Boolean).join(' · '),
           run: () => {
             recordRecentSearch(query);
             closeAndNavigate(`/post/${post.id}`);

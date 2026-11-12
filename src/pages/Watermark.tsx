@@ -218,9 +218,9 @@ export const Watermark: React.FC = () => {
         title="水印工具"
         description="在浏览器中免费为图片添加文字水印，支持自定义文字样式、实时预览与本地导出，无需上传文件，保护图片版权。"
       />
-      {/* 编辑式页头：去英文眉题，serif 标题 + 描述 + 发丝线，左对齐 */}
+      {/* 编辑式页头：去英文眉题，阅读字体标题 + 描述 + 发丝线，左对齐 */}
       <header className="mb-7 border-b border-line pb-5 md:mb-8 md:pb-6">
-        <h1 className="font-serif text-3xl font-bold tracking-tight text-content md:text-4xl">图片水印</h1>
+        <h1 className="font-sans text-3xl font-bold tracking-tight text-content md:text-4xl">图片水印</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-content-muted md:text-base">
           选择一张图片，添加轻量的文字标识。所有处理都在本地完成，不会上传你的图片。
         </p>

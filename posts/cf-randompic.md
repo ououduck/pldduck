@@ -4,7 +4,6 @@ title: 通过Cloudflare规则实现纯静态随机图API
 excerpt: 本文教你通过Cloudflare规则实现纯静态随机图API 无需后端服务器 部署在Cloudflare Pages/其他可直接访问的存储(OSS COS)
 date: 2026-08-20
 updatedAt: 2026-08-20
-category: 教程
 tags:
   - Cloudflare
   - Cloudflare Pages

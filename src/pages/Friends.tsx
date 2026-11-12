@@ -442,7 +442,7 @@ export const Friends = () => {
 
       <header className="mb-6 rounded-overlay bg-surface p-5 md:mb-8 md:p-7">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="font-serif text-4xl font-bold tracking-tight text-content md:text-5xl">友情链接</h1>
+          <h1 className="font-sans text-4xl font-bold tracking-tight text-content md:text-5xl">友情链接</h1>
           <button
             type="button"
             onClick={handleRandomGo}

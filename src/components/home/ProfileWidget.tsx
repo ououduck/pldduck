@@ -40,7 +40,7 @@ export const ProfileWidget = () => {
           className="h-16 w-16 rounded-full bg-surface-muted object-cover ring-1 ring-line sm:h-20 sm:w-20"
         />
 
-        <h1 className="mt-4 font-serif text-[2rem] font-bold leading-tight tracking-tight text-content [overflow-wrap:anywhere] sm:text-4xl">
+        <h1 className="mt-4 font-sans text-[2rem] font-bold leading-tight tracking-tight text-content [overflow-wrap:anywhere] sm:text-4xl">
           {siteConfig.author.name}
         </h1>
 
@@ -62,7 +62,7 @@ export const ProfileWidget = () => {
             type="search"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="搜索文章、标签与分类…"
+            placeholder="搜索文章与标签…"
             autoComplete="off"
             className="min-h-11 min-w-0 flex-1 bg-transparent text-base text-content outline-none placeholder:text-content-muted sm:text-sm"
           />

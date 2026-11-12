@@ -146,10 +146,14 @@ describe('PagesCMS 站点配置字段与三份配置文件一一对应', () => {
     }
   });
 
-  it('social.qq 已声明（首页 QQ 一键复制的数据源）', () => {
+  it('social.qq 与 social.qqQrCode 已声明（首页 QQ 二维码弹窗的数据源）', () => {
     const fields = pagesConfig.content.find((item) => item.name === 'siteConfig')?.fields;
     const socialFields = findField(fields, 'social')?.fields ?? [];
     expect(socialFields.some((field) => field.name === 'qq')).toBe(true);
+    const qrField = socialFields.find((field) => field.name === 'qqQrCode');
+    expect(qrField?.type).toBe('string');
+    // PagesCMS 的帮助文本只有 description，写 hint 会被静默忽略。
+    expect(qrField?.description).toEqual(expect.any(String));
   });
 
   it('三份配置文件键不重叠（合并时不会出现后者静默覆盖前者）', () => {

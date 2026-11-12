@@ -217,35 +217,6 @@ const formatFrontmatterDate = (value) => {
   return String(value);
 };
 
-const CONTENT_CONFIG_FILE = path.join(__dirname, '../config/content.config.json');
-let contentConfig;
-try {
-  contentConfig = JSON.parse(fs.readFileSync(CONTENT_CONFIG_FILE, 'utf-8'));
-} catch (error) {
-  throw new Error(`Failed to load ${CONTENT_CONFIG_FILE}: ${error instanceof Error ? error.message : String(error)}`);
-}
-const POST_CATEGORIES =
-  Array.isArray(contentConfig.postCategories) && contentConfig.postCategories.length > 0
-    ? contentConfig.postCategories
-    : ['其他'];
-const FALLBACK_CATEGORY =
-  typeof contentConfig.fallbackCategory === 'string' && contentConfig.fallbackCategory.trim()
-    ? contentConfig.fallbackCategory.trim()
-    : POST_CATEGORIES[POST_CATEGORIES.length - 1];
-
-const normalizeCategory = (value) => {
-  if (typeof value !== 'string') {
-    return FALLBACK_CATEGORY;
-  }
-
-  const category = value.trim();
-  if (!category) {
-    return FALLBACK_CATEGORY;
-  }
-
-  return POST_CATEGORIES.includes(category) ? category : FALLBACK_CATEGORY;
-};
-
 const validatePostFrontmatter = (filename, data, formattedDate, formattedUpdatedAt, id) => {
   const errors = [];
 
@@ -290,9 +261,6 @@ const validatePostFrontmatter = (filename, data, formattedDate, formattedUpdated
       id.includes('/../'))
   ) {
     errors.push(`id "${id}" contains characters that are unsafe in a post URL`);
-  }
-  if (typeof data.category === 'string' && data.category.trim() && !POST_CATEGORIES.includes(data.category.trim())) {
-    errors.push(`category must be one of: ${POST_CATEGORIES.join(', ')}`);
   }
   if (data.featured !== undefined && typeof data.featured !== 'boolean') {
     errors.push('featured must be a boolean when provided');
@@ -432,7 +400,6 @@ const normalizeTagsStrict = (value) => (Array.isArray(value) ? value.map((tag) =
 const buildPost = (record) => {
   const { filename, content, data, restData, id, formattedDate, formattedUpdatedAt, draft } = record;
   const normalizedAuthors = normalizeAuthors(data.author, data.authors);
-  const category = normalizeCategory(data.category);
   const tags = normalizeTagsStrict(data.tags);
   // coverImage 保留外部协议字符串（图床链接）；本地路径（已废弃）原样透传供校验器拦截。
   const normalizedCoverImage = data.coverImage ? String(data.coverImage) : undefined;
@@ -451,7 +418,6 @@ const buildPost = (record) => {
         excerpt: data.excerpt,
         ...(isSeries ? { series: true, seriesName, seriesOrder } : {}),
         coverImage: normalizedCoverImage,
-        category,
         tags,
         date: formattedDate,
         updatedAt: formattedUpdatedAt,

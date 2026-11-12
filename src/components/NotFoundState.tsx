@@ -24,13 +24,13 @@ export const NotFoundState: React.FC<NotFoundStateProps> = React.memo(
           {/* 极轻水印：只作为版式背景，不占布局、不使用重色块。 */}
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute -right-1 -top-9 hidden select-none font-serif text-7xl font-black leading-none text-zinc-200/80 dark:text-zinc-800/70 md:-top-12 md:block md:text-8xl"
+            className="pointer-events-none absolute -right-1 -top-9 hidden select-none font-sans text-7xl font-black leading-none text-zinc-200/80 dark:text-zinc-800/70 md:-top-12 md:block md:text-8xl"
           >
             404
           </span>
 
           <div className="relative">
-            <h1 className="font-serif text-3xl font-bold tracking-tight text-content md:text-4xl">{title}</h1>
+            <h1 className="font-sans text-3xl font-bold tracking-tight text-content md:text-4xl">{title}</h1>
 
             <p className="mt-4 max-w-xl text-sm leading-7 text-content-muted md:text-base">{description}</p>
 

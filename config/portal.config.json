@@ -12,7 +12,7 @@
   "entries": [
     {
       "title": "博客文章",
-      "description": "技术分享、工具测评与折腾记录，支持分类筛选、搜索与分页浏览。",
+      "description": "技术分享、工具测评与折腾记录，支持标签筛选、搜索与分页浏览。",
       "url": "/posts",
       "icon": "posts",
       "note": "列表"

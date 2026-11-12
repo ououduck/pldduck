@@ -10,10 +10,10 @@
 1. **名片卡**（`home-profile`，内部 `h1` 唯一）：头像、名字、`author.role`、`author.bio` 原文、全站搜索表单；
 2. **访问统计**（`home-stats`）：Vercount 三项计数（总访问量 `site_pv` / 总访客数 `site_uv` /
    本页阅读量 `page_pv`）+ 构建期文章数与累计字数；
-3. **推荐阅读**（`home-featured`）：按 `updatedAt || date` 降序的**最近 3 篇**（标题 + 摘要 + 分类/日期/时长），
+3. **推荐阅读**（`home-featured`）：按 `updatedAt || date` 降序的**最近 3 篇**（标题 + 摘要 + 首个标签/日期/时长），
    卡片右上角「看看文章 →」入口指向 `/posts`；
 4. **写作档案**（`home-writing`）：累计篇数、锚点年份篇数、近 12 个月纯 CSS 柱状图、最早文章日期；
-5. **联系方式**（`home-contact`）：GitHub / 邮箱 / QQ 一键复制 / RSS / 更新订阅 / 项目仓库；
+5. **联系方式**（`home-contact`）：GitHub / 邮箱 / QQ 二维码 / RSS / 更新订阅 / 项目仓库；
 6. **标签**（`home-tags`）：按文章数降序的前 8 个热门标签（`/posts?tag=`），底部「共 N 个标签」；
 7. **服务状态**（`home-status`）：订阅全局 `siteStatusStore`，首帧中性、始终可点击跳转状态页。
 
@@ -23,6 +23,9 @@
 
 2026-11 用户确认把侧栏「订阅与联系」分组整体迁到首页：侧栏只保留导航与工具，首页承担全站搜索与
 联系/订阅入口；不要因为旧规则写过「首页不得有搜索」就把它删掉或搬回侧栏。
+
+2026-11 用户确认调整联系方式卡：QQ 不再复制号码，改用 SVG 图标，鼠标悬停或手机点击时弹出二维码弹窗
+（二维码图片地址写进 Pages CMS 的 `social.qqQrCode`）；邮箱按钮只显示 @ 前的前缀、所有入口不再用省略号截断。
 
 2026-11（第二轮改版）用户明确要求首页改为**小部件布局**，并授权破例：手机端改为上下滑动看卡片
 （不再禁止滚动）、允许出现推荐阅读/标签/写作档案这类内容小部件、卡片标题使用 `h2`。
@@ -49,19 +52,20 @@
 - `src/index.css`（`.home-page` / `.home-widgets` 网格、`.home-widget-glow`、`.home-reveal` 的卡片级
   stagger 与 reduced-motion 分支）
 - `config/site.config.json` 的 `author.avatar` / `author.name` / `author.role` / `author.bio` 与
-  `social.github` / `social.email` / `social.rawEmail` / `social.qq`
+  `social.github` / `social.email` / `social.rawEmail` / `social.qq` / `social.qqQrCode`
 - `src/components/IssueSubscriptionCard.tsx`（只取导出的 `ISSUE_SUBSCRIPTION_URL` 常量做「更新订阅」外链，
   **不渲染卡片**）
 - `src/components/Seo.tsx`（`Seo` 与 `buildSiteSchemas`，首页 SEO 与结构化数据）
-- `src/utils/clipboard.ts`、`src/hooks/useResetTimer.ts`（QQ 复制与反馈复位）
+- `src/hooks/useModalOverlay.ts`（QQ 二维码弹窗的焦点陷阱 / 滚动锁 / Escape / 焦点还原）
 - `src/utils/siteUrl.ts`（`assetUrl` / `absoluteSiteUrl`）
-- `src/pages/Home.test.tsx` / `src/services/homeStats.test.ts`
+- `src/pages/Home.test.tsx` / `src/components/home/ContactWidget.test.tsx` / `src/services/homeStats.test.ts`
 
 ## 修改规则（必须遵守）
 
 1. **允许的内容边界**：七张卡片的内容如上；新增/删除卡片、改变卡片内容都必须先获得用户明确授权并
-   同步本文件。推荐阅读**只放 3 篇**且只有标题/摘要/分类/日期/时长，不带封面、分页或卡片式交互；
+   同步本文件。推荐阅读**只放 3 篇**且只有标题/摘要/首个标签/日期/时长，不带封面、分页或卡片式交互；
    完整列表能力属于 `/posts`。标签卡只展示前 8 个热门标签；写作档案只是统计，不是归档时间线。
+   **文章 category 已删除**：这些信息位一律用首个标签，不得恢复 category 字段或 category 信息位。
 2. **内容来自配置与构建期数据、不硬编码**：名字 / 介绍 / 身份 / 头像 / 联系方式全部取自
    `siteConfig.author` 与 `siteConfig.social`；文章、标签、月度统计一律由 `getHomeStats()` 从
    `getInitialPosts()` 派生。不得把个人介绍写进组件，也不得为头像加第三方兜底 ——
@@ -69,14 +73,18 @@
 3. **SSG / 水合确定性**：渲染期禁止 fetch、`Date.now()`、`Math.random()`、`window` / `document` 访问；
    **「近 12 个月」「本年」必须锚定最新一篇文章的年月**（`getHomeStats()` 已如此实现），不得改用当前时钟
    —— 否则每次构建产物都漂移、SSR 与客户端首帧也对不上。锚点年份要在界面上显式写出（如「2026 年」），
-   不要说成「今年」。搜索输入初值固定空字符串，复制反馈只能出现在客户端事件之后。
+   不要说成「今年」。搜索输入初值固定空字符串，QQ 二维码弹窗与加载失败反馈只能出现在客户端事件之后。
 4. **联系方式与订阅语义**：GitHub / 更新订阅 / 项目仓库外链用 `target="_blank"` + `rel="noopener noreferrer"`，
-   可访问名称里标注「外部站点，新标签页打开」；邮箱用 `siteConfig.social.email`（`mailto:`）；
+   可访问名称里标注「外部站点，新标签页打开」；邮箱用 `siteConfig.social.email`（`mailto:`），可见文字只显示
+   `social.rawEmail` 中 @ 之前的前缀，完整地址放进 `aria-label` 与 `title`，**不得**再用 `truncate` / 省略号截断；
    RSS 用 `assetUrl('/feed.xml')`（站内资源，**不**加 `target`）；「更新订阅」的 href 必须取
-   `ISSUE_SUBSCRIPTION_URL` 常量，**不得**在首页硬编码 Issue URL；QQ 只在 `siteConfig.social.qq` 存在时渲染，
-   点击 `copyTextToClipboard`，成功 / 失败都通过 `role="status"` + `aria-live="polite"` 播报，
-   反馈 2 秒后由 `useResetTimer` 复位；卸载后不得再 setState（`isMountedRef` 守卫），剪贴板异常必须
-   try/catch，不产生未处理 rejection。首页只放「更新订阅」文字入口，**不得**渲染 `IssueSubscriptionCard`。
+   `ISSUE_SUBSCRIPTION_URL` 常量，**不得**在首页硬编码 Issue URL。QQ 入口只在 `siteConfig.social.qq` 与
+   `siteConfig.social.qqQrCode` 同时存在时渲染，**不再复制号码**（不引入 clipboard / 复制反馈）：
+   鼠标悬停（`onMouseEnter`）或点击（触屏）打开屏幕居中的二维码弹窗，图片地址必须过 `assetUrl(qqQrCode)`；
+   弹窗必须用 `createPortal` 挂到 `document.body`（卡片 `.home-reveal` 的 transform 会让 `fixed` 子元素
+   退回卡片坐标系并被 `overflow-hidden` 裁掉），复用 `useModalOverlay` 的焦点陷阱 / 滚动锁 / Escape /
+   焦点还原，关闭途径含关闭按钮、遮罩点击与 Escape；二维码加载失败必须经 `role="status"` 如实提示，
+   重新打开时重置失败态，不得伪装成功。首页只放「更新订阅」文字入口，**不得**渲染 `IssueSubscriptionCard`。
 5. **SEO 保持现状**：`<Seo title={siteConfig.title} description={siteConfig.description} />` —— `title`
    必须逐字等于 `siteConfig.title`，否则 `seoHomeTitle` / `seoHomeDescription` 的首页覆盖不生效
    （见 `Seo.tsx`）；该覆盖只对 `/` 有效，其他页面不得复用 `siteConfig.title` 作为标题。
@@ -88,7 +96,9 @@
 6. **无障碍**：头像 `alt` = `author.name`；名字是**全页唯一 `h1`**（在名片卡内），其余卡片标题用 `h2`
    （`Widget` 通过 `aria-labelledby` 关联），不得出现跳级标题；搜索表单用 `role="search"` +
    `<label className="sr-only">`（`htmlFor` 指向输入框 id）；联系方式区用 `<nav aria-label="联系方式">`；
-   QQ 复制按钮有明确的可访问名称（含号码）；复制结果用 `role="status"` 播报；写作档案柱状图用
+   QQ 入口有明确的可访问名称（含号码）并声明 `aria-haspopup="dialog"` / `aria-expanded` / `aria-controls`；
+   二维码弹窗用 `role="dialog"` + `aria-modal="true"` + `aria-labelledby` / `aria-describedby`，
+   二维码图片有含号码的 `alt`，加载失败用 `role="status"` 播报；写作档案柱状图用
    `role="img"` + `aria-label` 给出文字摘要（图形不可读时也不能丢信息）。
 7. **无全局 Footer**：`Layout` 不再渲染页面底部 Footer（版权只在侧栏底部），首页不得补页脚、版权或
    备案信息，也不得在页面内输出 `contentinfo`。
@@ -97,7 +107,7 @@
    `@media (prefers-reduced-motion: reduce)` 下必须 `animation: none` 直接可见；动画不得让 LCP 元素
    长期不可见、不得引发布局位移，也不得在 SSR 首帧输出 `opacity: 0` 的内联样式。
 9. **性能**：`getHomeStats()` 有模块级缓存，不要在渲染期重排文章元数据、不要每次渲染重新 `sort`；
-   组件内 state 只允许搜索输入、QQ 复制反馈与服务状态快照；不得引入文章搜索索引、搜索建议/结果预览、
+   组件内 state 只允许搜索输入、QQ 二维码弹窗开合 / 加载失败与服务状态快照；不得引入文章搜索索引、搜索建议/结果预览、
    `preloadPage` 预加载或订阅卡等旧逻辑；柱状图是纯 CSS，不得引入图表库。
 10. **全站搜索行为**：表单提交时 `trim()` 查询——空查询跳 `/search`，非空跳 `/search?q=<encodeURIComponent>`；
     首页**只**做跳转，不请求索引、不渲染结果、不打开命令面板、不处理 `?q=` URL 参数
@@ -147,7 +157,10 @@
   统一放在首页（规则 4）。
 - 看到 `config/portal.config.json` 仍存在，就以为首页还该消费它：它只是历史配置，暂保留 ≠ 恢复渲染。
 - 作者头像直接用 `/logo-96.png` 裸路径：必须过 `assetUrl()`，子路径部署下否则 404。
-- 复制 QQ 用裸 `navigator.clipboard.writeText` 且不处理异常：旧浏览器 / 无权限会抛未处理 rejection。
+- 把 QQ 入口改回复制号码、或把二维码弹窗直接写在卡片里：弹窗必须走 `createPortal` + `useModalOverlay`，
+  否则会被 `.home-reveal` 的 transform / `overflow-hidden` 裁剪，也拿不到焦点陷阱与滚动锁。
+- 给联系方式入口保留 `truncate` / 省略号，或让邮箱显示完整地址：用户已确认只显示 @ 前的前缀
+  （完整地址放进可访问名称与 `title`），按钮样式与图标尺寸必须与其它入口一致。
 - 去掉 `ProfilePage` 或只传 `profilePageSchema`：会丢掉 WebSite / Organization，SEO 审计失败。
 - 删除 `Home.test.tsx` 里的负向断言（不存在门户入口 / 开源项目 / 关于本站 / 订阅卡、不出现「今日」），
   或删掉搜索、联系方式、统计锚点与卡片顺序的断言：它们分别在守护本轮改版与上一轮精简。

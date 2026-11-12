@@ -15,12 +15,12 @@
 ## 修改规则（必须遵守）
 
 1. **及时同步实际数据行为**：隐私政策必须与代码一致。Clarity 脚本在 `index.html` 中随页面加载；因此不得写成「关闭 Cookie 提示即停用统计」。如需改成真正的 opt-in/opt-out，必须同时修改统计加载逻辑、Cookie 文案与本页，不能只改文案。
-2. **Cookie 弹窗方正、正式、居中且可访问**：`AppShell` 在已同意/本会话已关闭或当前为 `/privacy` 时不挂载弹窗 chunk；保持 `role="dialog"`、`aria-modal="true"`、`aria-labelledby`/`aria-describedby`，复用 `useModalOverlay` 的滚动锁、焦点陷阱、Escape 关闭与焦点还原；不得退回底部固定横幅或自行写 body overflow；视觉上用直角边框、无衬线标题与规整按钮，不要用编辑式衬线大标题。
+2. **Cookie 弹窗方正、正式、居中且可访问**：`AppShell` 在已同意/本会话已关闭或当前为 `/privacy` 时不挂载弹窗 chunk；保持 `role="dialog"`、`aria-modal="true"`、`aria-labelledby`/`aria-describedby`，复用 `useModalOverlay` 的滚动锁、焦点陷阱、Escape 关闭与焦点还原；不得退回底部固定横幅或自行写 body overflow；视觉上用直角边框、阅读字体标题与规整按钮，不要用编辑式大标题排版。
 3. **同意语义不变**：「同意」写入 `localStorage.cookie-consent=accepted` 并永久不再弹；关闭/仅浏览写入 `sessionStorage.cookie-dismissed=1`，仅当前会话不弹，**不得**把关闭等同于同意。
 4. **隐私入口可达**：Cookie 弹窗内必须有指向 `/privacy` 的链接；侧栏底部保留隐私政策入口。弹窗内点击隐私链接应先关闭弹窗再导航，否则滚动锁会把隐私页锁住；直接访问 `/privacy` 时不得被弹窗遮挡。
 5. **路由单一数据源**：`/privacy` 只登记在 `config/routes.mjs`，同步 `App.tsx`、`preload.ts`、sitemap 与 `public/sw.js` 标记区（构建生成）；改路由后跑 `scripts/routes-consistency.test.mjs`。
 6. **文案边界**：本页是站点说明，不是针对特定司法辖区的法律意见；不要加入无法兑现的承诺（如「绝不收集任何数据」「完全匿名」）。涉及第三方（GitHub/Giscus、Clarity、Vercount、友链目标站）明确指向其自身政策。
-7. **视觉一致**：页头与各节使用 `rounded-overlay bg-surface` 卡片，标题 `font-serif`；删除英文大写眉题/图标，不用跨页发丝线。Cookie 弹窗同样不加大写英文眉题。
+7. **视觉一致**：页头与各节使用 `rounded-overlay bg-surface` 卡片，标题 `font-sans`；删除英文大写眉题/图标，不用跨页发丝线。Cookie 弹窗同样不加大写英文眉题。
 
 ## 常见陷阱
 

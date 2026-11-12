@@ -20,11 +20,6 @@ content:
       - { name: excerpt, label: 摘要, type: text }
       - { name: date, label: 发布日期, type: date }
       - { name: updatedAt, label: 更新日期, type: date }
-      - name: category
-        label: 分类
-        type: select
-        options:
-          values: ["教程", "技术", "随笔", "分享", "其他"]
       - { name: tags, label: 标签, type: string, list: true }
       - { name: coverImage, label: 封面图链接, type: string }
       - { name: author, label: 作者, type: string }
@@ -125,7 +120,11 @@ content:
           - { name: rawEmail, label: 邮箱地址, type: string }
           - name: qq
             label: QQ 号
-            description: 纯数字文本；首页「找到我」区展示一键复制按钮，留空则不展示
+            description: 纯数字文本；首页「联系方式」的 QQ 二维码弹窗里展示，留空则不展示 QQ 入口
+            type: string
+          - name: qqQrCode
+            label: QQ 二维码图片链接
+            description: 首页 QQ 入口鼠标悬停或手机点击时弹出的二维码图片地址（站内路径如 /images/qq-qr.png，或完整 https URL）；与 QQ 号同时配置才展示入口
             type: string
       - name: author
         label: 作者信息

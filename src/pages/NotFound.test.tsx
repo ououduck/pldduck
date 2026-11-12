@@ -73,10 +73,10 @@ describe('NotFound — 404 页功能模块', () => {
     expect(probe).toHaveTextContent('q=');
   });
 
-  it('渲染最近 3 篇文章入口，标题使用衬线常规大小', () => {
+  it('渲染最近 3 篇文章入口，标题使用阅读字体常规大小', () => {
     renderAtPath('/missing');
     const heading = screen.getByRole('heading', { level: 2, name: '最近的文章' });
-    expect(heading).toHaveClass('font-serif');
+    expect(heading).toHaveClass('font-sans');
     const section = heading.closest('section');
     expect(section).not.toBeNull();
     const recentLinks = within(section as HTMLElement).getAllByRole('link');

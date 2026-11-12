@@ -20,7 +20,8 @@
   `success` / `warning` / `danger` 仍保留语义色（成功 / 告警 / 错误 / 失联），只用于状态，不得当装饰色。
 - **Tailwind 语义类**：`bg-background` / `bg-surface` / `bg-surface-muted` / `text-content` /
   `text-content-muted` / `border-line` / `text-accent` / `text-success` 等。
-- **字体**：`--font-sans` / `--font-serif` 与 `config/tailwind.config.js` 的 `fontFamily.sans/serif` 必须同步维护。
+- **字体**：站点只有一套阅读字体 `--font-sans`（与文章正文同源，Microsoft YaHei 链）；`--font-serif` 保留为同值别名；
+  `config/tailwind.config.js` 的 `fontFamily.serif` 映射 `var(--font-sans)`，`fontFamily.sans` 与 `--font-sans` 必须同步维护。
 - **间距**：`--space-1`…`--space-12`（4px 基准），供 CSS 与内联样式引用；Tailwind 间距刻度不变。
 - **圆角**：`--radius-sm`(4px) / `--radius-md`(8px) / `--radius-lg`(12px)，与 Tailwind `micro` / `icon` / `overlay` 对齐。
 - **布局宽度**：`--content-width`(80rem) / `--article-width`(48rem)。
@@ -59,7 +60,7 @@
 6. **首页小部件入动效**：只用 CSS `.home-reveal`（`data-home-reveal="card-N"` + `--home-reveal-delay`），不得改成 framer-motion/JS 控制显隐，也不得让内容依赖动画结束才可见。`prefers-reduced-motion: reduce` 分支必须保留（`animation: none`，内容直接可见）；首屏 LCP 元素（头像/标题）不得被动画长时间遮挡，动画不得引发布局位移。
 7. **阅读模式**：ReadingModeContext 的栈式 Escape 守卫（ESC 栈顶退出）保持；进入/退出时的快照恢复与目录状态记忆不得破坏。
 8. **加载指示只有一个出口**：页面级/列表级加载态一律用 `ContentStatus.tsx` 的 `LoadingStatus`（`role="status" aria-live="polite"`），路由懒加载占位也必须走它；图形在 `index.css` 的 `.duck-loader*`，颜色只取 `currentColor`，节拍挂在 `--loader-beat` / `--loader-ease`，减弱动效走 CSS 媒体查询。
-9. **文章正文排版**：`.post-prose.prose` 与 `.reading-mode-article` 的规则只能写在 `index.css`（typography 插件选择器特异性更高）；字号/颜色/间距全部走 Token，不得在 `Post.tsx` 里写死 px 或颜色。
+9. **文章正文排版**：`.post-prose.prose` 与 `.reading-mode-article` 的规则只能写在 `index.css`（typography 插件选择器特异性更高）；字号/颜色/间距全部走 Token，不得在 `Post.tsx` 里写死 px 或颜色。全站排版字族只能是这套阅读字体（`font-sans`），标题层级靠字号/字重/留白区分，不得再引入第二套字族。
 
 ## 常见陷阱
 
@@ -70,7 +71,8 @@
 - 把首页 reveal 改成 framer-motion、JS 延迟挂载或 `opacity:0` 初始 inline style：SSR/无 JS 会空白，且与 reduced-motion 分支脱节。
 - 删掉 `@media (prefers-reduced-motion: reduce)` 的 `.home-reveal { animation: none }`：对动效敏感用户会看到错落入场。
 - 写 `bg-surface/50`、`border-line/70` 之类的透明度修饰：`var()` 颜色不支持 `/opacity`；需要弱底就新增 Token。
-- 只改 `--font-sans` / `--font-serif` 而不同步 `config/tailwind.config.js` 的 `fontFamily`（或反之）：CSS 与工具类会落到两套字体链。
+- 只改 `--font-sans` 而不同步 `config/tailwind.config.js` 的 `fontFamily.sans/serif`（或反之）：CSS 与工具类会落到两套字体链。
+- 重新引入 Playfair Display / Google Fonts 或任何装饰衬线字体栈：`index.html` 已删除字体 preload/stylesheet，恢复会多一次外部请求且与文章正文割裂。
 - 文章正文/阅读模式排版只改 Tailwind 工具类或 `Post.tsx` 内联样式：正文排版以 `index.css` 的 `.post-prose` / `.reading-mode-article` 为准。
 
 ## 破例条款

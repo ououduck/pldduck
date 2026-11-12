@@ -20,15 +20,13 @@ const ShareModal = lazy(() => import('../components/ShareModal').then((m) => ({ 
 
 const SEARCH_SCOPE_OPTIONS: Array<{ value: PostSearchScope; label: string }> = [
   { value: 'all', label: '全部' },
-  { value: 'category', label: '分类' },
   { value: 'content', label: '正文内容' },
   { value: 'title', label: '仅标题' },
 ];
 
 const SEARCH_SCOPE_HINTS: Record<PostSearchScope, string> = {
-  all: '支持按标题、标签、分类、摘要与正文搜索',
-  category: '仅搜索文章分类名称，适合快速缩小到专题目录',
-  content: '只在摘要和正文内容中搜索，不匹配标题和分类',
+  all: '支持按标题、标签、摘要与正文搜索',
+  content: '只在摘要和正文内容中搜索，不匹配标题',
   title: '只匹配文章标题，适合按标题关键字快速定位',
 };
 
@@ -143,7 +141,7 @@ export const Search = () => {
   // （SSG 不再注入），与归档/标签/说说等页面模式一致。
   const searchPageDescription = hasSearchQuery
     ? `在 跑路的duck 中搜索「${searchQuery}」的结果页，按相关度排序展示匹配文章。`
-    : '在 跑路的duck 全站搜索文章：支持按标题、分类、标签、摘要与正文内容检索，快速定位感兴趣的技术分享。';
+    : '在 跑路的duck 全站搜索文章：支持按标题、标签、摘要与正文内容检索，快速定位感兴趣的技术分享与工具测评。';
   const searchStructuredData = [
     ...buildSiteSchemas(searchPageDescription),
     {
@@ -171,7 +169,7 @@ export const Search = () => {
       />
 
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-line pb-5 md:pb-6">
-        <h1 className="font-serif text-3xl font-bold tracking-tight text-content md:text-4xl">搜索</h1>
+        <h1 className="font-sans text-3xl font-bold tracking-tight text-content md:text-4xl">搜索</h1>
         <p className="text-sm leading-6 text-content-muted">
           {hasSearchQuery
             ? isSearching && results.length === 0
@@ -190,7 +188,7 @@ export const Search = () => {
                 value={searchQuery}
                 onValueChange={handleSearchChange}
                 onClear={handleClearSearch}
-                placeholder="搜索标题、摘要、分类与正文内容..."
+                placeholder="搜索标题、标签与正文内容..."
                 aria-label="搜索文章"
                 containerClassName="max-w-2xl"
                 autoFocus
@@ -300,7 +298,7 @@ export const Search = () => {
             ) : (
               <ContentStatus
                 title="输入关键词开始搜索"
-                description="支持按标题、标签、分类、摘要与正文内容搜索，回车或点击结果即可打开文章。"
+                description="支持按标题、标签、摘要与正文内容搜索，回车或点击结果即可打开文章。"
               />
             )}
           </div>

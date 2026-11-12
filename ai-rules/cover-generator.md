@@ -21,7 +21,7 @@
 8. **SSG 确定性**：封面页静态结构由 SSG 渲染，画布预览仅客户端。
 9. **大文件治理**：CoverGenerator.tsx 已超 3000 行，新增逻辑优先抽入 cover/ 子模块，禁止继续膨胀。
 10. **用户取消语义**：批量导出点击「取消」（AbortController.abort）不得当作错误播报（role=alert/assertive）—— 应以 info 反馈；Iconify 弹窗关闭必须清理搜索防抖定时器与在途 fetch（否则关闭后仍会发起网络请求并后台 setState）。
-11. **编辑式页头与文字 tab**：删除英文大写眉题；页头为 `border-b border-line`，`h1` 用 `font-serif text-3xl font-bold md:text-4xl`、文案「封面生成器」，描述低对比、左对齐。设置区是 `role="tablist"` + `role="tab"`（`aria-selected`、`aria-controls`、roving `tabIndex`、方向键切换——既有键盘交互保持），激活态靠底部细线，**不得**改成下拉/胶囊或恢复英文眉题。
+11. **编辑式页头与文字 tab**：删除英文大写眉题；页头为 `border-b border-line`，`h1` 用 `font-sans text-3xl font-bold md:text-4xl`、文案「封面生成器」，描述低对比、左对齐。设置区是 `role="tablist"` + `role="tab"`（`aria-selected`、`aria-controls`、roving `tabIndex`、方向键切换——既有键盘交互保持），激活态靠底部细线，**不得**改成下拉/胶囊或恢复英文眉题。
 
 ## 常见陷阱
 

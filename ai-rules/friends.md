@@ -62,7 +62,7 @@
 10. **SSG 确定性**：友链列表与失联分组首帧由 `getInitialFriends()` 渲染。
 11. **无卡片光效**：友链已改为卡片式条目（surface/surface-muted 色块，见规则 13），历史 `useSpotlight` / `SpotlightLayer` 已删除；**不得**恢复 pointermove 光斑、卡片高亮层或重边框，交互反馈只靠 hover 色块/文字色（见规则 12/13）。
 12. **日志与评论安全**：Issue 标题/正文/用户字段进 Actions 日志或 Issue 评论前必须过 `sanitizeLogValue`，URL 必须过 `sanitizeUrlForLogs`；拒绝文案是固定串 + 常量邮箱，不掺任何用户输入。
-13. **编辑式页头**：删除英文大写眉题；页头是 `rounded-overlay bg-surface p-5 md:p-7` 的卡片，`h1` 用 `font-serif text-4xl font-bold md:text-5xl`、文案「友情链接」，描述低对比文字；右侧「随机前往」是 ghost 按钮（`min-h-11`、hover `surface-muted`、无可访问友链时 `disabled`），**不得**改回实底/描边按钮或恢复英文眉题。
+13. **编辑式页头**：删除英文大写眉题；页头是 `rounded-overlay bg-surface p-5 md:p-7` 的卡片，`h1` 用 `font-sans text-4xl font-bold md:text-5xl`、文案「友情链接」，描述低对比文字；右侧「随机前往」是 ghost 按钮（`min-h-11`、hover `surface-muted`、无可访问友链时 `disabled`），**不得**改回实底/描边按钮或恢复英文眉题。
 14. **卡片化视觉（2026-11 更新）**：页头、搜索区、申请面板、本站信息、表单、提示、失联面板、友链主列表与失联列表全部改为卡片式：页头/搜索/面板用 `rounded-overlay bg-surface`，内部分节用 `rounded-overlay bg-surface-muted p-4 md:p-5`，友链条目本身是 `rounded-overlay bg-surface-muted p-4`（hover `bg-surface`），主列表/失联列表为 1 / md:2 / lg:3 列 `gap-3` 网格。**不得**恢复旧的 `border-t`/`divide-y` 细线列表、三张独立卡片或重边框；amber 的「信息修改联系」块仍保留（`bg-amber-500/10` + `warning` 语义色，必须显眼）。
 
 ## 常见陷阱

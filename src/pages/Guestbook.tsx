@@ -42,7 +42,7 @@ export const Guestbook = () => {
 
       {/* 与说说页一致的卡片结构：页头与评论区各一块大色块，不再使用跨页发丝线。 */}
       <header className="rounded-overlay bg-surface p-6 md:p-8">
-        <h1 className="font-serif text-4xl font-bold tracking-tight text-content md:text-5xl">留言板</h1>
+        <h1 className="font-sans text-4xl font-bold tracking-tight text-content md:text-5xl">留言板</h1>
       </header>
 
       {siteConfig.giscusEnabled ? (

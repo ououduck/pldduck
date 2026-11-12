@@ -113,8 +113,6 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
 
         <div className="relative z-20 mt-auto flex min-w-0 flex-col p-4 text-white sm:mt-0 sm:flex-1 sm:p-5 sm:text-content md:p-6">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[10px] text-white/70 sm:gap-x-2 sm:text-[11px] sm:text-content-muted">
-            <span className="font-medium text-white sm:text-content">{post.category}</span>
-            <PostMetaSeparator className="text-white/40 sm:text-zinc-400" />
             <span>{post.date}</span>
             <PostMetaSeparator className="text-white/40 sm:text-zinc-400" />
             <span>{post.readTime}</span>
@@ -135,7 +133,7 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
 
           <Link to={`/post/${post.id}`} aria-label={`阅读文章：${post.title}`} className="mt-1.5 block sm:mt-2">
             <h2
-              className={`line-clamp-2 font-serif font-bold leading-snug tracking-tight text-white decoration-white/40 underline-offset-4 hover:underline sm:leading-tight sm:text-content sm:decoration-line ${
+              className={`line-clamp-2 font-sans font-bold leading-snug tracking-tight text-white decoration-white/40 underline-offset-4 hover:underline sm:leading-tight sm:text-content sm:decoration-line ${
                 featured ? 'text-[17px] sm:text-2xl md:text-3xl' : 'text-[17px] sm:text-xl md:text-2xl'
               }`}
             >
@@ -190,8 +188,6 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
 
           <div className="flex min-w-0 flex-col sm:col-span-3">
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-medium tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
-              <span className="text-zinc-600 dark:text-zinc-300">{post.category}</span>
-              <span aria-hidden="true">·</span>
               <span>精选</span>
               {pinned && (
                 <span className="ml-auto inline-flex items-center gap-1">
@@ -260,15 +256,12 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
       </Link>
 
       <div className="flex flex-1 flex-col pt-3.5">
-        <div className="flex items-center gap-2 text-[11px] font-medium tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
-          <span className="text-zinc-600 dark:text-zinc-300">{post.category}</span>
-          {pinned && (
-            <span className="ml-auto inline-flex items-center gap-1">
-              <Pin size={10} aria-hidden="true" />
-              置顶
-            </span>
-          )}
-        </div>
+        {pinned && (
+          <div className="flex items-center gap-1 text-[11px] font-medium tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
+            <Pin size={10} aria-hidden="true" />
+            置顶
+          </div>
+        )}
 
         <Link to={`/post/${post.id}`} aria-label={`阅读文章：${post.title}`} className="mt-2 block">
           {/* 列表页没有可见的 h2 区块标题：普通卡片用 h2（与精选卡一致），

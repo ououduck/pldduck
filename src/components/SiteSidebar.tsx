@@ -147,7 +147,7 @@ const SidebarBrand: React.FC<{ onSelectPath?: (path: string) => void; interactio
         className="sidebar-avatar h-7 w-7 shrink-0 rounded-full bg-white object-cover"
       />
       <span className="sidebar-brand-text min-w-0 flex-1">
-        <span className="block truncate font-serif text-[15px] font-semibold tracking-[-0.01em] text-content">
+        <span className="block truncate font-sans text-[15px] font-semibold tracking-[-0.01em] text-content">
           {siteConfig.title}
         </span>
         <span className="block truncate text-[11px] font-normal tracking-[0.01em] text-zinc-500 dark:text-zinc-400">

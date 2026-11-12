@@ -92,7 +92,7 @@ export const TagsPanel: React.FC<TagsPanelProps> = ({ tags, selectedTag, totalPo
       <aside aria-label="全部标签" className="hidden w-64 shrink-0 self-start lg:sticky lg:top-24 lg:block">
         <div className="flex max-h-[calc(100vh-7rem)] flex-col overflow-hidden rounded-overlay bg-surface-muted p-4">
           <div className="mb-3 flex items-baseline justify-between gap-2">
-            <h2 className="font-serif text-lg font-bold text-content">标签</h2>
+            <h2 className="font-sans text-lg font-bold text-content">标签</h2>
             <span className="text-[11px] tabular-nums text-content-muted">{tags.length} 个</span>
           </div>
           <TagList tags={tags} selectedTag={selectedTag} totalPosts={totalPosts} onSelectTag={onSelectTag} />
@@ -137,7 +137,7 @@ export const TagsPanel: React.FC<TagsPanelProps> = ({ tags, selectedTag, totalPo
               className="fixed inset-y-0 right-0 z-modal flex w-[min(17rem,86vw)] flex-col bg-surface px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top,0px))] text-content shadow-xl"
             >
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 id="posts-tags-panel-title" className="font-serif text-xl font-bold text-content">
+                <h2 id="posts-tags-panel-title" className="font-sans text-xl font-bold text-content">
                   标签
                 </h2>
                 <button

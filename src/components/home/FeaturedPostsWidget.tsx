@@ -3,7 +3,7 @@
  *
  * 数据来自构建期内联的 `generated/posts.json`（`getHomeStats()` 内的 `featuredPosts`），
  * 渲染期不 fetch、不读时钟/随机值 —— 首页不出现「随机推荐」，否则 SSG 产物每次构建
- * 都会漂移、水合首帧也对不上。卡片只是导流入口：标题 + 分类 + 日期，不带摘要/封面，
+ * 都会漂移、水合首帧也对不上。卡片只是导流入口：标题 + 标签 + 日期，不带摘要/封面，
  * 列表能力属于 `/posts`。
  */
 
@@ -34,7 +34,7 @@ export const FeaturedPostsWidget = () => {
                 to={`/post/${post.id}`}
                 className="group -mx-2 flex min-w-0 gap-2.5 rounded-control px-2 py-2 transition-colors hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-content"
               >
-                <span aria-hidden="true" className="mt-0.5 shrink-0 font-serif text-xs tabular-nums text-content-muted">
+                <span aria-hidden="true" className="mt-0.5 shrink-0 font-sans text-xs tabular-nums text-content-muted">
                   {String(position + 1).padStart(2, '0')}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -45,10 +45,14 @@ export const FeaturedPostsWidget = () => {
                     {post.excerpt}
                   </span>
                   <span className="mt-1 block truncate text-[11px] text-content-muted">
-                    {post.category}
-                    <span aria-hidden="true" className="px-1 opacity-40">
-                      ·
-                    </span>
+                    {post.tags[0] && (
+                      <>
+                        {post.tags[0]}
+                        <span aria-hidden="true" className="px-1 opacity-40">
+                          ·
+                        </span>
+                      </>
+                    )}
                     {formatMetaDate(post.date)}
                     <span aria-hidden="true" className="px-1 opacity-40">
                       ·

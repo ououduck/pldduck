@@ -20,6 +20,7 @@
 4. **articleBody**：必须为纯文本（stripMarkdown 结果），长度截断（6000 字）保持。
 5. **robots.txt/sitemap**：生成逻辑在 generate-site-data.mjs；robots.txt 用 LF 换行；sitemap URL 必须是绝对站点 URL。
 6. **SEO 审计门禁**：seo-audit.mjs 是构建门禁（缺失 title/description/robots/canonical 即失败），新增页面必须满足全部检查项。
+7. **文章元数据口径（2026-11 文章 category 删除后）**：文章 JSON-LD **不再**输出 `articleSection`，`Seo` 也不再输出 `article:section` meta；文章只有 `tags`（`keywords` 仍由 tags 拼接）。参数化页面 canonical 自指时保留的参数只剩 `tag` / `q`，遗留的 category 参数一律丢弃——不要把它重新加回保留白名单，也不要给文章补回 section 字段。
 
 ## 常见陷阱
 

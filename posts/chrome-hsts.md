@@ -4,7 +4,6 @@ title: Chrome HSTS 的小彩蛋
 excerpt: 用了这么多年Chrome，被一些网站的HTTPS卡了这么久，为什么不早告诉我可以这样忽略HSTS！
 date: 2026-09-06
 updatedAt: 2026-09-06
-category: 技术
 tags:
   - Chrome
   - HTTPS

@@ -116,33 +116,48 @@ describe('searchPosts 排序与匹配', () => {
     expect(results[0].id).toBe(target.id);
   });
 
-  it('all scope：分类精确匹配的文章先于仅正文命中的文章', async () => {
+  it('all scope：标签精确命中的文章先于仅正文命中的文章', async () => {
     const searchData = (await import('../../generated/posts-search.json')).default as Array<
       PostMetadata & { searchText?: string }
     >;
-    // 构造对比对：找一个「纯分类命中」的文章（category=教程，但标题/摘要/正文
-    // 均不含"教程"——分类命中权重 4×12 独立贡献），与一个「纯正文命中」的文章
-    //（category≠教程 但正文含"教程"）。断言前者在结果中排在后者之前。
-    const pureCategoryHit = searchData.find(
+    const normalize = (value: string) => normalizeSearchText(value);
+    const tags = Array.from(new Set(searchData.flatMap((post) => post.tags)));
+    // 找一个「标签值」：有文章带着它（标签精确命中，权重 5），同时有文章不带它、
+    // 标题/摘要也不含它、只在正文里出现（正文权重 1）。标签权重更高，
+    // 前者必须排在后者之前。
+    const tagQuery = tags.find((tag) => {
+      const normalizedTag = normalize(tag);
+      return (
+        searchData.some((post) => post.tags.some((item) => normalize(item) === normalizedTag)) &&
+        searchData.some(
+          (post) =>
+            !post.tags.some((item) => normalize(item) === normalizedTag) &&
+            !normalize(post.title).includes(normalizedTag) &&
+            !normalize(post.excerpt ?? '').includes(normalizedTag) &&
+            normalize(post.searchText ?? '').includes(normalizedTag),
+        )
+      );
+    });
+    expect(tagQuery).toBeDefined();
+
+    const normalizedTag = normalize(tagQuery!);
+    const tagOwner = searchData.find((post) => post.tags.some((item) => normalize(item) === normalizedTag));
+    const contentOnly = searchData.find(
       (post) =>
-        post.category === '教程' &&
-        !post.title.includes('教程') &&
-        !post.excerpt.includes('教程') &&
-        !(post.searchText ?? '').includes('教程'),
+        !post.tags.some((item) => normalize(item) === normalizedTag) &&
+        !normalize(post.title).includes(normalizedTag) &&
+        !normalize(post.excerpt ?? '').includes(normalizedTag) &&
+        normalize(post.searchText ?? '').includes(normalizedTag),
     );
-    const pureContentHit = searchData.find(
-      (post) => post.category !== '教程' && (post.searchText ?? '').includes('教程'),
-    );
-    // 站点数据不足时跳过（测试不依赖具体内容），但至少保证有分类命中结果。
-    const results = await searchPosts('教程');
-    expect(results.length).toBeGreaterThan(0);
-    if (pureCategoryHit && pureContentHit) {
-      const categoryIndex = results.findIndex((post) => post.id === pureCategoryHit.id);
-      const contentIndex = results.findIndex((post) => post.id === pureContentHit.id);
-      expect(categoryIndex).toBeGreaterThanOrEqual(0);
-      expect(contentIndex).toBeGreaterThanOrEqual(0);
-      expect(categoryIndex).toBeLessThan(contentIndex);
-    }
+    expect(tagOwner).toBeDefined();
+    expect(contentOnly).toBeDefined();
+
+    const results = await searchPosts(tagQuery!);
+    const ownerIndex = results.findIndex((post) => post.id === tagOwner!.id);
+    const contentIndex = results.findIndex((post) => post.id === contentOnly!.id);
+    expect(ownerIndex).toBeGreaterThanOrEqual(0);
+    expect(contentIndex).toBeGreaterThanOrEqual(0);
+    expect(ownerIndex).toBeLessThan(contentIndex);
   });
 
   it('多词查询：全部词命中才返回', async () => {
@@ -164,10 +179,16 @@ describe('searchPosts 排序与匹配', () => {
   });
 
   it('同分结果按日期倒序（dateTimestamp 本地时区口径回归）', async () => {
-    const results = await searchPosts('教程', { scope: 'category' });
-    // category 精确匹配得分相同，应整体按日期倒序（newest first）。
-    for (let i = 1; i < results.length; i += 1) {
-      expect(getDateTimestamp(results[i - 1].date)).toBeGreaterThanOrEqual(getDateTimestamp(results[i].date));
+    // scope=content 只在「摘要 + 正文」里加权：挑一个只出现在正文、且多篇共有的英文 token，
+    // 这些文章的得分完全相同，因此结果必须整体按日期倒序（newest first）。
+    // 该用例同时守住 dateTimestamp 用本地时区口径（而非 new Date 的 UTC 午夜）的回归。
+    const candidates = ['workflow', 'token', 'download'];
+    const hitsByToken = await Promise.all(candidates.map((token) => searchPosts(token, { scope: 'content' })));
+    const tied = hitsByToken.find((hits) => hits.length > 1);
+    expect(tied).toBeDefined();
+    const hits = tied ?? [];
+    for (let i = 1; i < hits.length; i += 1) {
+      expect(getDateTimestamp(hits[i - 1].date)).toBeGreaterThanOrEqual(getDateTimestamp(hits[i].date));
     }
   });
 });
@@ -180,14 +201,6 @@ describe('searchPosts scope 筛选', () => {
     expect(results.length).toBeGreaterThan(0);
     for (const result of results) {
       expect(result.title.toLocaleLowerCase()).toContain(title.toLocaleLowerCase());
-    }
-  });
-
-  it('scope=category 只返回分类包含查询的文章', async () => {
-    const results = await searchPosts('教程', { scope: 'category' });
-    expect(results.length).toBeGreaterThan(0);
-    for (const result of results) {
-      expect(result.category).toBe('教程');
     }
   });
 

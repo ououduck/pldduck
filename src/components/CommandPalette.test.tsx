@@ -23,8 +23,8 @@ const makePost = (overrides: Partial<PostMetadata> = {}): PostMetadata =>
     title: 'React 性能优化',
     excerpt: '摘要',
     date: '2026-08-01',
-    category: '技术',
-    tags: [],
+    // 文章分类已下线：快捷指令的副标题改为「标签 / 日期」。
+    tags: ['React', 'TypeScript'],
     readTime: '5分钟阅读',
     ...overrides,
   }) as PostMetadata;
@@ -103,6 +103,8 @@ describe('CommandPalette', () => {
       },
       { timeout: 3000 },
     );
+    // 副标题由「标签 · 日期」拼成（分类已下线）。
+    expect(screen.getByText('React / TypeScript · 2026-08-01')).toBeInTheDocument();
     expect(searchPosts).toHaveBeenCalledWith('react', { scope: 'all' });
   });
 

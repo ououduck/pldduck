@@ -24,7 +24,6 @@ export interface PostMetadata {
   updatedAt?: string;
   authors?: PostAuthor[];
   tags: string[];
-  category: string;
   filePath: string;
   searchText?: string;
   coverImage?: string;

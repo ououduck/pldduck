@@ -19,11 +19,6 @@
          在 CSS 加载前就适配深色，避免首帧闪白。mergeHead 不移除该标签，生产构建安全保留。 -->
     <meta name="color-scheme" content="dark" />
 
-    <!-- DNS 预解析和预连接优化 -->
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- 图床域名提前建连：文章封面图（LCP 元素）托管于 img.pldduck.com，
          移动端 4G 下提前完成 DNS→TCP→TLS 可显著缩短首张封面图下载延迟。
          crossorigin 与 SSG 注入的 <link rel=preload as=image> 及 <img> 的跨域
@@ -37,33 +32,10 @@
     <link rel="preconnect" href="https://www.clarity.ms" crossorigin />
     <link rel="dns-prefetch" href="https://www.clarity.ms" />
 
-    <!-- 字体加载优化：异步加载避免阻塞渲染，减少不常用权重。
-         preload 与正式 stylesheet 的 crossorigin 必须一致：浏览器按
-         (URL, 请求模式, 凭据模式) 匹配 preload 缓存；不一致则 preload 作废、
-         CSS 被下载两次（Chrome 报 "request credentials mode does not match"）。
-         preload 默认 cors/anonymous，而 <link rel=stylesheet> 不带 crossorigin 时
-         以 no-cors 请求——两者本不匹配，故 stylesheet 须显式加 crossorigin 对齐。
-         Google Fonts CSS 返回 Access-Control-Allow-Origin: *，anonymous 跨域安全。 -->
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap"
-      crossorigin
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap"
-      rel="stylesheet"
-      crossorigin
-      media="print"
-      onload="this.media = 'all'"
-    />
-    <noscript>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap"
-        rel="stylesheet"
-        crossorigin
-      />
-    </noscript>
+    <!-- 字体：全站只使用系统阅读字体（见 src/index.css 的 --font-sans），不加载
+         任何 Web Font。此前为衬线标题引入的 Playfair Display（Google Fonts）
+         已随「全站统一文章正文阅读字体」移除：少一次外部样式表请求，首屏不再等
+         字体 CSS，也不会出现拉丁衬线 + 中文回退字体混排。 -->
 
     <!-- Clarity 访问分析：标准异步标签，统计代码与项目 ID 直接写死于此。 -->
     <script type="text/javascript">

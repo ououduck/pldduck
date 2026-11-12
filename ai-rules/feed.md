@@ -2,7 +2,9 @@
 
 ## 功能概述
 
-构建期生成 RSS 2.0 feed（`public/feed.xml`）：文章条目（标题/链接/摘要/全文或摘要模式/日期/分类）、站点元信息、与 sitemap/llms 数据同源。
+构建期生成 RSS 2.0 feed（`public/feed.xml`）：文章条目（标题/链接/摘要/全文或摘要模式/日期/标签）、站点元信息、与 sitemap/llms 数据同源。
+
+条目的 `<category>` 元素只承载标签：每个标签输出 `<category domain="tag">`。文章 category 已删除，**不得**再输出 `domain="category"` 的条目或从 front matter 读取该字段。
 
 ## 关键文件
 

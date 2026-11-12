@@ -16,7 +16,6 @@ const makePost = (id: string, overrides: Partial<Post> = {}): Post => ({
   title: `${id} 标题`,
   excerpt: '摘要',
   date: '2026-01-01',
-  category: '技术',
   filePath: `/posts/${id}.md`,
   readTime: '5分钟阅读',
   tags: [],
@@ -77,7 +76,7 @@ describe('readSsgRouteData', () => {
 });
 
 describe('buildSsgRouteData', () => {
-  const posts = [makePost('a'), makePost('b', { date: '2026-02-01', category: '分享' }), makePost('c')];
+  const posts = [makePost('a'), makePost('b', { date: '2026-02-01' }), makePost('c')];
 
   it('非文章 URL 返回 undefined', () => {
     expect(buildSsgRouteData(posts, '/guestbook')).toBeUndefined();

@@ -17,7 +17,7 @@
 4. **Y 轴夹紧**：文字定位夹紧必须保证上界不低于下界（高度小于半字号时退化为居中半可见，禁止整体越界不可见）。
 5. **无障碍**：预览 canvas 必须有 `role="img"` 与可读名称。
 6. **代码复用**：canvasToBlob 若与 coverExport 重复实现，应统一（修改一侧时同步另一侧语义）。
-7. **编辑式页头**：删除英文大写眉题；页头为 `border-b border-line`，`h1` 用 `font-serif text-3xl font-bold md:text-4xl`、文案「图片水印」，描述低对比、左对齐；两栏工作区（`lg:grid-cols-[minmax(17rem,21rem)_minmax(0,1fr)]`）保持，不得改成重卡片或恢复英文眉题。
+7. **编辑式页头**：删除英文大写眉题；页头为 `border-b border-line`，`h1` 用 `font-sans text-3xl font-bold md:text-4xl`、文案「图片水印」，描述低对比、左对齐；两栏工作区（`lg:grid-cols-[minmax(17rem,21rem)_minmax(0,1fr)]`）保持，不得改成重卡片或恢复英文眉题。
 
 ## 常见陷阱
 

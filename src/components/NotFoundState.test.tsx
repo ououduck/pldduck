@@ -12,7 +12,7 @@ describe('NotFoundState', () => {
     renderWithRouter(<NotFoundState title="页面不存在" description="你访问的页面走丢了" />);
     const heading = screen.getByRole('heading', { name: '页面不存在' });
     expect(heading).toBeInTheDocument();
-    expect(heading).toHaveClass('font-serif');
+    expect(heading).toHaveClass('font-sans');
     expect(screen.getByText('你访问的页面走丢了')).toBeInTheDocument();
     // 旧的英文眉题已移除，页头不再承担装饰性大写文案。
     expect(screen.queryByText('Page Missing')).not.toBeInTheDocument();

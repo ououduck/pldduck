@@ -21,7 +21,6 @@ interface SeoProps {
   publishedTime?: string;
   modifiedTime?: string;
   authors?: string[];
-  section?: string;
   tags?: string[];
   keywords?: string;
   structuredData?: StructuredData;
@@ -32,11 +31,11 @@ const toAbsoluteUrl = (value?: string) => absoluteSiteUrl(value, siteConfig.url,
 
 // canonical 只保留影响页面内容的查询参数，丢弃搜索/分页/排序等衍生 UI 状态。
 // 规则：
-// - category / tag / q：内容型筛选参数，保留其 canonical，让筛选页自指而非指向无参版，
+// - tag / q：内容型筛选参数，保留其 canonical，让筛选页自指而非指向无参版，
 //   避免 Google 将真实内容页当作首页/列表页的软重复内容合并掉；
 // - page：非首页页码自指（同一内容在不同页），首页无参（避免 canonical 抖动）；
 // - sort / 其余：纯 UI 偏好，同一批内容，一律丢弃，统一归并。
-const CANONICAL_QUERY_PARAMS = new Set(['category', 'tag', 'q']);
+const CANONICAL_QUERY_PARAMS = new Set(['tag', 'q']);
 
 const buildCanonicalPath = (value: string) => {
   const withoutHash = value.split('#', 1)[0] || '/';
@@ -47,7 +46,7 @@ const buildCanonicalPath = (value: string) => {
     return pathname;
   }
 
-  // 只保留影响页面内容的参数（如分类筛选），并按固定顺序归一化：
+  // 只保留影响页面内容的参数（如标签筛选），并按固定顺序归一化：
   // 丢弃空值与重复值，避免同一页产生多条 canonical 或 canonical 抖动。
   const params = new URLSearchParams(query);
   const kept: string[] = [];
@@ -161,7 +160,6 @@ export const Seo: React.FC<SeoProps> = ({
   publishedTime,
   modifiedTime,
   authors = [],
-  section,
   tags = [],
   keywords,
   structuredData,
@@ -221,7 +219,6 @@ export const Seo: React.FC<SeoProps> = ({
       {type === 'article' && publishedTime && <meta property="article:published_time" content={publishedTime} />}
       {type === 'article' && modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
       {type === 'article' && authors.map((author) => <meta key={author} property="article:author" content={author} />)}
-      {type === 'article' && section && <meta property="article:section" content={section} />}
       {type === 'article' && tags.map((tag) => <meta key={tag} property="article:tag" content={tag} />)}
 
       <meta name="twitter:card" content="summary_large_image" />

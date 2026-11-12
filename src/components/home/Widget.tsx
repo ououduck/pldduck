@@ -66,5 +66,5 @@ export const Widget: React.FC<WidgetProps> = ({ id, title, index, action, classN
 /** 小部件内的次要说明行（如统计卡底部的构建期数字）。 */
 export const widgetMetaRowClassName = 'flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-content-muted';
 
-/** 小部件内的主数值排版：衬线大号 + 等宽数字，保证数值变化时不抖动。 */
-export const widgetValueClassName = 'font-serif text-2xl font-bold tracking-tight text-content tabular-nums';
+/** 小部件内的主数值排版：阅读字体大号 + 等宽数字，保证数值变化时不抖动。 */
+export const widgetValueClassName = 'font-sans text-2xl font-bold tracking-tight text-content tabular-nums';

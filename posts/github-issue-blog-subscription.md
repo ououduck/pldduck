@@ -4,7 +4,6 @@ title: 用 GitHub Issue 和 Actions 为静态博客实现新文章订阅
 excerpt: 不依赖第三方推送平台，利用 GitHub Issue 的订阅能力和 GitHub Actions，在发布 Markdown 文章后自动向订阅者发送更新提醒。
 date: 2026-07-22
 updatedAt: 2026-07-22
-category: 教程
 tags:
   - GitHub Actions
   - GitHub Issue

@@ -7,7 +7,6 @@ const makePost = (overrides: Partial<PostMetadata> & { id: string }): PostMetada
   excerpt: '',
   date: '2026-01-01',
   tags: [],
-  category: '未分类',
   filePath: `/posts/${overrides.id}.md`,
   readTime: '1分钟阅读',
   ...overrides,

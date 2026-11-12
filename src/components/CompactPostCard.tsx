@@ -50,10 +50,6 @@ export const CompactPostCard: React.FC<CompactPostCardProps> = ({ post }) => (
     )}
     <div className="min-w-0 flex-1 py-0.5 sm:pt-3">
       <div className="flex items-center gap-1.5 text-[10px] font-medium tracking-wide text-content-muted">
-        <span className="truncate">{post.category}</span>
-        <span aria-hidden="true" className="opacity-50">
-          ·
-        </span>
         <span className="shrink-0 tabular-nums">{formatMetaDate(post.date)}</span>
       </div>
       <h3 className="mt-1 line-clamp-2 text-sm font-semibold leading-relaxed text-content decoration-content-muted underline-offset-4 transition-colors group-hover:underline">

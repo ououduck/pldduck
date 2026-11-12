@@ -75,7 +75,7 @@ export const LoadingStatus: React.FC<LoadingStatusProps> = ({ label, className, 
           <i className="duck-loader-step" />
         </span>
         {/* tracking 会在末字后留一个字距的空隙，用等值负外边距抵掉，字样才真正居中 */}
-        <span className="duck-loader-word -mr-[0.32em] select-none font-serif text-[11px] font-bold italic uppercase leading-none tracking-[0.32em]">
+        <span className="duck-loader-word -mr-[0.32em] select-none font-sans text-[11px] font-bold italic uppercase leading-none tracking-[0.32em]">
           PLDDUCK
         </span>
       </span>

@@ -1905,7 +1905,6 @@ export const Post = () => {
     // timeRequired（ISO 8601 时长，如 PT7M）：Article 富结果字段，助搜索结果展示阅读时长。
     ...(Number.isInteger(readMinutes) && readMinutes > 0 ? { timeRequired: `PT${readMinutes}M` } : {}),
     inLanguage: 'zh-CN',
-    articleSection: post.category,
     isPartOf: {
       '@type': 'WebSite',
       name: siteConfig.title,
@@ -1932,8 +1931,8 @@ export const Post = () => {
       {
         '@type': 'ListItem',
         position: 2,
-        name: post.category,
-        item: absoluteSiteUrl(`/posts?category=${encodeURIComponent(post.category)}`, siteConfig.url),
+        name: '文章',
+        item: absoluteSiteUrl('/posts', siteConfig.url),
       },
       { '@type': 'ListItem', position: 3, name: post.title, item: absoluteSiteUrl(`/post/${post.id}`, siteConfig.url) },
     ],
@@ -1985,7 +1984,6 @@ export const Post = () => {
           publishedTime={post.date}
           modifiedTime={post.updatedAt || post.date}
           authors={authors.map((author) => author.name)}
-          section={post.category}
           tags={post.tags}
           keywords={post.tags?.join(', ')}
           // 站点级 WebSite + Organization schema 与文章级 BlogPosting 一并输出，
@@ -2013,11 +2011,8 @@ export const Post = () => {
                   首页
                 </Link>
                 <ChevronRight size={12} aria-hidden="true" className="opacity-50" />
-                <Link
-                  to={`/posts?category=${encodeURIComponent(post.category)}`}
-                  className="truncate transition-colors hover:text-content"
-                >
-                  {post.category}
+                <Link to="/posts" className="truncate transition-colors hover:text-content">
+                  文章
                 </Link>
               </nav>
             </div>
@@ -2092,6 +2087,26 @@ export const Post = () => {
                         分享
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {/* 标签行：文章归类的唯一维度就是标签，这里作为列表筛选的唯一入口。
+                    放在署名行之后、封面/正文之前，与标题同一列宽；无标签时整块不渲染。 */}
+                {!isReadingMode && (post.tags?.length ?? 0) > 0 && (
+                  <div
+                    className="print-hidden mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]"
+                    role="group"
+                    aria-label="文章标签"
+                  >
+                    {post.tags.map((tag) => (
+                      <Link
+                        key={tag}
+                        to={`/posts?tag=${encodeURIComponent(tag)}`}
+                        className="text-content-muted underline-offset-4 transition-colors hover:text-content hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-100"
+                      >
+                        #{tag}
+                      </Link>
+                    ))}
                   </div>
                 )}
               </div>

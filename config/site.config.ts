@@ -25,8 +25,13 @@ export interface SiteSocial {
   github: string;
   email: string;
   rawEmail: string;
-  /** QQ 号（纯数字文本，首页社交区提供一键复制；不配置则不展示该行）。 */
+  /** QQ 号（纯数字文本，首页「联系方式」的 QQ 二维码弹窗里展示；不配置则不展示该行）。 */
   qq?: string;
+  /**
+   * QQ 二维码图片地址（站内路径或完整 URL）。首页 QQ 入口在鼠标悬停或点击时弹出二维码弹窗；
+   * 与 `qq` 必须同时存在才渲染，留空则整个 QQ 入口不展示。
+   */
+  qqQrCode?: string;
 }
 
 /** 首页「站点入口」磁贴：站内路径以 / 开头，外链写完整 URL。 */

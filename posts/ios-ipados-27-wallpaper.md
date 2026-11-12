@@ -4,7 +4,6 @@ title: iOS 27 & iPadOS 27 内置壁纸
 excerpt: iOS 27 & iPadOS 27 内置壁纸 包含横向和纵向
 date: 2026-09-25
 updatedAt: 2026-09-25
-category: 分享
 tags:
   - iOS
   - iPadOS

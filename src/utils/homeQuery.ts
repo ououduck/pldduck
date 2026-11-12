@@ -43,10 +43,13 @@ export const setHomeQueryParam = (params: URLSearchParams, key: 'sort' | 'page',
   return nextParams;
 };
 
-/** 归一化首页查询参数（移除无效 sort/page），保持 canonical 稳定。 */
+/** 归一化首页查询参数（移除无效 sort/page 与已下线的 category），保持 canonical 稳定。 */
 export const canonicalizeHomeQuery = (params: URLSearchParams) => {
   const state = getHomeQueryState(params);
-  let nextParams = setHomeQueryParam(params, 'sort', state.sortOrder);
-  nextParams = setHomeQueryParam(nextParams, 'page', state.page);
-  return nextParams;
+  // 分类功能已下线：旧 /posts?category=X 直接丢参回归默认列表
+  const base = new URLSearchParams(params);
+  base.delete('category');
+  let next = setHomeQueryParam(base, 'sort', state.sortOrder);
+  next = setHomeQueryParam(next, 'page', state.page);
+  return next;
 };

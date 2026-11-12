@@ -15,7 +15,7 @@
 2. **noindex**：404 页必须 `Seo noindex`（SPA 内 200 响应，避免被收录）。
 3. **debugLabel**：仅在开发/缺失场景展示调试信息；文章缺失页复用 NotFoundState 时保持一致文案模式。
 4. **调试路径水合一致性**：debugLabel 的路径**不得在渲染期直接读 location.pathname** —— SSG 用占位路由 /**missing** 预渲染、构建后替换为 /，客户端在真实未知路径水合时首帧直读会与 SSR 文本不一致。必须首帧输出占位符、挂载后 effect 写入真实路径。
-5. **编辑式视觉**：删除 `Page Missing` 英文眉题；`NotFoundState` 的标题用 `font-serif text-3xl md:text-4xl`，右上角「404」是 `aria-hidden` 的极轻水印（`md:` 起显示、绝对定位不占布局、低对比字色），返回按钮为 ghost 描边（`border-line`、`min-h-11`）。404 页的搜索是发丝线下划线输入 + 文字按钮，快速入口是文字链接 + `border-t border-line`，最近文章是 `border-t` / `border-b border-line` 的细线列表。**不得**恢复英文眉题、大色块 404 或重卡片。`NotFoundState` 与文章缺失页共用，改视觉不能破坏 `title/description/backTo/backLabel/debugLabel/children` 契约。
+5. **编辑式视觉**：删除 `Page Missing` 英文眉题；`NotFoundState` 的标题用 `font-sans text-3xl md:text-4xl`，右上角「404」是 `aria-hidden` 的极轻水印（`md:` 起显示、绝对定位不占布局、低对比字色），返回按钮为 ghost 描边（`border-line`、`min-h-11`）。404 页的搜索是发丝线下划线输入 + 文字按钮，快速入口是文字链接 + `border-t border-line`，最近文章是 `border-t` / `border-b border-line` 的细线列表。**不得**恢复英文眉题、大色块 404 或重卡片。`NotFoundState` 与文章缺失页共用，改视觉不能破坏 `title/description/backTo/backLabel/debugLabel/children` 契约。
 
 ## 常见陷阱
 

@@ -4,7 +4,6 @@ title: MirrorZ - 中国教育网联合镜像站
 excerpt: 中国教育网联合镜像站正式上线 聚合多所高校镜像 自动访问最快节点
 date: 2026-09-19
 updatedAt: 2026-09-19
-category: 技术
 tags:
   - 镜像站
   - Mirror

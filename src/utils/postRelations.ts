@@ -1,5 +1,5 @@
 /**
- * 文章关联计算：相邻（上一篇/下一篇）、系列导航与相关文章（同分类/同标签权重评分）。
+ * 文章关联计算：相邻（上一篇/下一篇）、系列导航与相关文章（共享标签/同系列权重评分）。
  */
 
 import type { PostMetadata } from '../types';
@@ -52,7 +52,7 @@ interface RelatedPostsOptions {
   limit?: number;
   excludeIds?: Iterable<string>;
 }
-/** 按同分类/同标签权重计算相关文章（排除指定 id，限量返回）。 */
+/** 按共享标签/同系列权重计算相关文章（排除指定 id，限量返回）。 */
 export const getRelatedPosts = <T extends PostMetadata>(
   posts: T[],
   post: PostMetadata,
@@ -66,9 +66,8 @@ export const getRelatedPosts = <T extends PostMetadata>(
     .filter((candidate) => !excluded.has(candidate.id))
     .map((candidate) => {
       const sharedTags = candidate.tags.filter((tag) => postTags.has(tag.trim())).length;
-      const sameCategory = candidate.category === post.category ? 1 : 0;
       const sameSeries = post.series && candidate.series && post.seriesName === candidate.seriesName ? 1 : 0;
-      return { post: candidate, score: sharedTags * 4 + sameCategory * 2 + sameSeries };
+      return { post: candidate, score: sharedTags * 4 + sameSeries };
     })
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score || comparePostsByDateAndId(a.post, b.post))

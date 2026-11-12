@@ -9,13 +9,12 @@ import {
 } from './archiveState';
 import type { PostMetadata } from '../../types';
 
-const makePost = (id: string, date: string, category = '技术'): PostMetadata => ({
+const makePost = (id: string, date: string): PostMetadata => ({
   id,
   title: id,
   excerpt: '摘要',
   date,
   tags: [],
-  category,
   filePath: `/posts/${id}.md`,
   readTime: '5分钟阅读',
 });

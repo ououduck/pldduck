@@ -4,7 +4,6 @@ title: Pages部署静态网站分流加速
 excerpt: 本文教你怎么通过多个平台的 Pages 托管服务加上分流 实现像 D-blog 一样的全球低延迟快速访问 备案域名使用效果更佳
 date: 2026-08-24
 updatedAt: 2026-08-24
-category: 教程
 tags:
   - Cloudflare Pages
   - EdgeOne Pages

@@ -40,12 +40,10 @@ interface SearchIndexEntry {
   dateTimestamp: number;
   rawTitle: string;
   rawExcerpt: string;
-  rawCategory: string;
   rawContent: string;
   rawTags: string[];
   title: string;
   excerpt: string;
-  category: string;
   content: string;
   tags: string[];
 }
@@ -58,12 +56,10 @@ const buildSearchIndex = (posts: Array<PostMetadata & { searchText?: string }>):
     dateTimestamp: getDateTimestamp(post.date),
     rawTitle: post.title,
     rawExcerpt: post.excerpt,
-    rawCategory: post.category,
     rawContent: searchText ?? '',
     rawTags: post.tags.map((tag) => String(tag)),
     title: normalizeSearchText(post.title),
     excerpt: normalizeSearchText(post.excerpt),
-    category: normalizeSearchText(post.category),
     content: normalizeSearchText(searchText ?? ''),
     tags: post.tags.map((tag) => normalizeSearchText(String(tag))),
   }));
@@ -159,8 +155,8 @@ export const getPostById = async (id: string): Promise<Post | undefined> => {
   throw error;
 };
 
-export type PostSearchScope = 'all' | 'category' | 'content' | 'title';
-type PostSearchField = 'title' | 'category' | 'excerpt' | 'content' | 'tags';
+export type PostSearchScope = 'all' | 'content' | 'title';
+type PostSearchField = 'title' | 'excerpt' | 'content' | 'tags';
 
 interface PostSearchMatch {
   field: PostSearchField;
@@ -180,7 +176,6 @@ interface SearchResult extends PostSearchResult {
 
 const SEARCH_FIELD_LABELS: Record<PostSearchField, string> = {
   title: '标题',
-  category: '分类',
   excerpt: '摘要',
   content: '正文',
   tags: '标签',
@@ -235,8 +230,6 @@ const createSearchSnippet = (
 
 const getSearchableFields = (entry: SearchIndexEntry, scope: PostSearchScope) => {
   switch (scope) {
-    case 'category':
-      return [{ key: 'category', value: entry.category, weight: 6 }] as const;
     case 'content':
       return [
         { key: 'excerpt', value: entry.excerpt, weight: 2 },
@@ -248,7 +241,6 @@ const getSearchableFields = (entry: SearchIndexEntry, scope: PostSearchScope) =>
     default:
       return [
         { key: 'title', value: entry.title, weight: 8 },
-        { key: 'category', value: entry.category, weight: 4 },
         { key: 'excerpt', value: entry.excerpt, weight: 2 },
         { key: 'content', value: entry.content, weight: 1 },
       ] as const;
@@ -263,7 +255,6 @@ const getBestSearchMatch = (
 ): PostSearchMatch | undefined => {
   const rawValues: Record<PostSearchField, string> = {
     title: entry.rawTitle,
-    category: entry.rawCategory,
     excerpt: entry.rawExcerpt,
     content: entry.rawContent,
     tags: entry.rawTags.join('、'),
@@ -286,7 +277,7 @@ const getBestSearchMatch = (
 };
 
 /**
- * 全文搜索：对标题/分类/摘要/正文/标签做多维权重评分（scope 可限定搜索域），
+ * 全文搜索：对标题/摘要/正文/标签做多维权重评分（scope 可限定搜索域），
  * 结果按分数降序、日期倒序，并带命中片段（searchMatch）；结果按
  * scope::query 键做 LRU 缓存。空查询返回空数组。
  */

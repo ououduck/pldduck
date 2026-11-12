@@ -4,7 +4,6 @@ title: 使用 giscus 和 akismet 实现静态博客评论及垃圾审查功能
 excerpt: 使用 GitHub Discussions 承载静态博客评论，再结合 Akismet 和 GitHub Actions 自动识别、删除垃圾评论，不需要自建评论后端。
 date: 2026-08-06
 updatedAt: 2026-08-06
-category: 教程
 tags:
   - giscus
   - Akismet

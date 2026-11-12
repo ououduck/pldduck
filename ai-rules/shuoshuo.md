@@ -24,7 +24,7 @@
 3. **`giscus.json.defaultCommentOrder` 保持 `newest`**：giscus 无 data-sort 属性，仓库根的这个键是**唯一**排序入口；改成 oldest 会让「最新在前」的产品预期失效。访客浏览器 localStorage 里的临时切换不影响其他访客。
 4. **公告分类（Announcements）**：承载说说的那条 Discussion 必须位于 Announcements 类型分类；否则任何登录 GitHub 的访客都能发评论，「只有作者能发说说」的约束即破。分类类型不可在 Discussion 之间迁移——如需要改变，只能重建一条并更新 `shuoshuo.discussionId`。
 5. **详情页契约已退役**：`/shuoshuo/:splat → /shuoshuo` 的 301 成对（`_redirects` + `App.tsx`）是外部已索引 URL 的兜底，不得单边删除；若二次改造需要新详情路由，须重新走 `config/routes.mjs` 单一真源流程并同步 `routes-consistency.test.mjs`。
-6. **编辑式页头与卡片化**：页头是 `rounded-overlay bg-surface p-6 md:p-8` 的卡片（`h1` `font-serif text-4xl md:text-5xl` + 低对比介绍），**不再使用跨页 `border-b` 发丝线**；giscus 区通过 `<GiscusComments ... card />` 使用 `rounded-overlay bg-surface p-5 md:p-6` 的卡片容器。说说的数据源/`discussionId`/schema 不变，**不得**为卡片化改动 giscus mapping。删除英文大写眉题/图标。
+6. **编辑式页头与卡片化**：页头是 `rounded-overlay bg-surface p-6 md:p-8` 的卡片（`h1` `font-sans text-4xl md:text-5xl` + 低对比介绍），**不再使用跨页 `border-b` 发丝线**；giscus 区通过 `<GiscusComments ... card />` 使用 `rounded-overlay bg-surface p-5 md:p-6` 的卡片容器。说说的数据源/`discussionId`/schema 不变，**不得**为卡片化改动 giscus mapping。删除英文大写眉题/图标。
 
 7. **评论审核（与文章/留言板同链路）**：说说的 Giscus 评论同样由 `.github/workflows/akismet-discussion-comment-check.yml`、`comment-keyword-filter.yml` 处理，并可被 `comment-keyword-recheck.yml` 全量复查。`scripts/lib/comment-surface.mjs` 会按 `config/comments.config.json` 的 `shuoshuo.discussionId` 识别 `surface=shuoshuo`，Akismet/关键词/复查日志与飞书评论通知必须显示该区域；**不得**在 workflow 或脚本里按 Announcements 分类排除说说评论。审核动作（Akismet 删除、关键词 `minimize/delete`）沿用全局配置，不要为说说单独写一套删除逻辑。
 

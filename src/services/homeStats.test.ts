@@ -7,7 +7,6 @@ const makePost = (overrides: Partial<PostMetadata> & Pick<PostMetadata, 'id'>): 
   excerpt: '',
   date: overrides.date ?? '2026-01-01',
   tags: overrides.tags ?? [],
-  category: overrides.category ?? '技术',
   filePath: `/posts/${overrides.id}.md`,
   readTime: '1分钟阅读',
   ...overrides,

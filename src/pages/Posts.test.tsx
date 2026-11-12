@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { Posts } from './Posts';
@@ -82,47 +82,25 @@ describe('Posts', () => {
     expect(postLinks.length).toBeGreaterThan(0);
   });
 
-  it('分类筛选：点击分类按钮后该分类被选中', async () => {
-    const user = userEvent.setup();
+  it('分类功能已下线：不渲染「文章分类筛选」分组，也不再有分类按钮', () => {
     renderPosts();
-    const categoryButtons = screen.getAllByRole('button', { name: /^(分享|教程)$/ });
-    expect(categoryButtons.length).toBeGreaterThan(0);
-
-    await user.click(categoryButtons[0]);
-    expect(categoryButtons[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('group', { name: '文章分类筛选' })).not.toBeInTheDocument();
+    // 分类胶囊按钮（如「分享」「教程」）不再出现：只剩标签侧栏里的标签按钮。
+    expect(screen.queryByRole('button', { name: /^(分享|教程)$/ })).not.toBeInTheDocument();
+    // 分类栏渐隐（filter-scroll-mask）随分类栏一并移除。
+    expect(document.querySelector('[class*="filter-scroll-mask"]')).toBeNull();
   });
 
-  it('分类栏渐隐只在被裁切的一侧生效（静止贴边时首枚胶囊不被啃出模糊边）', () => {
-    renderPosts();
-    const group = screen.getByRole('group', { name: '文章分类筛选' });
-    const scroller = group.parentElement as HTMLElement;
-    expect(scroller.className).toContain('filter-scroll-mask');
-    // jsdom 下无溢出：两侧都不该渐隐。
-    expect(scroller.className).not.toContain('filter-scroll-mask-');
+  it('旧链接 ?category= 直访时参数被 canonicalizeHomeQuery 清掉并展示完整列表', async () => {
+    const defaultRender = renderPosts();
+    const defaultArticleCount = defaultRender.container.querySelectorAll('article').length;
+    defaultRender.unmount();
+    probeSearch = '';
 
-    Object.defineProperty(scroller, 'scrollWidth', { configurable: true, value: 800 });
-    Object.defineProperty(scroller, 'clientWidth', { configurable: true, value: 400 });
-    Object.defineProperty(scroller, 'scrollLeft', { configurable: true, value: 0 });
-    act(() => {
-      scroller.dispatchEvent(new Event('scroll'));
-    });
-    expect(scroller.className).toContain('filter-scroll-mask-end');
-    expect(scroller.className).not.toContain('filter-scroll-mask-start');
-
-    Object.defineProperty(scroller, 'scrollLeft', { configurable: true, value: 400 });
-    act(() => {
-      scroller.dispatchEvent(new Event('scroll'));
-    });
-    expect(scroller.className).toContain('filter-scroll-mask-start');
-    expect(scroller.className).not.toContain('filter-scroll-mask-end');
-  });
-
-  it('URL 带 ?category= 时应用 URL 分类筛选', async () => {
-    renderPosts('/posts?category=分享');
-    // effect 同步 URL 分类后：分享选中、全部未选中
-    const categoryButton = await screen.findByRole('button', { name: '分享' });
-    expect(categoryButton).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: '全部' })).toHaveAttribute('aria-pressed', 'false');
+    const { container } = renderPosts('/posts?category=分享');
+    await waitFor(() => expect(probeSearch).not.toContain('category'));
+    // 丢弃分类参数后回到默认（全部文章）视图，与无参列表渲染的卡片数一致。
+    await waitFor(() => expect(container.querySelectorAll('article')).toHaveLength(defaultArticleCount));
   });
 
   it('右侧标签卡片列出全部标签与计数，点击写入 ?tag= 并过滤列表', async () => {
@@ -158,19 +136,6 @@ describe('Posts', () => {
     await user.click(screen.getByRole('button', { name: '清除标签' }));
     await waitFor(() => expect(probeSearch).not.toContain('tag='));
     await waitFor(() => expect(container.querySelectorAll('article').length).toBeGreaterThan(expectedCount));
-  });
-
-  it('分类与标签组合过滤（URL 状态同时生效）', async () => {
-    const [firstPost] = getInitialPosts();
-    const firstTag = firstPost.tags[0];
-    const expectedCount = getInitialPosts().filter(
-      (post) => post.category === firstPost.category && post.tags.includes(firstTag),
-    ).length;
-
-    const { container } = renderPosts(
-      `/posts?category=${encodeURIComponent(firstPost.category)}&tag=${encodeURIComponent(firstTag)}`,
-    );
-    await waitFor(() => expect(container.querySelectorAll('article')).toHaveLength(expectedCount));
   });
 
   it('移动端标签按钮打开侧面板，选标签后关闭并写入 URL；Escape 可关闭', async () => {

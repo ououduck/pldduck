@@ -1389,9 +1389,9 @@ export const CoverGenerator: React.FC = () => {
         description="在线免费生成精美博客文章封面图片，支持自定义文字、图标与渐变背景，适配多种社交分享比例，开箱即用无需登录。"
       />
 
-      {/* 编辑式页头：去英文眉题，serif 标题 + 描述 + 发丝线，左对齐 */}
+      {/* 编辑式页头：去英文眉题，阅读字体标题 + 描述 + 发丝线，左对齐 */}
       <header className="mb-6 border-b border-line pb-5 md:mb-7 md:pb-6">
-        <h1 className="font-serif text-3xl font-bold tracking-tight text-content md:text-4xl">封面生成器</h1>
+        <h1 className="font-sans text-3xl font-bold tracking-tight text-content md:text-4xl">封面生成器</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-content-muted md:text-base">
           聚焦博客封面生成体验，保留现有的 <strong>纯黑</strong> 与 <strong>纯白</strong>{' '}
           两种背景模板，补足更顺手的编辑、预览与导出能力。

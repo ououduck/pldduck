@@ -9,7 +9,6 @@ const makePost = (overrides: Partial<PostMetadata> = {}): PostMetadata => ({
   title: '紧凑文章标题',
   excerpt: '紧凑文章摘要',
   date: '2026-03-14',
-  category: '技术',
   filePath: '/posts/compact.md',
   readTime: '3分钟阅读',
   tags: [],
@@ -24,7 +23,7 @@ const renderCard = (overrides: Partial<PostMetadata> = {}) =>
   );
 
 describe('CompactPostCard', () => {
-  it('轻量横幅：保留标题/分类/日期/摘要与文章链接，不再用固定高度重卡片', () => {
+  it('轻量横幅：保留标题/日期/摘要与文章链接，不再用固定高度重卡片', () => {
     renderCard();
 
     const link = screen.getByRole('link', { name: /紧凑文章标题/ });
@@ -36,7 +35,7 @@ describe('CompactPostCard', () => {
     expect(link.className).not.toMatch(/\bborder\b|bg-white|rounded-surface/);
 
     expect(screen.getByRole('heading', { name: '紧凑文章标题' })).toBeInTheDocument();
-    expect(screen.getByText('技术')).toBeInTheDocument();
+    // 紧凑条目只保留日期这一条元信息（分类已下线，也不渲染标签行）。
     expect(screen.getByText('2026/03/14')).toBeInTheDocument();
     expect(screen.getByText('紧凑文章摘要')).toBeInTheDocument();
   });

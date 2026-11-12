@@ -36,6 +36,8 @@
 
 16. **阅读控制台减负与目录按钮 toggle**：桌面 `CapsuleNav` 收缩态是 **44px 圆形按钮**（目录图标 + 进度环，`h-11 w-11`），hover 250ms 意图延迟轻展开/点击固定展开为小浮层；**不得**恢复高耸的数字胶囊轨、多重描边或常驻大面板。目录按钮必须**双击可关**：`List` 与 `X` 两层图标常驻、只切换透明度，按钮本体与 DOM 节点保持稳定；点击（`toggleConsole`）在已展开时调用 `collapseConsole` 一次清掉 `pinned` / `userExpanded` / `focusWithin` / `hoverPreview` 四种展开来源，并设置 hover 抑制直到指针离开。**不得**改回「按状态条件替换图标」——那会让 mousedown 与 mouseup 落在不同节点，浏览器不派发 click，表现为「第二次点击关不掉」。Pin、面板关闭、Esc、外点、焦点归还（`railToggleRef.focus()`）与移动端 4 个高频按钮（目录/进度/分享/阅读模式）全部保留；低频复制由 `ShareModal` 承担。
 
+17. **面包屑、标签行与 JSON-LD 口径（2026-11 文章 category 删除后）**：可见面包屑固定两级可点 —— 第 1 级「首页」→ `/`，第 2 级「文章」→ `/posts`；JSON-LD 的 `BreadcrumbList` 第 2 项同口径（name「文章」、item `/posts`），**不得**改回旧的 category 文案与对应的带参链接。标题区（`post-header`）新增标签行：每个标签链接 `/posts?tag=<encoded>`，点击进入列表页的标签筛选。文章 JSON-LD 不再输出 `articleSection`，`Seo` 也不再输出 `article:section` meta（文章只有 `tags`，`keywords` 仍由 tags 拼接）；这三处一并改，漏一处会让结构化数据与可见信息不一致。
+
 ## 常见陷阱
 
 - 标题含图片/公式时渲染文本与 rawText 不一致 → 锚点错位（按既有 usedHeadingIds 兜底）；
@@ -52,6 +54,7 @@
 - 把目录按钮的 `List`/`X` 改回条件渲染（`isExpanded ? <X/> : <List/>`）：指针下的 DOM 节点在 mousedown/mouseup 之间被替换，click 不会触发，「第二次点击关不掉」会复现。必须用双层常驻图标 + 透明度切换。
 - 改移动端文章顺序时复制 DOM 或删掉 `order-1/order-2`：移动端必须 cover-first（封面 → 标题/署名），桌面标题/署名 → 封面；用 flex `order` 控制，DOM 只保留一份。
 - 把 `.post-meta` 改回所有断点单行：移动端作者必须独占首行，日期/时长/阅读量在第二行；桌面 `sm:flex-row` 才恢复单行，作者与元信息之间的分隔点移动端要隐藏。改这块至少跑 `Post.test` 的署名/Vercount 锚点断言。
+- 把面包屑第 2 级、标题区信息位或 JSON-LD 的 `articleSection` 改回 category：文章 category 已删除，面包屑第 2 级必须是「文章」→ `/posts`，标签行走 `/posts?tag=`，`Post.test` 的标题区/结构化数据断言会红。
 
 ## 破例条款
 

@@ -31,11 +31,11 @@ const renderGuestbook = () =>
   );
 
 describe('Guestbook', () => {
-  it('渲染衬线页面标题，不再输出英文眉题', () => {
+  it('渲染阅读字体页面标题，不再输出英文眉题', () => {
     renderGuestbook();
     const heading = screen.getByRole('heading', { level: 1, name: '留言板' });
     expect(heading).toBeInTheDocument();
-    expect(heading).toHaveClass('font-serif');
+    expect(heading).toHaveClass('font-sans');
     expect(heading.closest('header')).toHaveClass('rounded-overlay', 'bg-surface');
     expect(screen.queryByText('Guestbook')).not.toBeInTheDocument();
   });

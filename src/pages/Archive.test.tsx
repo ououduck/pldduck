@@ -14,21 +14,19 @@ const { MOCK_POSTS } = vi.hoisted(() => ({
       title: '2026 年文章',
       excerpt: '摘要',
       date: '2026-03-14',
-      category: '技术',
       filePath: '/posts/post-2026.md',
       readTime: '3分钟阅读',
       commentCount: 5,
-      tags: [],
+      tags: ['React', 'TypeScript'],
     },
     {
       id: 'post-2025',
       title: '2025 年文章',
       excerpt: '摘要',
       date: '2025-11-02',
-      category: '分享',
       filePath: '/posts/post-2025.md',
       readTime: '2分钟阅读',
-      tags: [],
+      tags: ['Vite'],
     },
   ],
 }));
@@ -155,13 +153,15 @@ describe('Archive', () => {
     expect(screen.queryByText('Archive')).not.toBeInTheDocument();
   });
 
-  it('文章行保留分类、阅读时长与评论数语义', async () => {
+  it('文章行保留首个标签、阅读时长与评论数语义', async () => {
     renderArchive('/archive?year=2026');
     const title = await screen.findByText('2026 年文章');
     const row = title.closest('a');
     expect(row).not.toBeNull();
     expect(row).toHaveAttribute('href', '/post/post-2026');
-    expect(row).toHaveTextContent('技术');
+    // 分类已下线：行内 meta 位改为「首个标签 · 阅读时长 · 评论数」。
+    expect(row).toHaveTextContent('React');
+    expect(row).not.toHaveTextContent('TypeScript');
     expect(row).toHaveTextContent('3分钟阅读');
     expect(row).toHaveTextContent('5 条评论');
   });

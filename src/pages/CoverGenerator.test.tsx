@@ -55,10 +55,10 @@ describe('CoverGenerator', () => {
     expect(screen.getByRole('tab', { name: '导出' })).toBeInTheDocument();
   });
 
-  it('页头为 serif 中文标题，不再有英文大写眉题', () => {
+  it('页头为阅读字体中文标题，不再有英文大写眉题', () => {
     renderCover();
     const heading = screen.getByRole('heading', { level: 1, name: '封面生成器' });
-    expect(heading).toHaveClass('font-serif');
+    expect(heading).toHaveClass('font-sans');
     expect(screen.queryByText('COVER STUDIO')).not.toBeInTheDocument();
   });
 

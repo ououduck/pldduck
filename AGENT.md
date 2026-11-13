@@ -64,6 +64,13 @@
       时间口径一律锚定构建期数据（最新文章年月），不用时钟/随机。仍**不得**恢复门户入口、整页内容列表、
       开源项目、关于本站、技术栈、订阅卡或状态标签；详见 `ai-rules/home.md`。
 15. **交互细节（稳定 DOM）**：文章目录按钮在展开/收起时必须保持同一 button 与双层常驻图标（`List`/`X` 只切换透明度）；**不得**按状态条件替换图标节点（mousedown/mouseup 目标不同会丢失 click，表现为「第二次点击关不掉」）。搜索结果统一 `PostCard variant="banner"` 单列横幅，不得恢复 `CompactPostCard`/三列网格；归档时间线与友链页统一大色块卡片（1/2/3 列），不得退回 `border-t`/`divide-y` 细线列表。阅读页移动端 `.post-meta` 必须作者首行、元信息次行（桌面 `sm:flex-row` 单行）；说说页页头与 `GiscusComments card` 必须是 surface 卡片。
+16. **友链自动化（2026-11 定稿，细节见 `ai-rules/friends.md` 规则 3–16）**：
+    - **申请检测**：表单合法 + 站点/头像可达 + 反链命中 → 机器人自动写 `friends/<slug>.json`、触发部署并关闭 Issue；任一环节没通过只出证据、Issue 保持开启，等站长人工处理。
+    - **人工放行**：唯一标签 `friend-approved`（审核通过）；打上后 `publishRecord` 写入，评论固定「人工审核已通过，已添加至友链页」并自动关闭。**没有**「拒绝」标签/固定拒绝文案，不收就直接手动关闭 Issue。
+    - **黑名单**：`config/friend-blacklist.json`（Pages CMS「友链黑名单」）命中的站点/反链页/头像直接拦截并关闭；人工打 `friend-approved` 也绕不过，要收录必须先移除域名。
+    - **巡检**：`friend-availability-audit.yml` 维护 `unavailable`；`friend-backlink-audit.yml` **只读**检查反链（不写仓库、不改 Issue、不触发部署），异常汇总推飞书。
+    - **飞书通知一律纯文字**：标题与正文不得包含 Emoji（2026-11 用户明确要求）。
+    - 检测/渲染/黑名单/巡检的纯函数各有单测，改口径必须同步 `ai-rules/friends.md` 与对应测试。
 
 ## 四、目录约定
 
@@ -73,7 +80,7 @@
   不在 Worker 里转发；不要在此目录写前端组件或扩大 Worker 的路由面；
 - `scripts/` 构建与自动化脚本（Node ESM），共享库在 `scripts/lib/`；
 - `ai-rules/` 功能规则集（见第一节）；
-- `config/` 构建配置与站点配置（`site.config.json` 等）；`config/routes.mjs` 是路由清单的
+- `config/` 构建配置与站点配置（`site.config.json`、`comments.config.json`、友链黑名单 `friend-blacklist.json`）；`config/routes.mjs` 是路由清单的
   **唯一数据源**（页面路径、预加载、sitemap、service worker 拦截模式都由它派生），
   加页面/改路径先看 `ai-rules/routes-single-source.md`，不要在别处再写一份路径表。
 - 跨 src/scripts 共享的剥离/提取核心：`src/utils/*-core.mjs`，改动需同时考虑两端调用方。
@@ -88,6 +95,7 @@
 - [ ] Worker / `wrangler.jsonc` 改动已用 `npx --yes wrangler@4.123.0 deploy --dry-run` 做配置校验（不实际部署）
 - [ ] 服务状态链路改动已跑 `npx vitest run worker/index.test.mjs src/services/siteStatus.test.ts src/services/siteStatusStore.test.ts src/services/siteStatusStore.ssr.test.ts src/components/SiteStatusBadge.test.tsx src/components/WorkersLimitToast.test.tsx`
 - [ ] 首页 / 侧栏 / Footer 改动已跑 `npx vitest run src/pages/Home.test.tsx src/services/homeStats.test.ts src/components/Layout.test.tsx`
+- [ ] 友链相关改动已跑 `npx vitest run scripts/lib/friend-form-core.test.mjs scripts/lib/friend-backlink.test.mjs scripts/lib/friend-blacklist.test.mjs scripts/lib/render-html.test.mjs scripts/lib/friend-backlink-audit-core.test.mjs scripts/workflows-config.test.mjs scripts/pagescms-config.test.mjs`
 - [ ] 提交信息中文、粒度为一个逻辑任务、未 push
 
 ## 六、免责与授权

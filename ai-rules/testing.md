@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-Vitest 测试体系：110 个测试文件 / 1191 个用例；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
+Vitest 测试体系：当前 113 个测试文件 / 1228 个用例（以 `npm test` 实际输出为准）；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
 
 ## 关键文件
 
@@ -38,10 +38,12 @@ Vitest 测试体系：110 个测试文件 / 1191 个用例；jsdom（src）与 n
 
 22. **安全响应头（CSP）与文字对比度**：`scripts/security-headers.test.mjs` 直接读源码文本断言两件事。① CSP：`public/_headers` 只允许一条 `Content-Security-Policy`，`script-src` 必须同时含 `https://www.clarity.ms` 与 `https://scripts.clarity.ms`（Clarity 的真正追踪脚本由 scripts 子域下发，只放行 www 时整站被拦 —— 2026-11 线上控制台报错）、含边缘注入的 `https://static.cloudflareinsights.com` 与 giscus.app，`connect-src` 必须含 Vercount / Clarity / `https://cloudflareinsights.com`，且不得出现 `unsafe-eval` 或 `https:` 通配；`audit-build.mjs` 另在构建产物侧复核 Clarity 两个源。② 对比度：用 WCAG 相对亮度公式计算 `src/index.css` 的 `--color-text-*` Token，`--color-text-tertiary` 在 surface / surface-muted 上 ≥ 4.5:1、`--color-text-secondary` ≥ 7:1，并断言侧栏分组标题用 `text-content-tertiary`、角标透明度 ≥ 80%。**不得**为消除报错把 CSP 放宽成 `https:` 通配，也不得把弱化文字改回 `zinc-500` / `opacity-70`（jsdom 仍拿不到真实计算样式，最终以真浏览器截图/Lighthouse 复核为准）。
 
+23. **友链自动化脚本测试**：检测/渲染/黑名单/巡检的纯函数分守在不同文件——`friend-form-core.test.mjs`（表单解析、校验、评论渲染、`looksLikeFriendApplication`）、`friend-backlink.test.mjs`（静态 `findBacklink` 与渲染共用的 `findBacklinkInAnchors`）、`render-html.test.mjs`（渲染器的同步 SSRF 拦截）、`friend-blacklist.test.mjs`（域名/泛域名/punycode 匹配）、`friend-backlink-audit-core.test.mjs`（巡检分类与飞书文案）。改这些口径必须同时跑上述文件；`friend-page-fetch.mjs` 是申请检测与反链巡检共用的抓取层（无独立测试），改它至少跑 `friend-backlink.test.mjs` 并用 `node scripts/friend-link-check.mjs --check-url <公开页面>` 做一次冒烟。飞书通知文案改动没有单测兜底，必须用 `node scripts/feishu-webhook.mjs --print`（构造事件 JSON）核对正文无 Emoji、无控制字符。
+
 ## 常见陷阱
 
 - jsdom 无 canvas/IntersectionObserver/matchMedia：按既有 stub 模式处理，不视为问题；
-- 修改测试基建（setup/vitest 配置）需全量回归（110 文件）；
+- 修改测试基建（setup/vitest 配置）需全量回归；
 - 模块级缓存（如 vercount 的 lastResponse、routeData 的单例、siteStatusStore 的订阅者/timer/快照）
   会跨用例共享：测试「无缓存」「无残留订阅」前提必须用 vi.resetModules 隔离或改为验证真实行为；
 - `sessionStorage` 节流与 fake timers 配合时，`vi.setSystemTime` 与 `advanceTimersByTime` 要分开控制，

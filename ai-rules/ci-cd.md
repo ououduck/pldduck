@@ -38,6 +38,7 @@ GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署�
       的 `unavailable` **单个键**（2026-10 用户明确授权，含覆盖站长手工勾选；护栏见 ai-rules/friends.md）。
       自动判定要写数据必须同时具备：只改一个已知键、单轮标记上限、失败复测、全局熔断
       （判定异常时只报告不写）、受限结果冻结不动、写入点按固定文件名定位。缺任一条即改成人工触发。
+    - **只读巡检**：`friend-backlink-audit` 只有 `contents: read`，只推飞书报告，不写仓库、不改 Issue、不触发部署；新增巡检类 workflow 默认只读，确需写入时按上面 A/B 道的护栏单独评估。
     - 两道共同：文件名不由正文派生、单次只改一个文件、sha 乐观锁、只扩 permissions 的声明范围。
       job 级 permissions 只能收窄不能扩权，故 workflow 级必须声明到实际最大值
       （后人「优化」成 read 会静默失去写入能力）。

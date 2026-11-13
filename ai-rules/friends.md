@@ -22,6 +22,7 @@
 - `scripts/lib/friend-backlink.mjs`（反链判定纯函数：`findBacklinkInAnchors` 是静态/渲染共用口径，`findBacklink` 只负责从 HTML 提取锚点）/ `scripts/lib/render-html.mjs`（渲染兜底：Playwright/Chromium + 逐请求 SSRF 护栏，失败一律退回静态结论）/ `scripts/lib/friend-form-core.mjs`（表单解析 + 记录校验，唯一校验权威；`withUnavailable` 是 B 道唯一的序列化出口）
 - `config/friend-blacklist.json`（Pages CMS「友链黑名单」直接编辑；匹配在 `scripts/lib/friend-blacklist.mjs`，泛域名口径见规则 15）
 - `scripts/friend-backlink-audit.mjs`（每日反链巡检：只读 + 渲染兜底 + 飞书汇总）/ `scripts/lib/friend-backlink-audit-core.mjs`（分类与报告文案纯函数）/ `.github/workflows/friend-backlink-audit.yml`
+- `scripts/lib/friend-page-fetch.mjs`（申请检测与反链巡检共用的 HTML 抓取：逐跳重定向都重新做 SSRF 校验、受限状态码分类、限量读取 + 字符集解码）
 - `src/types.ts`（`Friend.unavailable` 的 JSDoc 与本节口径同步）
 - `scripts/generate-site-data.mjs`（失联分组：缺键视为 false，不视为主列表之外的独立来源）
 - `.github/workflows/friend-availability-audit.yml`（B 道：定时 + CMS 手动按钮）
@@ -67,7 +68,7 @@
 9. **搜索过滤**：`getFriendDomain`（new URL 解析）结果必须预计算 Map 缓存（禁止每次击键对全部友链重复解析）；大小写统一用 toLowerCase（非 toLocaleLowerCase，locale 无关）。
 10. **SSG 确定性**：友链列表与失联分组首帧由 `getInitialFriends()` 渲染。
 11. **无卡片光效**：友链已改为卡片式条目（surface/surface-muted 色块，见规则 13），历史 `useSpotlight` / `SpotlightLayer` 已删除；**不得**恢复 pointermove 光斑、卡片高亮层或重边框，交互反馈只靠 hover 色块/文字色（见规则 12/13）。
-12. **日志与评论安全**：Issue 标题/正文/用户字段进 Actions 日志或 Issue 评论前必须过 `sanitizeLogValue`，URL 必须过 `sanitizeUrlForLogs`；拒绝文案是固定串 + 常量邮箱，不掺任何用户输入。
+12. **日志与评论安全**：Issue 标题/正文/用户字段进 Actions 日志或 Issue 评论前必须过 `sanitizeLogValue`，URL 必须过 `sanitizeUrlForLogs`；评论/通知文案是固定串 + 常量邮箱，不掺任何用户输入；飞书通知另须遵守「纯文字、无 Emoji」（见 [feishu-webhook.md](feishu-webhook.md) 规则 6）。
 13. **编辑式页头**：删除英文大写眉题；页头是 `rounded-overlay bg-surface p-5 md:p-7` 的卡片，`h1` 用 `font-sans text-4xl font-bold md:text-5xl`、文案「友情链接」，描述低对比文字；右侧「随机前往」是 ghost 按钮（`min-h-11`、hover `surface-muted`、无可访问友链时 `disabled`），**不得**改回实底/描边按钮或恢复英文眉题。
 14. **卡片化视觉（2026-11 更新）**：页头、搜索区、申请面板、本站信息、表单、提示、失联面板、友链主列表与失联列表全部改为卡片式：页头/搜索/面板用 `rounded-overlay bg-surface`，内部分节用 `rounded-overlay bg-surface-muted p-4 md:p-5`，友链条目本身是 `rounded-overlay bg-surface-muted p-4`（hover `bg-surface`），主列表/失联列表为 1 / md:2 / lg:3 列 `gap-3` 网格。**不得**恢复旧的 `border-t`/`divide-y` 细线列表、三张独立卡片或重边框；amber 的「信息修改联系」块仍保留（`bg-amber-500/10` + `warning` 语义色，必须显眼）。
 15. **友链黑名单（2026-11 用户授权）**：站长在 Pages CMS 的「友链黑名单」（`config/friend-blacklist.json` 的 `domains`）维护域名，匹配逻辑在 `scripts/lib/friend-blacklist.mjs`（纯函数 + 单测），口径：
@@ -75,11 +76,14 @@
     - `example.com` 匹配裸域 + 所有子域；`*.example.com` 只匹配子域（不匹配裸域）；其它位置出现 `*`、空条目、单标签域名一律判无效并忽略（无效条数记日志，不影响有效条目）；
     - 检查范围是**站点地址、反链页面、头像**三个地址（防止「申报 A 站、反链挂在被拉黑的 B 站」绕过）。
       命中后：固定文案评论 + 打 `friend-blacklisted`、**关闭 Issue**、飞书「已拦截」，不写文件、不进入人工审核；`publishRecord` 里还有一层纵深防御，人工打 `friend-approved` 也会被拦（要收录须先从 CMS 移除该域名）。黑名单配置读不出来时**不静默放行**：评论提示配置不可用、打 `friend-needs-info` 转人工。
-16. **反链巡检（只读，2026-11）**：`.github/workflows/friend-backlink-audit.yml` 每天 03:00 UTC + Pages CMS「友链反链巡检」按钮；逐个检查 `friends/*.json`（跳过 `unavailable: true`，失联是 B 道的职责）是否仍挂着指向本站的反链：静态抓取优先 → 未命中且页面可达时用无头浏览器渲染兜底 → 分类：`found` = 正常；`not-found` / `js-only` = 未检测到；`offsite` / `restricted` / `fetch-error`、以及静态 `js-only` 但渲染失败 = 无法判定。结果汇总推飞书（全部正常时不发，`FRIEND_AUDIT_ALWAYS_NOTIFY=1` 可强制常报；`dry_run` dispatch 输入只打印）。**只读**：不写仓库、不改 Issue、不触发部署，下架仍在 Pages CMS 人工处理；渲染总预算与环境变量见 `.env.example`。
+16. **反链巡检（只读，2026-11）**：`.github/workflows/friend-backlink-audit.yml` 每天 03:00 UTC + Pages CMS「友链反链巡检」按钮；逐个检查 `friends/*.json`（跳过 `unavailable: true`，失联是 B 道的职责）是否仍挂着指向本站的反链：静态抓取优先 → 未命中且页面可达时用无头浏览器渲染兜底 → 分类：`found` = 正常；`not-found` / `js-only` = 未检测到；`offsite` / `restricted` / `fetch-error`、以及静态 `js-only` 但渲染失败 = 无法判定。结果汇总推飞书（全部正常时不发，`FRIEND_AUDIT_ALWAYS_NOTIFY=1` 可强制常报；`dry_run` dispatch 输入只打印）。**只读**：不写仓库、不改 Issue、不触发部署，下架仍在 Pages CMS 人工处理；渲染总预算与环境变量见 `.env.example`。飞书报告同样遵守「纯文字、无 Emoji」。
 
 ## 常见陷阱
 
 - Issue 表单只有 `required` 校验（GitHub 至今未实现正则/长度/URL 校验），模板里的 `description` 只是提示 —— 真正的校验在 `friend-form-core.mjs`。改模板字段 label 必须同步 `FRIEND_FIELDS`，漂移测试会变红。
+- **未命中评论只给证据**：`renderDetectComment` 在 `not-found` / `js-only` 时只输出标题 +「申报信息」+「反链检测」两段证据，不再重复「请检查以下几点…」的指导（2026-11 用户要求删掉）；指导口径只保留在 Issue 模板的「申请须知」里，不要加回来。
+- **飞书通知一律纯文字**：标题与正文不得出现 Emoji（2026-11 用户明确要求），结论用中文文案区分；事件配色由 `scripts/lib/feishu-webhook.mjs` 的映射决定，不要写进消息。
+- 改检测/渲染/黑名单/巡检口径时，按 [testing.md](testing.md) 规则 23 跑对应的纯函数测试；改共用抓取层 `friend-page-fetch.mjs` 还要做一次 `--check-url` 冒烟。
 - Issue 表单的正文段序与 label 是解析契约；解析有任何异常（缺段/重复段/乱序）都判 `ambiguous` 转人工，**绝不猜测字段值**。
 - 反链检测以**静态抓取**为主、未命中时用无头浏览器兜底渲染（2026-11），JS 挂件也能识别，但仍可能因加载慢、被墙或反爬拦截而漏检；「不要求服务端直出，但服务端直出的 `<a href>` 最稳」这句提醒只写在**Issue 模板的「申请须知」**里（检测评论只给证据、不再重复指导；页面申请卡已于 2026-10 经用户授权删掉这段重复说明，勾选项只保留「我已在自己的站点上添加了指向本站的链接」），别把它从模板里也删掉 —— 申请人绕过页面直接用模板时，那是唯一能看到口径的地方。渲染兜底的开关是 `FRIEND_RENDER_FALLBACK`（默认开）、单次超时与总预算见 `.env.example`。
 - **可达性闸门跑在境外出口 IP 上**：开了禁海外的站点、带防盗链的头像 CDN 都可能被判打不开而转人工（Issue 保持开启）。误判的补救是让申请人重开 Issue（会立刻重测）或站长直接打 `friend-approved`；不要为了少转人工就把 403 之类改成「不算失败」—— 那等于把闸门关掉。探测只读 64 KB，别拿它当内容检测用。

@@ -6,7 +6,7 @@
 
 ## 关键文件
 
-- `config/site.config.json` / `config/comments.config.json` + `scripts/site-config-loader.mjs`（fail-closed 加载 + 两份合并）
+- `config/site.config.json` / `config/comments.config.json` / `config/friend-blacklist.json` + `scripts/site-config-loader.mjs`（fail-closed 加载 + 两份站点配置合并；黑名单由 `scripts/lib/friend-blacklist.mjs` 读取）
 - `config/site.config.ts`（同一份两文件合并的 TS 出口，字段类型接口的唯一归属地）
 - `config/routes.mjs`（路由清单唯一数据源，见 [routes-single-source.md](routes-single-source.md)）
 - `config/tsconfig.json` / `tailwind.config.js` / `postcss.config.js`

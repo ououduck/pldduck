@@ -598,7 +598,7 @@ const runDetect = async (issue) => {
   }
 
   /* 未通过：只出证据 + 标签，转人工（Issue 不自动关闭）。 */
-  const body = renderDetectComment({ validated, filename, result: verdict, siteUrl: SITE_URL });
+  const body = renderDetectComment({ validated, filename, result: verdict });
   await postComment(issue.number, body);
   await syncDetectionLabel(issue, VERDICT_LABEL[verdict.verdict] ?? LABELS.needsInfo);
   await addLabels(issue.number, [LABELS.link]);

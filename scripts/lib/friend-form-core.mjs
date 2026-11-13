@@ -483,34 +483,23 @@ const detectionRows = (result) => {
 
 /**
  * 检测阶段评论：只给证据，不写文件。
+ * 未命中时不再输出「请检查以下几点」的指导段落 —— 申请人只需要看证据，规则写在 Issue 模板的「申请须知」里。
  * @param {object} input
  * @param {object} [input.validated] validateFriendRecord 结果（解析失败时走 renderBlockedComment，不进这里）
  * @param {string} [input.filename]
  * @param {object} [input.result] findBacklink / buildTransportVerdict 结果
- * @param {string} input.siteUrl 本站地址（给申请人抄的规范写法）
  * @returns {string}
  */
-export const renderDetectComment = ({ validated, filename, result, siteUrl }) => {
+export const renderDetectComment = ({ validated, filename, result }) => {
   const record = validated?.record;
   const hit = result?.verdict === 'found';
   return renderComment({
     title: hit ? '反链检测：已看到链接，等待站长确认' : '反链检测：暂未见链接（或无法判定），等待站长确认',
-    paragraphs: [
-      hit
-        ? `已在你的页面上检测到指向本站的链接。**检测全部通过会自动收录并关闭本 Issue**；其他环节没通过时才会转站长人工确认。`
-        : `这次**没有**可靠地检测到指向本站的静态链接：${result?.message ?? '检测未完成'}`,
-      hit
-        ? ''
-        : [
-            '请检查以下几点后修改本 Issue 的正文（或在本 Issue 下评论一句，检测会自动重跑）：',
-            '',
-            `1. 链接可以是 JS 渲染的（机器人会用无头浏览器再查一次）；服务端直出的 \`<a href="${siteUrl}">\` 仍然最稳 —— 加载慢、被墙或被站点反爬拦截时仍可能漏检。`,
-            '2. 只认 `<a href>`：图片、RSS、`rel=canonical`、跳转都不算。',
-            '3. 常见的挂链位置：首页页脚、友情链接/friends 单独页、关于页。',
-            '',
-            '如果你确实已经挂好了，也可以直接等站长人工确认 —— 检测通过会自动收录，没通过才转人工。',
-          ].join('\n'),
-    ],
+    paragraphs: hit
+      ? [
+          `已在你的页面上检测到指向本站的链接。**检测全部通过会自动收录并关闭本 Issue**；其他环节没通过时才会转站长人工确认。`,
+        ]
+      : [],
     sections: [
       ['申报信息', recordRows(record ?? {}, { ...validated, filename })],
       ['反链检测', detectionRows(result)],

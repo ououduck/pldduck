@@ -390,7 +390,6 @@ describe('评论渲染', () => {
       renderDetectComment({
         validated: validateFriendRecord(validValues()),
         result: null,
-        siteUrl: 'https://www.pldduck.com',
       }),
       renderApprovedComment({
         record: { name: 'a', description: 'b', avatar: 'c', url: 'd' },
@@ -422,7 +421,6 @@ describe('评论渲染', () => {
     const body = renderDetectComment({
       validated,
       result: { verdict: 'found', message: '命中', stats: {} },
-      siteUrl: 'https://www.pldduck.com',
     });
     // 反引号包裹 → GitHub 按纯文本渲染；裸露在行外才会变成可点链接/可执行 HTML
     expect(body).toContain('`[点我](https://evil.example)`');
@@ -435,7 +433,6 @@ describe('评论渲染', () => {
     const body = renderDetectComment({
       validated: validateFriendRecord({ ...validValues(), description: '`x`' }),
       result: null,
-      siteUrl: 'https://www.pldduck.com',
     });
     expect(body).toContain('`` `x` ``');
   });
@@ -444,7 +441,6 @@ describe('评论渲染', () => {
     const body = renderDetectComment({
       validated: validateFriendRecord({ ...validValues(), name: `a\n### 注入标题\n${ZERO_WIDTH_SPACE}b` }),
       result: null,
-      siteUrl: 'https://www.pldduck.com',
     });
     expect(body).not.toMatch(/^### 注入标题$/m);
     expect(body).toContain('a ### 注入标题 b');
@@ -454,7 +450,6 @@ describe('评论渲染', () => {
     const body = renderDetectComment({
       validated: validateFriendRecord(validValues()),
       result: { verdict: 'not-found', message: '没找到', stats: { anchorCount: 3 } },
-      siteUrl: 'https://www.pldduck.com',
     });
     expect(body).toContain('链接数');
     expect(body).toContain('静态 HTML');
@@ -465,7 +460,6 @@ describe('评论渲染', () => {
     const body = renderDetectComment({
       validated: validateFriendRecord(validValues()),
       result: { verdict: 'not-found', message: '渲染后没找到', stats: { anchorCount: 12, rendered: true, frames: 3 } },
-      siteUrl: 'https://www.pldduck.com',
     });
     expect(body).toContain('浏览器渲染（含 JS 挂件）');
     expect(body).toContain('渲染的 frame 数：3');

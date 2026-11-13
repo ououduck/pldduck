@@ -26,7 +26,7 @@ draft: false
 正如其主页所说  
 “简单、快速、可靠 Go + Redis 驱动计数后端，Next.js 负责后台”  
 
-同时原代码也已经在Github上**开源**了
+同时原代码也已经在Github上**开源**了  
 [仓库链接 https://github.com/EvanNotFound/vercount](https://github.com/EvanNotFound/vercount)
 
 [PLDDUCK](https://www.pldduck.com) 站点现在已经接入了 作为不蒜子的替代品

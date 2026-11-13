@@ -20,6 +20,8 @@ export interface WidgetProps {
   id: string;
   /** 卡片标题；名片卡这类以 `<h1>` 为标题的卡片可省略。 */
   title?: string;
+  /** 紧跟标题的次要说明（如「统计自 Vercount」）。渲染在 `h2` 之外，不污染标题的可访问名称。 */
+  titleNote?: React.ReactNode;
   /** 入场序号（1 起）：驱动 CSS 的 stagger，纯 CSS、无内联样式。 */
   index: number;
   /** 右上角的次要入口（站内跳转）。 */
@@ -31,7 +33,16 @@ export interface WidgetProps {
   children: React.ReactNode;
 }
 
-export const Widget: React.FC<WidgetProps> = ({ id, title, index, action, className, ariaLabel, children }) => {
+export const Widget: React.FC<WidgetProps> = ({
+  id,
+  title,
+  titleNote,
+  index,
+  action,
+  className,
+  ariaLabel,
+  children,
+}) => {
   const titleId = `${id}-title`;
 
   return (
@@ -44,9 +55,16 @@ export const Widget: React.FC<WidgetProps> = ({ id, title, index, action, classN
     >
       {title && (
         <div className="flex items-center justify-between gap-3">
-          <h2 id={titleId} className="text-[11px] font-medium uppercase tracking-[0.18em] text-content-muted">
-            {title}
-          </h2>
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+            <h2 id={titleId} className="text-[11px] font-medium uppercase tracking-[0.18em] text-content-muted">
+              {title}
+            </h2>
+            {titleNote && (
+              <span className="text-[11px] font-normal normal-case tracking-normal text-content-muted/70">
+                {titleNote}
+              </span>
+            )}
+          </div>
           {action && (
             <Link
               to={action.to}
@@ -62,9 +80,6 @@ export const Widget: React.FC<WidgetProps> = ({ id, title, index, action, classN
     </section>
   );
 };
-
-/** 小部件内的次要说明行（如统计卡底部的构建期数字）。 */
-export const widgetMetaRowClassName = 'flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-content-muted';
 
 /** 小部件内的主数值排版：阅读字体大号 + 等宽数字，保证数值变化时不抖动。 */
 export const widgetValueClassName = 'font-sans text-2xl font-bold tracking-tight text-content tabular-nums';

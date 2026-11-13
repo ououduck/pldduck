@@ -34,7 +34,7 @@ export const StatusWidget = () => {
       : `服务状态：${meta.label}（在新窗口打开 Better Stack 状态页）`;
 
   return (
-    <Widget id="home-status" title="服务状态" index={7} className="lg:col-span-6 xl:col-span-3">
+    <Widget id="home-status" title="服务状态" index={7} className="lg:col-span-6 xl:col-span-4">
       <a
         href={statusPageUrl}
         target="_blank"

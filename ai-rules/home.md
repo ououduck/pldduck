@@ -8,12 +8,12 @@
 七张卡片（DOM 顺序 = 手机端纵向顺序 = 桌面端自动排布顺序）：
 
 1. **名片卡**（`home-profile`，内部 `h1` 唯一）：头像、名字、`author.role`、`author.bio` 原文、全站搜索表单；
-2. **访问统计**（`home-stats`）：Vercount 三项计数（总访问量 `site_pv` / 总访客数 `site_uv` /
-   本页阅读量 `page_pv`）+ 构建期文章数与累计字数；
+2. **联系方式**（`home-contact`）：GitHub / 邮箱 / QQ 二维码 / RSS / 更新订阅 / 项目仓库；
 3. **推荐阅读**（`home-featured`）：按 `updatedAt || date` 降序的**最近 3 篇**（标题 + 摘要 + 首个标签/日期/时长），
    卡片右上角「看看文章 →」入口指向 `/posts`；
-4. **写作档案**（`home-writing`）：累计篇数、锚点年份篇数、近 12 个月纯 CSS 柱状图、最早文章日期；
-5. **联系方式**（`home-contact`）：GitHub / 邮箱 / QQ 二维码 / RSS / 更新订阅 / 项目仓库；
+4. **访问统计**（`home-stats`）：只展示 Vercount 的**总访问量 `site_pv`** 与**总访客数 `site_uv`** 两项，
+   「统计自 Vercount」是紧跟标题后的说明；
+5. **写作档案**（`home-writing`）：累计篇数、锚点年份篇数、近 12 个月纯 CSS 柱状图、最早文章日期；
 6. **标签**（`home-tags`）：按文章数降序的前 8 个热门标签（`/posts?tag=`），底部「共 N 个标签」；
 7. **服务状态**（`home-status`）：订阅全局 `siteStatusStore`，首帧中性、始终可点击跳转状态页。
 
@@ -30,8 +30,16 @@
 
 2026-11（第二轮改版）用户明确要求首页改为**小部件布局**，并授权破例：手机端改为上下滑动看卡片
 （不再禁止滚动）、允许出现推荐阅读/标签/写作档案这类内容小部件、卡片标题使用 `h2`。
-当时一并确认：**Vercount 公开接口没有「今日」维度**，统计卡只展示真实三项 + 构建期数字，
+当时一并确认：**Vercount 公开接口没有「今日」维度**，统计卡只展示真实计数，
 不得自造或推算「今日访问量 / 今日访客数」。
+
+2026-11（第三轮，用户确认的排版微调）：卡片顺序改为 名片卡 → 联系方式 → 推荐阅读 → 访问统计 →
+写作档案 → 标签 → 服务状态（即「联系方式」占原「访问统计」的位置、「访问统计」下移到原「写作档案」的位置、
+「写作档案」补到原「联系方式」的位置）。同时访问统计卡只保留**总访问量**与**总访客数**，
+「统计自 Vercount」缩成标题后的说明（`Widget` 的 `titleNote`），卡片内**不再有**本页阅读量、
+构建期文章数与累计字数（`Widget` 的 `widgetMetaRowClassName` 随之删除）。
+桌面网格为保持整屏铺满，跨列同步调整为：名片卡 `xl:col-span-5`+`xl:row-span-2`、联系方式 `xl:col-span-4`、
+推荐阅读 `xl:col-span-3`+`xl:row-span-2`、统计/写作/标签/状态各 `xl:col-span-4`。
 
 **明确禁止恢复的旧内容**：门户入口磁贴与次级链接、开源项目清单、「关于本站」与折腾记录、
 技术栈清单、助记词 / tagline / 状态标签、新文章订阅卡（`IssueSubscriptionCard` 组件本体）。
@@ -44,7 +52,7 @@
 ## 关键文件
 
 - `src/pages/Home.tsx`（只负责 `Seo` + 网格容器，具体卡片在 `src/components/home/`）
-- `src/components/home/Widget.tsx`（卡片外壳：标题 `h2`、右上角入口、`data-home-reveal="card-N"`）
+- `src/components/home/Widget.tsx`（卡片外壳：标题 `h2`、标题后的 `titleNote`、右上角入口、`data-home-reveal="card-N"`）
 - `src/components/home/ProfileWidget.tsx` / `StatsWidget.tsx` / `FeaturedPostsWidget.tsx` /
   `WritingWidget.tsx` / `ContactWidget.tsx` / `TagsWidget.tsx` / `StatusWidget.tsx`
 - `src/services/homeStats.ts`（构建期统计：文章数、字数、近 12 月柱状图、标签、推荐阅读、锚点年月）
@@ -125,10 +133,13 @@
     `calc(... + env(safe-area-inset-bottom) + var(--cookie-notice-height))` 留白，保证最后一张卡片不被
     Cookie 提示浮层遮住。桌面宽度：Layout 的路由容器默认 `max-w-7xl`，首页用
     `.site-shell main > div:has(.home-page) { max-width: none }` 独占整列宽度，离开首页自动失效。
-12. **访问统计卡**：三个计数只读 Vercount 公开接口返回的 `site_pv` / `site_uv` / `page_pv`
-    （`#vercount_value_*` 锚点必须保留，`Layout` 的路由级 `pingVercount` 负责上报与回填，
-    卡片挂载时用 `fillVercountSpans()` 补一次缓存）。**不得**显示或推算「今日」数据（接口没有该维度）；
-    上报失败时服务层把「加载中」换成「—」，不得伪装成 0 或删除卡片。
+12. **访问统计卡**：只展示 Vercount 公开接口返回的 `site_pv`（总访问量）与 `site_uv`（总访客数）两项
+    （`#vercount_value_site_pv` / `#vercount_value_site_uv` 锚点必须保留，`Layout` 的路由级
+    `pingVercount` 负责上报与回填，卡片挂载时用 `fillVercountSpans()` 补一次缓存）。
+    「统计自 Vercount」用 `Widget` 的 `titleNote` 渲染在 `h2` **后面且 `h2` 之外**，标题的可访问名称必须仍是
+    「访问统计」。卡片内**不再有** `page_pv`（本页阅读量只在文章页）、构建期文章数与累计字数。
+    **不得**显示或推算「今日」数据（接口没有该维度）；上报失败时服务层把「加载中」换成「—」，
+    不得伪装成 0 或删除卡片。
 13. **服务状态卡**：与 `SiteStatusBadge` 同一语义（见 [服务状态](site-status.md)）—— 首帧中性
     「服务状态」（`unavailable`）、只在客户端订阅、只有 `operational` 显示绿色、任何失败回退中性、
     入口始终可点击跳转状态页；只订阅不请求，不得自己起 timer 或加缓存。
@@ -144,6 +155,10 @@
   锚点必须是数据字段（最新文章的年月）。
 - 在统计卡里显示「今日访问量 / 今日访客数」或把 `site_pv` 差值当今日：Vercount 没有日维度，
   这是编数据，直接违反「失败不得伪装成功」。
+- 把 `page_pv` / 构建期文章数 / 累计字数加回统计卡，或把「统计自 Vercount」塞回卡片底部、写进
+  `h2` 里：用户已确认精简（规则 12），提示只作标题后的 `titleNote`，标题的可访问名称保持「访问统计」。
+- 把卡片顺序改回「统计在前、联系方式在后」：用户已确认现行顺序（见上文第三轮改版说明），
+  `Home.test` 断言了七张卡片的 DOM 顺序，改顺序必须同时改测试与本文件。
 - 把 `Widget` 的标题改成 `h3`/`div`：卡片标题必须是 `h2`（`h1` 只有名片卡的名字），
   `Home.test` 断言层级与 `aria-labelledby`。
 - 把 reveal 改成 framer-motion / JS 延迟挂载，或删掉 `prefers-reduced-motion` 分支：

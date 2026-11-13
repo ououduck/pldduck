@@ -210,7 +210,7 @@ export const ContactWidget = () => {
   useEffect(() => () => clearHoverCloseTimer(), [clearHoverCloseTimer]);
 
   return (
-    <Widget id="home-contact" title="联系方式" index={5} className="lg:col-span-3 xl:col-span-5">
+    <Widget id="home-contact" title="联系方式" index={2} className="lg:col-span-3 xl:col-span-4">
       <nav
         aria-label="联系方式"
         className="home-contact-grid grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3"

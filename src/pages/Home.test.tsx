@@ -96,6 +96,17 @@ describe('Home', () => {
       'card-6',
       'card-7',
     ]);
+    // 2026-11 用户确认的卡片顺序：联系方式在第 2 位，访问统计下移到第 4 位，写作档案占原联系方式的位置。
+    // 名片卡没有 id，用可访问名称「站主名片」定位，其余按 section 的 id。
+    expect(widgets.map((element) => element.id || element.getAttribute('aria-label'))).toEqual([
+      '站主名片',
+      'home-contact',
+      'home-featured',
+      'home-stats',
+      'home-writing',
+      'home-tags',
+      'home-status',
+    ]);
     // 入场完全由 CSS 类驱动：SSR/首帧不写内联动画样式，避免水合差异。
     document.querySelectorAll('[data-home-reveal]').forEach((element) => {
       expect(element.getAttribute('style')).toBeNull();
@@ -107,14 +118,29 @@ describe('Home', () => {
     expect(screen.getAllByRole('heading', { level: 2 }).length).toBeGreaterThanOrEqual(6);
   });
 
-  it('访问统计卡：Vercount 三项计数锚点齐备，首帧是「加载中」占位', () => {
+  it('访问统计卡：只保留总访问量 / 总访客数两项，「统计自 Vercount」跟在标题后面', () => {
     renderHome();
 
-    ['site_pv', 'site_uv', 'page_pv'].forEach((key) => {
+    const statsWidget = document.getElementById('home-stats');
+    expect(statsWidget).not.toBeNull();
+
+    ['site_pv', 'site_uv'].forEach((key) => {
       const span = document.getElementById(`vercount_value_${key}`);
       expect(span).not.toBeNull();
       expect(span).toHaveTextContent('加载中');
     });
+    // 本页阅读量与构建期文章数/字数已按用户要求从这张卡撤掉。
+    expect(document.getElementById('vercount_value_page_pv')).toBeNull();
+    expect(within(statsWidget as HTMLElement).queryByText(/篇文章/)).toBeNull();
+    expect(within(statsWidget as HTMLElement).queryByText(/字$/)).toBeNull();
+    expect(within(statsWidget as HTMLElement).getByText('总访问量')).toBeInTheDocument();
+    expect(within(statsWidget as HTMLElement).getByText('总访客数')).toBeInTheDocument();
+
+    // 标题仍是 h2，可访问名称只有「访问统计」；「统计自 Vercount」是标题后的说明，不并入标题。
+    const heading = screen.getByRole('heading', { level: 2, name: '访问统计' });
+    expect(heading).toBeInTheDocument();
+    expect(within(statsWidget as HTMLElement).getByText('统计自 Vercount')).toBeInTheDocument();
+    expect(heading).not.toHaveTextContent('统计自 Vercount');
 
     // 挂载时从模块缓存补一次回填：span 晚于 Layout 的上报完成才挂载时不至于停在加载态。
     expect(mockedFillVercountSpans).toHaveBeenCalled();

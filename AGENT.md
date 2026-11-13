@@ -54,13 +54,14 @@
     - 全站**不再渲染页面底部 Footer**（`Layout` 无 `Footer` 组件，页面中不得出现 `contentinfo`）；版权只在侧栏底部 `SidebarFooter`，顺序固定为 导航清单 → 服务状态入口 → 版权（版权在最底）；`fillHeight` 下只有中间导航清单滚动，状态入口与版权固定在底部。侧栏分组只有 主页 / 栏目 / 工具（「订阅与联系」已删除，联系方式与订阅入口统一在首页；「标签」「站内搜索」导航项也已删除，标签筛选在文章列表、搜索在顶栏/命令面板）。
     - **Workers 上限提示**：状态请求返回 HTTP 1027/429 时，由全站唯一 store（`src/services/siteStatusStore.ts`）触发一次顶部提示，文案逐字「今日 Workers 请求次数达到上限，部分功能受限」，3 秒自动收回，**每标签页 10 分钟最多一次**；`WorkersLimitToast` 只订阅、不请求、不缓存，不得改成逐组件轮询，也不得增加关闭按钮或持续动画。
     - **首页小部件布局**：首页是站主身份 + 全站搜索 + 联系方式/订阅 + 访问统计 + 内容小部件的
-      **小部件（Bento）网格**，卡片顺序固定为 名片卡 → 访问统计 → 推荐阅读 → 写作档案 → 联系方式 →
+      **小部件（Bento）网格**，卡片顺序固定为 名片卡 → 联系方式 → 推荐阅读 → 访问统计 → 写作档案 →
       标签 → 服务状态（名片卡内名字是唯一 `h1`，其余卡片标题用 `h2`）。桌面 ≥1280px 12 列 /
       ≥1024px 6 列铺满宽度（首页用 `.site-shell main > div:has(.home-page)` 放宽 `max-w-7xl`），
       **手机单列纵向滚动**：不得恢复 `html:has(.home-page)` / `body:has(.home-page)` 的滚动锁或
       `.site-shell:has(.home-page)` 的固定高度，也不得用 JS 写/清 `body.style.overflow`；
       `.home-page` 保留底部 `safe-area + --cookie-notice-height` 留白。访问统计只展示 Vercount 返回的
-      `site_pv` / `site_uv` / `page_pv`（**接口没有「今日」维度，不得自造**），写作档案与推荐阅读的
+      `site_pv` / `site_uv` 两项（「统计自 Vercount」是标题后的说明，卡片内不再有本页阅读量、文章数与字数；
+      **接口没有「今日」维度，不得自造**），写作档案与推荐阅读的
       时间口径一律锚定构建期数据（最新文章年月），不用时钟/随机。仍**不得**恢复门户入口、整页内容列表、
       开源项目、关于本站、技术栈、订阅卡或状态标签；详见 `ai-rules/home.md`。
 15. **交互细节（稳定 DOM）**：文章目录按钮在展开/收起时必须保持同一 button 与双层常驻图标（`List`/`X` 只切换透明度）；**不得**按状态条件替换图标节点（mousedown/mouseup 目标不同会丢失 click，表现为「第二次点击关不掉」）。搜索结果统一 `PostCard variant="banner"` 单列横幅，不得恢复 `CompactPostCard`/三列网格；归档时间线与友链页统一大色块卡片（1/2/3 列），不得退回 `border-t`/`divide-y` 细线列表。阅读页移动端 `.post-meta` 必须作者首行、元信息次行（桌面 `sm:flex-row` 单行）；说说页页头与 `GiscusComments card` 必须是 surface 卡片。

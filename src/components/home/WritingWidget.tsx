@@ -36,7 +36,7 @@ export const WritingWidget = () => {
       : '暂无按月统计';
 
   return (
-    <Widget id="home-writing" title="写作档案" index={4} className="lg:col-span-3 xl:col-span-4">
+    <Widget id="home-writing" title="写作档案" index={5} className="lg:col-span-3 xl:col-span-4">
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[11px] text-content-muted">累计</p>

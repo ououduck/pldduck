@@ -1,14 +1,14 @@
 /**
  * 首页：小部件（Bento）布局的个人主页。
  *
- * 桌面按 6/12 列网格铺满宽度：名片卡（头像 / 名字 / bio / 全站搜索）、访问统计、
- * 推荐阅读、写作档案、联系方式、标签与服务状态各占一张卡片；手机端单列纵向滚动，
+ * 桌面按 6/12 列网格铺满宽度：名片卡（头像 / 名字 / bio / 全站搜索）、联系方式、推荐阅读、
+ * 访问统计、写作档案、标签与服务状态各占一张卡片；手机端单列纵向滚动，
  * 一屏一卡地往下看。配色与卡片组件沿用既有 Token（`bg-surface` / `rounded-overlay` /
  * `surface-muted` / `line`），全站深色唯一，不引入新的主题变量。
  *
  * 文案与数字全部来自构建期数据（`siteConfig` / `generated/posts.json`），
  * 渲染期不 fetch、不读时钟、不读随机值：SSG 与水合首帧严格一致。
- * 「访问统计」的三项计数由 `Layout` 的路由级 Vercount 上报回填（见 vercount.ts）。
+ * 「访问统计」的总访问量 / 总访客数由 `Layout` 的路由级 Vercount 上报回填（见 vercount.ts）。
  */
 
 import { siteConfig } from '@config/site.config';
@@ -60,10 +60,10 @@ export const Home = () => (
     <div className="home-page mx-auto w-full max-w-[110rem] py-1 sm:py-2">
       <div className="home-widgets">
         <ProfileWidget />
-        <StatsWidget />
-        <FeaturedPostsWidget />
-        <WritingWidget />
         <ContactWidget />
+        <FeaturedPostsWidget />
+        <StatsWidget />
+        <WritingWidget />
         <TagsWidget />
         <StatusWidget />
       </div>

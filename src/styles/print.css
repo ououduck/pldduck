@@ -1,0 +1,214 @@
+/* ============================================================================
+ * 打印版式（@page + @media print）
+ * ----------------------------------------------------------------------------
+ * 打印样式在屏幕首屏完全用不到，原先跟着入口 CSS 一起下载。拆成独立文件后由
+ * src/index.tsx 在浏览器空闲时动态 import（独立 CSS asset，不进 HTML 首屏），
+ * 因此不占首屏关键路径；规则全部在 @page / @media print 内，对屏幕渲染无副作用。
+ * ========================================================================== */
+
+/* ===== 打印版式 ===== */
+
+@page {
+  margin: 16mm 15mm 18mm;
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  body {
+    min-width: 0 !important;
+  }
+
+  .print-hidden,
+  .site-navbar,
+  .site-sidebar,
+  nav[aria-label='目录'],
+  .back-to-top-btn,
+  [class*='z-floating'],
+  [class*='z-popover'],
+  .reading-mode-exit,
+  .reading-mode-floating-toggle,
+  .post-cover,
+  .post-actions,
+  .post-navigation,
+  .post-series,
+  .post-related,
+  .giscus-comments,
+  .continue-reading,
+  .post-license {
+    display: none !important;
+  }
+
+  [data-reading-mode='true'] main,
+  main {
+    padding: 0 !important;
+  }
+
+  [data-reading-mode='true'],
+  [data-reading-mode='true'] main,
+  [data-reading-mode='true'] main > div,
+  .post-article,
+  .post-body,
+  .post-body > div,
+  .post-prose {
+    max-width: none !important;
+  }
+
+  .post-header {
+    max-width: none !important;
+    margin: 0 0 10mm !important;
+    padding: 0 !important;
+    text-align: left !important;
+  }
+
+  .post-header h1 {
+    margin-bottom: 4mm !important;
+    color: #000 !important;
+    font-size: 24pt !important;
+  }
+
+  .post-body {
+    padding: 0 !important;
+  }
+
+  .post-prose {
+    color: #000 !important;
+    font-size: 11pt !important;
+    line-height: 1.65 !important;
+  }
+
+  .post-prose,
+  .post-prose :is(p, .md-paragraph),
+  .post-prose li,
+  .post-prose strong,
+  .post-prose em,
+  .post-prose h2,
+  .post-prose h3,
+  .post-prose h4 {
+    color: #000 !important;
+  }
+
+  .post-prose a {
+    color: #000 !important;
+    text-decoration: underline !important;
+  }
+
+  .post-prose a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 9pt;
+    overflow-wrap: anywhere;
+  }
+
+  .post-prose pre,
+  .post-prose pre code,
+  .post-prose .code-block,
+  .post-prose .code-content,
+  .post-prose .code-line-numbers {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    color: #000 !important;
+    background: #f5f5f5 !important;
+    border-color: #999 !important;
+  }
+
+  .post-prose .code-toolbar,
+  .post-prose .code-language,
+  .post-prose .code-expand-btn,
+  .post-prose .code-collapse-btn,
+  .post-prose button[aria-label='复制代码'],
+  .post-prose button[aria-label='已复制'],
+  .post-prose .code-copy-feedback {
+    display: none !important;
+  }
+
+  .post-prose .code-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .post-prose .code-block-collapsed {
+    max-height: none !important;
+  }
+
+  .post-prose img,
+  .post-prose figure,
+  .post-prose pre,
+  .post-prose table,
+  .post-prose .table-wrapper,
+  .post-prose .mermaid,
+  .post-prose .mermaid-container,
+  .post-prose blockquote {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .post-prose .mermaid-toolbar,
+  .post-prose .mermaid-hint {
+    display: none !important;
+  }
+
+  .post-prose .mermaid-container,
+  .post-prose .mermaid-viewport {
+    overflow: visible !important;
+  }
+
+  .post-prose .mermaid-scene,
+  .post-prose .mermaid-diagram {
+    min-width: 0 !important;
+    width: 100% !important;
+    transform: none !important;
+  }
+
+  /* 打印时图表按页面宽度缩放（覆盖基础视图的自然宽度内联样式），
+     避免宽图溢出页面被裁切。 */
+  .post-prose .mermaid-diagram > svg {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .post-prose img {
+    max-width: 100% !important;
+    max-height: 220mm !important;
+    object-fit: contain;
+  }
+
+  .post-prose .table-wrapper {
+    overflow: visible !important;
+  }
+
+  .post-prose h2,
+  .post-prose h3,
+  .post-prose h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .post-prose :is(p, .md-paragraph),
+  .post-prose li {
+    orphans: 3;
+    widows: 3;
+  }
+
+  .post-prose :where(*) {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .post-article button,
+  .post-article [role='button'] {
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+}

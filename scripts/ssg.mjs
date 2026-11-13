@@ -11,7 +11,7 @@ import { withBasePath } from './base-path.mjs';
 import { parseEnvNumber } from './lib/env.mjs';
 import { createBuildLogger } from './build-logger.mjs';
 import { loadPostsWithContent } from './ssg-data-loader.mjs';
-import { SSG_STATIC_PAGES } from '../config/routes.mjs';
+import { SSG_STATIC_PAGES, NOT_FOUND_CSS_ENTRY, POST_CSS_ENTRY } from '../config/routes.mjs';
 
 const logger = createBuildLogger('ssg');
 
@@ -319,6 +319,70 @@ const formatError = (error) => {
   return String(error);
 };
 
+/**
+ * 读取客户端构建产出的「路由 → 首屏样式表」映射（dist/route-css.json）。
+ *
+ * 首屏未使用的样式被拆到懒加载页面模块后，客户端导航时由 Vite 随 chunk 自动加载；
+ * 但直接访问文章页等深链时，静态 HTML 必须自己带上该页面的样式表，否则首帧会闪一下
+ * 无样式的正文。route-css.json 由 vite.config.ts 的 emitRouteCss 插件生成，只在
+ * 客户端构建阶段存在，SSG 完成后即删除，不进入部署产物。
+ *
+ * @param {string} distDir
+ * @returns {Record<string, string[]> | null}
+ */
+const loadRouteCssMap = (distDir) => {
+  const routeCssPath = path.join(distDir, 'route-css.json');
+  if (!fs.existsSync(routeCssPath)) {
+    logger.warn('route-css.json not found; route-level CSS links are skipped', routeCssPath);
+    return null;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(routeCssPath, 'utf-8'));
+  } catch (error) {
+    logger.warn('route-css.json is unreadable; route-level CSS links are skipped', formatError(error));
+    return null;
+  }
+};
+
+/** 从模板 HTML 中提取已存在的 stylesheet href，避免路由级样式重复注入同一 URL。 */
+const extractStylesheetHrefs = (html) => {
+  const hrefs = new Set();
+  for (const match of html.matchAll(/<link\b[^>]*>/gi)) {
+    const tag = match[0];
+    if (!/\brel\s*=\s*["']stylesheet["']/i.test(tag)) continue;
+    const href = tag.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];
+    if (href) hrefs.add(href);
+  }
+  return hrefs;
+};
+
+/**
+ * 生成某个懒加载页面模块的样式表 <link> 片段。
+ * 同一页面模块的 CSS 依赖由构建期统一归并（共享样式会拆成单独 asset，多页共用同一 URL）。
+ *
+ * @param {Record<string, string[]> | null} routeCssMap
+ * @param {string} [cssEntry] 页面模块源码路径（config/routes.mjs 的 cssEntry）
+ * @param {Set<string>} [existingHrefs] 模板已包含的样式表 href（避免重复）
+ * @returns {string}
+ */
+const createRouteCssLinks = (routeCssMap, cssEntry, existingHrefs = new Set()) => {
+  if (!routeCssMap || !cssEntry) {
+    return '';
+  }
+  const cssFiles = routeCssMap[cssEntry];
+  if (!Array.isArray(cssFiles)) {
+    return '';
+  }
+  const links = [];
+  for (const file of cssFiles) {
+    const href = sitePath(`/${file}`);
+    if (existingHrefs.has(href)) continue;
+    existingHrefs.add(href);
+    links.push(`\n    <link rel="stylesheet" crossorigin href="${escapeHtmlAttribute(href)}">`);
+  }
+  return links.join('');
+};
+
 export const runSsg = async ({
   distDir = process.env.SSG_DIST_DIR || DIST_DIR,
   ssrDir = process.env.SSG_SSR_DIR || DIST_SSR_DIR,
@@ -378,6 +442,12 @@ export const runSsg = async ({
     template = fallback;
   }
 
+  // 路由级样式表：入口 CSS 只保留首屏共用样式，页面专属样式随懒加载模块拆成
+  // 独立 CSS asset。直访页面时必须由静态 HTML 自己预置这些样式表，避免 FOUC；
+  // 客户端导航则由 Vite 在加载页面 chunk 时自动插入（无需运行时脚本）。
+  const routeCssMap = loadRouteCssMap(distDir);
+  let routeCssInjected = 0;
+
   // 预热 SSR bundle 中的懒加载 chunk（路由页面均为 React.lazy）。
   // 不预热时 Suspense 边界在首次渲染时未 resolve，文章正文/列表不会进入静态 HTML。
   const ssrAssetsDir = path.join(ssrDir, 'assets');
@@ -428,13 +498,22 @@ export const runSsg = async ({
    * 渲染并落盘单个页面。渲染失败时抛出异常，由调用方（页面循环）捕获隔离：
    * 单页失败不中断整站生成，全部完成后汇总失败并返回 false（构建失败，
    * 但已生成的页面保留，便于在部署前排查失败原因）。
+   *
+   * @param {string} url 用于 SSR 渲染的路径
+   * @param {string} relativePath 产物目录（其下写 index.html）
+   * @param {string} [extraHead] 额外 head 片段（图片 preload / JSON-LD 等）
+   * @param {string} [cssEntry] 该页首屏样式所属的懒加载模块源码路径（见 config/routes.mjs 的 cssEntry）
    */
-  const writePage = async (url, relativePath, extraHead = '') => {
+  const writePage = async (url, relativePath, extraHead = '', cssEntry = '') => {
     const { html, head, routeData } = await renderPage(url);
     let pageHtml = injectRootContent(template, html);
     // 展平 Suspense 边界：真实内容就地内联，爬虫/智能体可读，浏览器无需等水合。
     pageHtml = flattenSuspenseBoundaries(pageHtml);
-    pageHtml = mergeHead(pageHtml, head, `${extraHead}${NOSCRIPT_FALLBACK}`);
+    const routeCssLinks = createRouteCssLinks(routeCssMap, cssEntry, extractStylesheetHrefs(template));
+    if (routeCssLinks) {
+      routeCssInjected += 1;
+    }
+    pageHtml = mergeHead(pageHtml, head, `${routeCssLinks}${extraHead}${NOSCRIPT_FALLBACK}`);
     // 注入路由数据（文章页正文等），供客户端水合使用。
     const routeDataScript = createRouteDataScript(routeData);
     if (routeDataScript) {
@@ -462,7 +541,7 @@ export const runSsg = async ({
     }
     const extraHead = post.coverImage ? createImagePreload(toAbsoluteUrl(post.coverImage, SITE_URL, BASE_PATH)) : '';
     try {
-      await writePage(`/post/${post.id}`, `post/${post.id}`, extraHead);
+      await writePage(`/post/${post.id}`, `post/${post.id}`, extraHead, POST_CSS_ENTRY);
     } catch (error) {
       failedPages.push({ url: `/post/${post.id}`, error: formatError(error) });
     }
@@ -495,7 +574,7 @@ export const runSsg = async ({
     const schema = page.schemaFromSeo ? '' : createStaticPageSchema(page);
     const extraHead = page.path === 'posts' ? postsExtraHead : '';
     try {
-      await writePage(`/${page.path}`, page.path, `${extraHead}${schema}`);
+      await writePage(`/${page.path}`, page.path, `${extraHead}${schema}`, page.cssEntry);
     } catch (error) {
       failedPages.push({ url: `/${page.path}`, error: formatError(error) });
     }
@@ -539,7 +618,15 @@ export const runSsg = async ({
       const { html: notFoundHtml, head: notFoundHead } = await renderPage('/__missing__');
       const notFoundPage = injectRootContent(template, notFoundHtml);
       const flattenedNotFoundPage = flattenSuspenseBoundaries(notFoundPage);
-      const mergedNotFoundPage = mergeHead(flattenedNotFoundPage, notFoundHead, NOSCRIPT_FALLBACK);
+      const notFoundCssLinks = createRouteCssLinks(routeCssMap, NOT_FOUND_CSS_ENTRY, extractStylesheetHrefs(template));
+      if (notFoundCssLinks) {
+        routeCssInjected += 1;
+      }
+      const mergedNotFoundPage = mergeHead(
+        flattenedNotFoundPage,
+        notFoundHead,
+        `${notFoundCssLinks}${NOSCRIPT_FALLBACK}`,
+      );
       writeStandaloneHtml(
         '404.html',
         mergedNotFoundPage
@@ -579,11 +666,16 @@ export const runSsg = async ({
     return false;
   }
 
+  // 路由样式映射只服务于本次 SSG 的样式注入，不进入部署产物。
+  fs.rmSync(path.join(distDir, 'route-css.json'), { force: true });
+  logger.step('Injected route-level stylesheets', `pages=${routeCssInjected}`);
+
   logger.summary({
     pages: totalPages,
     posts: posts.length,
     static: staticPages.length,
     skipped: skippedPages.length,
+    routeCss: routeCssInjected,
     siteUrl: SITE_URL,
   });
 

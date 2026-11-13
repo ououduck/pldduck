@@ -1,8 +1,34 @@
 import typography from '@tailwindcss/typography';
 
-/** @type {import('tailwindcss').Config} */
+/**
+ * 入口（core）Tailwind 配置。
+ *
+ * 文章页专属的手写 CSS 已拆到 src/styles/post.css（由懒加载的 src/pages/Post.tsx import），
+ * 但 **@tailwindcss/typography 的 `.prose` 仍留在入口 CSS**：实测把 typography 挪到后加载的
+ * 独立文件后，其 `.prose :where(picture) { display: block }` 会反超工具类 `.contents`
+ * （ProgressiveImage 的 `<picture class="contents">` 从 display:contents 变成 block），
+ * 属于可见的排版回归。因此 typography 随入口 CSS 一起下发（约 2.2 KiB gzip），
+ * 文章手写 CSS 仍然懒加载。
+ *
+ * @type {import('tailwindcss').Config}
+ */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  // 自定义组件类/工具类的安全网：Tailwind 会按 content 裁剪写在 @layer components /
+  // @layer utilities 里的类（见 src/index.css）。这些类目前都被页面用到，但一旦哪天只在
+  // 文章页（已拆到 post.css 的文件）里出现、或 content 范围调整，就会被静默移除。
+  // 列进 safelist 可保证入口 CSS 始终带着它们（体积不变，因为它们本来就会生成）。
+  safelist: [
+    'editorial-surface',
+    'editorial-overlay',
+    'editorial-sheet',
+    'editorial-button',
+    'editorial-button-primary',
+    'editorial-input',
+    'fixed-control-position',
+    'service-worker-prompt-bottom',
+    'no-scrollbar',
+  ],
   darkMode: 'class',
   theme: {
     extend: {
@@ -322,5 +348,6 @@ export default {
       }),
     },
   },
+  // typography 插件留在入口（原因见文件头注释：拆到后加载的文件会改变 .prose 与工具类的层叠结果）。
   plugins: [typography],
 };

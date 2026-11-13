@@ -20,6 +20,9 @@
  *             缺省表示该页 title/description 完全由页面组件的 Seo 输出
  * - sitemap   进入 sitemap-pages.xml 的条目（文章详情由子 sitemap 负责；说说列表页正常收录，
  *             说说详情路由已退役为 301 跳转，不再逐条预渲染/收录）
+ * - cssEntry  该路由首屏额外依赖的懒加载模块源码路径（Vite manifest 的 src 键）。页面把
+ *             首屏用不到的样式拆到独立 CSS 后，由该模块静态 import；ssg.mjs 据此在直访
+ *             页面的 head 中预置对应 <link rel="stylesheet">，避免首帧无样式闪烁（FOUC）。
  */
 
 /**
@@ -31,6 +34,7 @@
  * @property {'static' | 'static-home' | 'posts' | 'not-found'} [ssg]
  * @property {{ title?: string, description?: string, schemaType: string, schemaFromSeo?: boolean }} [seo]
  * @property {{ changefreq: string, priority: string }} [sitemap]
+ * @property {string} [cssEntry]
  */
 
 /** @type {RouteDef[]} */
@@ -47,6 +51,7 @@ export const ROUTES = [
     segment: 'post',
     sw: true,
     ssg: 'posts',
+    cssEntry: 'src/pages/Post.tsx',
   },
   {
     path: '/posts',
@@ -56,6 +61,7 @@ export const ROUTES = [
     ssg: 'static',
     seo: { schemaType: 'CollectionPage', schemaFromSeo: true },
     sitemap: { changefreq: 'daily', priority: '0.9' },
+    cssEntry: 'src/pages/Posts.tsx',
   },
   {
     path: '/posts/:id',
@@ -70,6 +76,7 @@ export const ROUTES = [
     ssg: 'static',
     seo: { schemaType: 'CollectionPage', schemaFromSeo: true },
     sitemap: { changefreq: 'daily', priority: '0.9' },
+    cssEntry: 'src/pages/Archive.tsx',
   },
   {
     // 独立标签页已并入 /posts（右侧标签卡片 / 移动端标签弹层）。这里只保留
@@ -87,6 +94,7 @@ export const ROUTES = [
     ssg: 'static',
     seo: { schemaType: 'CollectionPage', schemaFromSeo: true },
     sitemap: { changefreq: 'weekly', priority: '0.7' },
+    cssEntry: 'src/pages/Friends.tsx',
   },
   {
     path: '/shuoshuo',
@@ -96,6 +104,7 @@ export const ROUTES = [
     ssg: 'static',
     seo: { schemaType: 'CollectionPage', schemaFromSeo: true },
     sitemap: { changefreq: 'weekly', priority: '0.6' },
+    cssEntry: 'src/pages/ShuoShuo.tsx',
   },
   {
     // 旧说说详情深链 /shuoshuo/<id> 已退役：301 回列表页（public/_redirects 给爬虫/外链，
@@ -112,6 +121,7 @@ export const ROUTES = [
     ssg: 'static',
     seo: { schemaType: 'WebPage', schemaFromSeo: true },
     sitemap: { changefreq: 'weekly', priority: '0.5' },
+    cssEntry: 'src/pages/Guestbook.tsx',
   },
   {
     path: '/cover',
@@ -126,6 +136,7 @@ export const ROUTES = [
       schemaType: 'WebApplication',
     },
     sitemap: { changefreq: 'monthly', priority: '0.5' },
+    cssEntry: 'src/pages/CoverGenerator.tsx',
   },
   {
     path: '/watermark',
@@ -140,6 +151,7 @@ export const ROUTES = [
       schemaType: 'WebApplication',
     },
     sitemap: { changefreq: 'monthly', priority: '0.5' },
+    cssEntry: 'src/pages/Watermark.tsx',
   },
   {
     path: '/search',
@@ -149,6 +161,7 @@ export const ROUTES = [
     ssg: 'static',
     seo: { schemaType: 'WebPage', schemaFromSeo: true },
     sitemap: { changefreq: 'monthly', priority: '0.5' },
+    cssEntry: 'src/pages/Search.tsx',
   },
   {
     path: '/privacy',
@@ -158,20 +171,25 @@ export const ROUTES = [
     ssg: 'static',
     seo: { schemaType: 'WebPage', schemaFromSeo: true },
     sitemap: { changefreq: 'yearly', priority: '0.3' },
+    cssEntry: 'src/pages/Privacy.tsx',
   },
   {
     path: '*',
     segment: null,
     sw: false,
     ssg: 'not-found',
+    cssEntry: 'src/pages/NotFound.tsx',
   },
 ];
 
-/** 首页路径。 */
-export const HOME_PATH = '/';
-
 /** 404 通配路由。 */
 export const NOT_FOUND_PATH = '*';
+
+/** 404 页首屏样式所属的懒加载模块（ssg.mjs 注入路由级 CSS 用）。 */
+export const NOT_FOUND_CSS_ENTRY = ROUTES.find((item) => item.path === NOT_FOUND_PATH)?.cssEntry;
+
+/** 文章详情页首屏样式所属的懒加载模块（ssg.mjs 注入路由级 CSS 用）。 */
+export const POST_CSS_ENTRY = ROUTES.find((item) => item.ssg === 'posts')?.cssEntry;
 
 const segments = [...new Set(ROUTES.map((item) => item.segment).filter((item) => Boolean(item)))];
 
@@ -186,13 +204,6 @@ export const BASE_ROUTE_MARKERS = segments.map((segment) =>
 /** 需要悬停预加载的静态页路径集合（preload.ts 的键必须与此完全一致）。 */
 export const PRELOADABLE_PATHS = ROUTES.filter((item) => item.preload).map((item) => item.path);
 
-/** 逐条预渲染的内容页前缀（详情页 URL 与产物目录）。 */
-export const CONTENT_PAGE_PREFIXES = ROUTES.filter((item) => item.ssg === 'posts').map((item) => ({
-  kind: item.ssg,
-  urlPrefix: `/${item.segment}/`,
-  dirPrefix: `${item.segment}/`,
-}));
-
 /**
  * ssg.mjs 的静态页清单。path 为无前导斜杠的产物目录名；
  * title 在此只保留前缀，站点名后缀由 ssg.mjs 用 siteConfig.title 拼接（避免双源文案漂移）。
@@ -203,6 +214,7 @@ export const SSG_STATIC_PAGES = ROUTES.filter((item) => item.ssg === 'static').m
   description: item.seo?.description,
   schemaType: item.seo?.schemaType,
   schemaFromSeo: item.seo?.schemaFromSeo === true,
+  cssEntry: item.cssEntry,
 }));
 
 /** generate-site-data.mjs 的 sitemap-pages.xml 条目（path 为站点根下的相对路径，'' 即首页）。 */

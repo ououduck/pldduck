@@ -2,6 +2,53 @@ import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { normalizeBasePath } from './config/basePath';
+import { ROUTES } from './config/routes.mjs';
+
+/**
+ * 构建期产出「路由 → 首屏样式表」映射（dist/route-css.json）。
+ *
+ * 首屏用不到的 CSS 被拆进懒加载页面模块（例如 src/pages/Post.tsx import 了
+ * src/styles/post.css）后，客户端导航由 Vite 自动随 chunk 加载样式；但直访
+ * /post/<id> 这类深链时，静态 HTML 必须自带该样式表，否则首帧会闪一下无样式正文。
+ * ssg.mjs 读这份映射，在对应页面 head 里注入 <link rel="stylesheet">；SSG 完成后
+ * 立即删除该临时文件，不进入部署产物（不在 dist 里留下构建期元数据）。
+ *
+ * 用 chunk.modules 识别页面模块（而不是 Vite manifest 的 src 字段）：当前构建里
+ * Post 的 dynamic entry 在 manifest 中没有 src，按模块路径匹配更可靠。
+ */
+const emitRouteCss = (): Plugin => {
+  const pageEntries = [
+    ...new Set(ROUTES.map((route) => route.cssEntry).filter((cssEntry): cssEntry is string => Boolean(cssEntry))),
+  ];
+  return {
+    name: 'emit-route-css',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      const normalizedEntries = pageEntries.map((entry) => ({
+        entry,
+        suffix: `/${entry.replace(/\\/g, '/')}`,
+      }));
+      const routeCss: Record<string, string[]> = {};
+      for (const output of Object.values(bundle)) {
+        if (output.type !== 'chunk' || !output.viteMetadata) continue;
+        const moduleIds = Object.keys(output.modules).map((id) => id.replace(/\\/g, '/'));
+        for (const { entry, suffix } of normalizedEntries) {
+          if (routeCss[entry]) continue;
+          if (!moduleIds.some((id) => id.endsWith(suffix))) continue;
+          const cssFiles = [...output.viteMetadata.importedCss];
+          if (cssFiles.length > 0) {
+            routeCss[entry] = cssFiles;
+          }
+        }
+      }
+      this.emitFile({
+        type: 'asset',
+        fileName: 'route-css.json',
+        source: JSON.stringify(routeCss, null, 2),
+      });
+    },
+  };
+};
 
 /**
  * KaTeX 字体冗余裁剪（性能优化）。
@@ -127,7 +174,7 @@ export default defineConfig(({ command, mode }) => {
   const appBase = normalizeBasePath(env.VITE_BASE_PATH);
 
   return {
-    plugins: [react(), injectEntryCssPreload(), trimKatexFonts()],
+    plugins: [react(), injectEntryCssPreload(), emitRouteCss(), trimKatexFonts()],
     base: appBase,
     esbuild:
       command === 'build'

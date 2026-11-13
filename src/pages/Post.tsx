@@ -54,6 +54,11 @@ import { GiscusComments } from '@/components/GiscusComments';
 import { useSsgRouteData } from '@/ssr/routeData';
 import { fillVercountSpans, VERCUNT_PENDING_TEXT } from '@/services/vercount';
 import { replaceUrlHash, scrollToHeadingElement } from '@/utils/headingScroll';
+// 文章页专属样式（正文排版 / 代码块 / 胶囊导航 / Mermaid / 专注阅读 / typography 的 .prose）：
+// 从入口 CSS 拆出后随本页 chunk 一起加载；直访文章页时 scripts/ssg.mjs 会按构建清单
+// （config/routes.mjs 的 cssEntry = src/pages/Post.tsx）把 <link rel="stylesheet"> 注入 head，
+// 因此首帧不会出现无样式闪烁。详见 src/styles/post.css 头部说明。
+import '../styles/post.css';
 
 type MarkdownImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
   previewSrc?: string;

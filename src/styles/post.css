@@ -1,0 +1,1257 @@
+/* ============================================================================
+ * 文章页专属样式（路由级 CSS，随懒加载的 Post 页 chunk 一起加载）
+ * ----------------------------------------------------------------------------
+ * 这里的规则原本都在 src/index.css 里，会在所有页面首屏下载；拆出来后：
+ * - 客户端导航：Vite 在加载 Post chunk 时自动加载本样式表，渲染前就已就绪；
+ * - 直访文章页：scripts/ssg.mjs 读构建清单（config/routes.mjs 的 cssEntry =
+ *   src/pages/Post.tsx）把 <link rel="stylesheet"> 注入 pre-rendered HTML 的 head，
+ *   因此首帧不会 FOUC；
+ * - 层叠位置：本文件在入口 CSS 之后加载，因此这里的规则会排在入口 CSS 的**全部**工具类
+ *   （含 md: / dark: / sm: 变体）之后。这带来一个必须遵守的约束：
+ *   **凡是元素上同时带 Tailwind 变体工具类、且两者声明同一属性的规则，必须留在
+ *   入口 CSS**（例：.code-block 的 margin-block 与组件上的 md:my-7、.mermaid-container 的
+ *   背景/边框与组件上的 dark:bg-zinc-900/50）。原单文件里变体工具类排在自定义 CSS 之后，
+ *   搬到这里就会反超，实测背景色与代码块外边距都会变。这类规则已占位在 src/index.css
+ *   末尾的「必须留在入口 CSS 的跨页 / 层叠敏感规则」区块，改样式时请一并核对。
+ *
+ * 本文件不含 @tailwind 指令：文章页用到的工具类仍由入口 CSS 统一提供（避免两份 CSS 重复
+ * 下发）；@tailwindcss/typography 的 .prose 也留在入口 CSS —— 实测挪到后加载的本文件后，
+ * 插件的 `.prose :where(picture){display:block}` 会顶掉工具类 `.contents`
+ * （ProgressiveImage 的 <picture class="contents"> 从 display:contents 变成 block）。
+ * 本文件里的 @apply 由 PostCSS 的 tailwindcss 插件原地展开，不依赖 @tailwind 指令。
+ * ========================================================================== */
+
+/* ===== 排版增强 ===== */
+
+.prose a,
+.prose :not(pre) > code,
+.prose td,
+.prose th {
+  overflow-wrap: anywhere;
+}
+
+.prose :not(pre) > code {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375em;
+  line-height: 1.65;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 表格：低对比发丝网格 + 弱底色表头，不用 GitHub 蓝灰边框。 */
+
+.prose thead th {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  font-weight: 600;
+  text-align: left;
+}
+
+.prose tbody td {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: top;
+}
+
+.prose tbody tr:hover {
+  background: transparent;
+}
+
+.dark .prose thead th {
+  border-color: var(--color-border);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.dark .prose tbody td {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.table-wrapper {
+  margin: var(--space-6) 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.prose blockquote p:first-of-type::before {
+  content: '';
+}
+
+.prose blockquote p:last-of-type::after {
+  content: '';
+}
+
+/* 分隔线：一条中性发丝线，不抢段落之间的节奏。 */
+
+.prose hr {
+  height: 1px;
+  margin: var(--space-9) 0;
+  border: 0;
+  background: var(--color-border);
+}
+
+.dark .prose hr {
+  background: var(--color-border);
+}
+
+.prose ol > li::marker {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.heading-anchor-wrapper {
+  @apply group/heading;
+}
+
+/* 标题锚点：默认低对比，悬停/聚焦时用强调色显现。 */
+
+.heading-anchor {
+  @apply ml-2 hidden items-center text-[0.7em] font-semibold opacity-0 transition-opacity md:inline-flex;
+  color: var(--color-text-secondary);
+  vertical-align: middle;
+}
+
+.group\/heading:hover .heading-anchor,
+.group\/heading:focus-within .heading-anchor,
+.heading-anchor:focus-visible {
+  @apply opacity-100;
+}
+
+.heading-anchor:hover,
+.heading-anchor:focus-visible {
+  color: var(--color-accent);
+}
+
+.heading-anchor:focus-visible {
+  @apply rounded-micro outline outline-2 outline-offset-2;
+  outline-color: var(--color-focus-ring);
+}
+
+/* ===== 文章正文排版（post-prose）=====
+   文章页专属排版增强：正文在 prose 插件基础上重新校准为中文长文阅读尺度。
+   颜色/字体/间距/圆角一律走语义 Token；非 @layer 规则优先级高于插件 components 层。 */
+
+/* 选择器带 .prose 提高一级特异性：覆盖 typography 插件在 md:prose-lg / prose-invert
+   上写死的字号、行高与颜色（它们与 .post-prose 同级且可能在产物中后置）。 */
+
+.post-prose.prose {
+  font-family: var(--font-sans);
+  font-size: 1.0625rem; /* 移动端 17px */
+  line-height: 1.95;
+  color: var(--color-text);
+  letter-spacing: 0.005em;
+}
+
+@media (min-width: 768px) {
+  .post-prose.prose {
+    font-size: 1.125rem; /* 桌面端 18px */
+    line-height: 1.95;
+  }
+}
+
+/* 段落：统一底部间距，段间不再叠加插件默认的 p + p 上边距。 */
+
+.post-prose :is(p, .md-paragraph) {
+  margin: 0 0 var(--space-5);
+  line-height: 1.95;
+}
+
+.post-prose :is(p, .md-paragraph) + :is(p, .md-paragraph) {
+  margin-top: 0;
+}
+
+/* 含图片的段落容器本身不占正文段间距，图片间距交给 figure。 */
+
+.post-prose .md-paragraph:has(> figure) {
+  margin-bottom: 0;
+}
+
+/* 中文正文两端对齐：消除参差右缘，行尾不留明显空隙。
+   inter-ideograph 在 Safari/Firefox/Chrome 均可正确压缩 CJK 字间空隙。
+   .md-paragraph 是含图片段落的合法容器（figure 不能作 p 的后代，见 Post.tsx 的 p 渲染器），
+   正文段落规则必须同时覆盖它，否则图文混排段会丢掉对齐与末行排版规则。 */
+
+.post-prose :is(p, .md-paragraph),
+.post-prose li,
+.post-prose blockquote {
+  text-align: justify;
+  text-justify: inter-ideograph;
+}
+
+.post-prose :is(p, .md-paragraph) {
+  /* 段落末行避免孤字（text-wrap: pretty 兼容性差时自动退化为 normal） */
+  text-wrap: pretty;
+  orphans: 3;
+  widows: 3;
+}
+
+/* 标题：Markdown 的 # / ## / ### 经 Post.tsx 映射为 h2 / h3 / h4，三者是正文主力。
+   层级靠字号与留白区分，h2 只保留一条低对比发丝线。 */
+
+.post-prose :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  text-wrap: balance;
+  scroll-margin-top: var(--article-heading-offset);
+}
+
+.post-prose h1 {
+  margin: var(--space-10) 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 1.75em;
+}
+
+.post-prose h2 {
+  margin: var(--space-10) 0 var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 1.45em;
+}
+
+.post-prose h3 {
+  margin: var(--space-8) 0 var(--space-2);
+  font-size: 1.2em;
+}
+
+.post-prose h4 {
+  margin: var(--space-6) 0 var(--space-1);
+  font-size: 1.05em;
+}
+
+.post-prose h5,
+.post-prose h6 {
+  margin: var(--space-5) 0 var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 0.95em;
+}
+
+/* 第一个块级元素不额外下沉：正文从封面/标题后自然开始。 */
+
+.post-prose > :first-child {
+  margin-top: 0;
+}
+
+/* 列表：行距与正文一致，缩进收窄到适合中文短列表的宽度。 */
+
+.post-prose :is(ul, ol) {
+  margin: 0 0 var(--space-5);
+  padding-left: 1.35em;
+}
+
+.post-prose li {
+  margin: var(--space-1) 0;
+  padding-left: 0.1em;
+  line-height: 1.95;
+}
+
+.post-prose :is(ul, ol) :is(ul, ol) {
+  margin: var(--space-1) 0 0;
+}
+
+.post-prose :is(ul, ol) > li::marker {
+  color: var(--color-text-secondary);
+}
+
+/* 引用：左侧发丝线 + 次级文字色，不用高饱和边框或底色。 */
+
+.post-prose blockquote {
+  margin: var(--space-6) 0;
+  padding: var(--space-1) 0 var(--space-1) var(--space-5);
+  border-left: 2px solid var(--color-border);
+  color: var(--color-text-secondary);
+  line-height: 1.95;
+  font-style: normal;
+}
+
+.post-prose blockquote p {
+  margin-bottom: 0;
+}
+
+.post-prose blockquote p + p {
+  margin-top: var(--space-3);
+}
+
+/* 链接：默认带一条低对比下划线，悬停时才让下划线跟随强调色。 */
+
+.post-prose a {
+  color: var(--color-accent);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: var(--color-border);
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    text-decoration-color var(--duration-fast) var(--ease-standard);
+}
+
+.post-prose a:hover {
+  text-decoration-color: currentColor;
+}
+
+.post-prose strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.post-prose sup,
+.post-prose sub {
+  line-height: 0;
+  font-size: 0.75em;
+}
+
+/* 脚注（remark-gfm 输出）：与正文以一条发丝线分隔，字号降低半档。 */
+
+.post-prose [data-footnotes],
+.post-prose .footnotes {
+  margin-top: var(--space-9);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 0.875em;
+  line-height: 1.7;
+}
+
+.post-prose [data-footnotes] li {
+  margin: var(--space-1) 0;
+}
+
+.post-prose [data-footnote-ref] {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* 行内 code：用弱底代替描边，字号略小于正文，不抢阅读节奏。
+   选择器多带 .prose 一级：压过插件同样带 :not(pre) 的 code 配色。 */
+
+.post-prose.prose :not(pre) > code {
+  padding: 0.12em 0.38em;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  font-size: 0.875em;
+  font-weight: 500;
+}
+
+/* typography 插件的 dark:prose-invert 选择器（.dark\:prose-invert:is(.dark *) …）
+   特异性略高于普通 .post-prose 规则；这里只在暗色下用同一组语义 Token 重新声明
+   被覆盖的颜色，不引入第二套色值。 */
+
+.dark .post-prose.prose {
+  color: var(--color-text);
+  line-height: 1.95;
+}
+
+.dark .post-prose.prose :is(h1, h2) {
+  border-bottom-color: var(--color-border);
+}
+
+.dark .post-prose.prose blockquote {
+  color: var(--color-text-secondary);
+  border-left-color: var(--color-border);
+}
+
+.dark .post-prose.prose hr {
+  background: var(--color-border);
+}
+
+.dark .post-prose.prose :is(thead th, tbody td) {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+/* 代码统一等宽字体：typography 插件默认让 pre code 继承正文 sans
+   （Windows 上即微软雅黑），技术博客代码块必须使用等宽字体才可读。 */
+
+.post-prose :not(pre) > code,
+.post-prose pre code {
+  font-family:
+    'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+}
+
+.code-block .hljs {
+  background: transparent;
+}
+
+.code-toolbar {
+  display: flex;
+  min-height: var(--space-11);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+}
+
+.code-language {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code-toolbar-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.code-action-btn {
+  display: inline-flex;
+  min-height: var(--space-11);
+  min-width: var(--space-11);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.code-action-btn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-muted);
+  color: var(--color-accent);
+}
+
+.code-action-btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.code-action-btn:active {
+  transform: scale(0.98);
+}
+
+.code-action-btn-success {
+  border-color: var(--color-success);
+  background: var(--color-surface-muted);
+  color: var(--color-success);
+}
+
+.code-action-btn-success:hover {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.code-copy-feedback {
+  display: none;
+  color: var(--color-success);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+@media (min-width: 640px) {
+  .code-copy-feedback {
+    display: inline;
+  }
+}
+
+@keyframes copy-pop {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.copy-pop {
+  animation: copy-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.code-scroll {
+  @apply relative overflow-x-auto touch-pan-x;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.code-content {
+  @apply flex min-w-max;
+}
+
+.code-content > pre {
+  @apply flex-1;
+  min-width: max-content;
+  /* 容器（.code-block）已有单一边框，pre 自身不再重复描边。 */
+  border: 0;
+}
+
+.code-line-numbers {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 0.875rem var(--space-3);
+  border-right: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5rem;
+  text-align: right;
+  user-select: none;
+}
+
+@media (min-width: 768px) {
+  .code-line-numbers {
+    padding-block: var(--space-5);
+  }
+}
+
+/* 行号是键盘可达的复制按钮：右对齐、整格点击区、hover/focus 反馈。
+   button 不继承 UA 字体/颜色，显式对齐容器的 mono 字体与配色。 */
+
+.code-line-numbers button {
+  display: block;
+  width: 100%;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.5rem;
+  text-align: right;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.code-line-numbers button:hover {
+  color: var(--color-accent);
+}
+
+.code-line-numbers button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.code-line-numbers button:active {
+  transform: scale(0.98);
+}
+
+.code-line-count {
+  display: none;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 640px) {
+  .code-line-count {
+    display: inline;
+  }
+}
+
+.code-block pre,
+.code-block code {
+  color: var(--color-text);
+  font-variant-ligatures: contextual;
+}
+
+.code-block .hljs {
+  background: transparent !important;
+}
+
+.code-block .hljs-comment,
+.code-block .hljs-quote {
+  font-style: italic;
+}
+
+.code-block-collapsed {
+  max-height: 18rem;
+  overflow-y: hidden;
+}
+
+.code-block-collapsed::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 5rem;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--color-surface), transparent);
+}
+
+.code-block-expanded {
+  max-height: none;
+}
+
+.code-expand-btn,
+.code-collapse-btn {
+  position: absolute;
+  bottom: var(--space-2);
+  left: 50%;
+  z-index: 10;
+  display: inline-flex;
+  min-height: var(--space-11);
+  max-width: calc(100% - var(--space-4));
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  overflow-wrap: anywhere;
+  transform: translateX(-50%);
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.code-expand-btn:hover,
+.code-collapse-btn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-muted);
+  color: var(--color-accent);
+}
+
+.code-expand-btn:focus-visible,
+.code-collapse-btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.code-expand-btn:active,
+.code-collapse-btn:active {
+  transform: translateX(-50%) scale(0.98);
+}
+
+/* ===== 文章胶囊导航（桌面端文章阅读控制台） ===== */
+
+/* 容器：右侧垂直居中；right 偏移由 CapsuleNav 按文章容器几何动态计算 */
+.capsule-container {
+  position: fixed;
+  right: max(var(--capsule-right, 5rem), calc(env(safe-area-inset-right, 0px) + 1rem));
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 40; /* z-floating 同级：文章页浮动控件 */
+}
+
+@media (min-width: 1024px) {
+  .capsule-container {
+    display: flex;
+  }
+}
+
+/* 展开面板 wrapper：绝对定位于按钮左侧（不占流式布局 → 展开不推动按钮，
+   消除 hover 位移抽搐）；右侧 0.5rem 透明内边距是指针从按钮滑入面板的过渡桥，
+   指针全程不离开容器 DOM 子树，mouseleave 不会中途触发。 */
+.capsule-panel {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  padding-right: 0.5rem;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(0.5rem);
+  transition:
+    opacity 0.18s ease,
+    transform 0.2s ease,
+    visibility 0s linear 0.2s;
+}
+
+.capsule-container[data-expanded='true'] .capsule-panel {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(-50%) translateX(0);
+  transition:
+    opacity 0.18s ease,
+    transform 0.2s ease;
+}
+
+/* 减弱动效：过渡直接取消 */
+@media (prefers-reduced-motion: reduce) {
+  .capsule-panel,
+  .capsule-container[data-expanded='true'] .capsule-panel {
+    transition: none;
+  }
+}
+
+/* ===== 代码块增强 ===== */
+
+.code-toolbar-info {
+  @apply flex min-w-0 flex-1 items-center gap-2;
+}
+
+.code-filename {
+  display: inline-flex;
+  max-width: 45%;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.code-filename span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code-action-btn-active {
+  border-color: var(--color-accent);
+  background: var(--color-surface-muted);
+  color: var(--color-accent);
+}
+
+/* 换行模式：行号与折行后的视觉行不再一一对应，隐藏行号列；
+     代码按容器宽度折行（覆盖 pre 的 min-w-max）。 */
+
+.code-block[data-wrapped='true'] .code-line-numbers {
+  display: none;
+}
+
+.code-block[data-wrapped='true'] .code-content,
+.code-block[data-wrapped='true'] .code-content > pre {
+  min-width: 0 !important;
+}
+
+.code-block[data-wrapped='true'] .code-content > pre {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+/* 行号悬停提示可点击（点击复制该行）——样式并入 .code-line-numbers button */
+
+/* 复制失败反馈：与成功态同位，红色语义 */
+
+.code-copy-feedback-error {
+  color: var(--color-danger);
+}
+
+/* diff 代码块整行高亮：rehype-highlight 输出 hljs-addition/deletion/meta，
+     pre 内边距为 0.875rem（md: 1.25rem），用负 margin 把高亮延伸到整行宽度。 */
+
+.code-block[data-lang='diff'] .hljs-addition,
+.code-block[data-lang='diff'] .hljs-deletion,
+.code-block[data-lang='diff'] .hljs-meta {
+  display: block;
+  margin: 0 -0.875rem;
+  padding: 0 0.875rem;
+}
+
+@media (min-width: 768px) {
+  .code-block[data-lang='diff'] .hljs-addition,
+  .code-block[data-lang='diff'] .hljs-deletion,
+  .code-block[data-lang='diff'] .hljs-meta {
+    margin: 0 -1.25rem;
+    padding: 0 1.25rem;
+  }
+}
+
+.code-block[data-lang='diff'] .hljs-addition {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.code-block[data-lang='diff'] .hljs-deletion {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+}
+
+.code-block[data-lang='diff'] .hljs-meta {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+}
+
+.dark .code-block[data-lang='diff'] .hljs-addition {
+  background: rgba(16, 185, 129, 0.16);
+  color: #6ee7b7;
+}
+
+.dark .code-block[data-lang='diff'] .hljs-deletion {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fca5a5;
+}
+
+.dark .code-block[data-lang='diff'] .hljs-meta {
+  background: rgba(59, 130, 246, 0.13);
+  color: #93c5fd;
+}
+
+/* 文章标题原生锚点跳转（URL #hash）与 JS 滚动共用 --article-heading-offset，
+   保证浏览器默认跳转不被固定导航遮挡，且落点与 TOC 点击/激活判定一致。 */
+
+.post-prose :is(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: var(--article-heading-offset);
+}
+
+.prose figcaption {
+  margin-top: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 0.875em;
+  line-height: 1.65;
+  text-align: center;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.post-prose figure {
+  margin: var(--space-7) 0;
+}
+
+.post-prose figure > button {
+  border-radius: var(--radius-md);
+}
+
+.prose img {
+  border-radius: var(--radius-md);
+}
+
+.mermaid-status {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 1rem;
+  color: #334155;
+}
+
+.dark .mermaid-status {
+  color: #cbd5e1;
+}
+
+.mermaid-status.is-error {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.dark .mermaid-status.is-error {
+  border-color: #b45309;
+  background: #291b0a;
+}
+
+.mermaid-status-icon {
+  display: inline-flex;
+  color: #2563eb;
+}
+
+.mermaid-status.is-error .mermaid-status-icon {
+  color: #b45309;
+}
+
+.mermaid-status-title,
+.mermaid-status-description {
+  margin: 0;
+}
+
+.mermaid-status-title {
+  color: #172033;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.dark .mermaid-status-title {
+  color: #f8fafc;
+}
+
+.mermaid-status-description {
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.dark .mermaid-status-description {
+  color: #94a3b8;
+}
+
+.mermaid-source {
+  grid-column: 1 / -1;
+  max-height: 16rem;
+  margin: 0.25rem 0 0;
+  overflow: auto;
+  border: 1px solid #fcd34d;
+  background: #ffffff;
+  padding: 0.875rem;
+  color: #78350f;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+.dark .mermaid-source {
+  border-color: #92400e;
+  background: #111827;
+  color: #fde68a;
+}
+
+.mermaid-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.25rem;
+  margin-bottom: 0.75rem;
+  color: #71717a;
+  font-size: 0.75rem;
+}
+
+.dark .mermaid-toolbar {
+  color: #a1a1aa;
+}
+
+.mermaid-toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mermaid-action-btn {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  color: #334155;
+  background: #ffffff;
+
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
+}
+
+.mermaid-action-btn:hover:not(:disabled),
+.mermaid-action-btn:focus-visible {
+  border-color: #60a5fa;
+  background: #eff6ff;
+  color: #1d4ed8;
+  outline: none;
+}
+
+.mermaid-action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.dark .mermaid-action-btn {
+  border-color: #64748b;
+  color: #e2e8f0;
+  background: #1e293b;
+}
+
+.dark .mermaid-action-btn:hover:not(:disabled),
+.dark .mermaid-action-btn:focus-visible {
+  border-color: #60a5fa;
+  background: #1e3a8a;
+  color: #eff6ff;
+}
+
+.mermaid-scale {
+  min-width: 3.25rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.mermaid-viewport {
+  position: relative;
+  max-width: 100%;
+  min-height: 8rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #cbd5e1;
+  background: rgba(255, 255, 255, 0.78);
+  outline: none;
+  scrollbar-width: thin;
+}
+
+.mermaid-viewport:focus-visible {
+  box-shadow: 0 0 0 2px rgba(113, 113, 122, 0.35);
+}
+
+.mermaid-viewport.is-zoomed {
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.mermaid-viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.dark .mermaid-viewport {
+  border-color: #475569;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.mermaid-scene {
+  display: flex;
+  /* 基础视图即按图表自然尺寸排布（GitHub 式）：min-width 保证窄图仍居中于
+     容器内，max-content 让宽图撑开自身宽度，由 .mermaid-viewport 横向滚动，
+     避免宽图被压缩导致文字缩小到看不清。 */
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  transform-origin: center top;
+}
+
+.mermaid-diagram {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  justify-content: center;
+}
+
+/* 尺寸交给 mermaid 输出的 width="100%" + 内联 max-width（自然尺寸上限）控制，
+     这里只兜底：max-width 限制不超出容器、height:auto 保持 viewBox 宽高比。
+     注意不要加 width:auto —— 它会把 <svg> 当无固有尺寸的替换元素缩成默认
+     300px 宽，文字被压成几像素的糊点（曾导致图表"渲染后糊看不清"）。
+     基础视图的自然宽度由 Post.tsx 内联 width/max-width 显式控制（覆盖此处
+     max-width: 100%），此处仅作为 naturalWidth 未测量时的兜底。 */
+
+.mermaid-diagram > svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.mermaid-viewport.is-zoomed .mermaid-diagram > svg {
+  max-width: none !important;
+}
+
+/* 仅在缩放/拖动等交互态提升合成层（平移更顺滑）。空闲态保持不提升，
+     避免 SVG 被图层化后按错误尺寸光栅化导致文字变糊。 */
+
+.mermaid-viewport.is-zoomed .mermaid-scene,
+.mermaid-viewport.is-dragging .mermaid-scene {
+  will-change: transform;
+}
+
+html.dark .mermaid-diagram > svg {
+  color-scheme: dark;
+}
+
+@media (max-width: 640px) {
+  .mermaid-toolbar-label,
+  .mermaid-hint {
+    display: none;
+  }
+
+  .mermaid-toolbar {
+    justify-content: flex-end;
+  }
+
+  .mermaid-viewport {
+    min-height: 6rem;
+  }
+}
+
+.mermaid-hint {
+  margin: 0.65rem 0 0;
+  color: #a1a1aa;
+  font-size: 0.6875rem;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mermaid-action-btn {
+    transition: none;
+  }
+
+  .mermaid-scene {
+    will-change: auto;
+  }
+
+  .copy-pop {
+    animation: none;
+  }
+}
+
+.dark .prose img:not(.no-dark-border) {
+  @apply ring-1 ring-white/10;
+}
+
+/* ===== 深色模式图片适配 =====
+   暗色下正文图片整体柔和降亮、压对比，避免高亮图片刺眼；悬停时恢复原始
+   亮度方便查看细节。单张图片豁免有两种方式：
+     1. Markdown 标题约定：![alt](url "no-dark")
+     2. 给图片加 no-dark-adapt 类（如原图本身为深色截图）
+   transition 同时声明 opacity，避免覆盖 ProgressiveImage 的淡入过渡。 */
+
+.dark .post-prose img:not(.no-dark-adapt) {
+  filter: brightness(0.9) contrast(0.97) saturate(0.96);
+  transition:
+    filter 0.3s ease,
+    opacity 0.25s ease;
+}
+
+.dark .post-prose img:not(.no-dark-adapt):hover {
+  filter: brightness(1.04) contrast(1) saturate(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dark .post-prose img:not(.no-dark-adapt) {
+    transition: none;
+  }
+}
+
+/* prose 插件的颜色变量统一映射到语义 Token；深色由 html.dark 覆盖同一组 Token，
+   这里不再单独写 .dark 值。 */
+
+.prose {
+  --tw-prose-body: var(--color-text);
+  --tw-prose-headings: var(--color-text);
+  --tw-prose-lead: var(--color-text-secondary);
+  --tw-prose-links: var(--color-accent);
+  --tw-prose-bold: var(--color-text);
+  --tw-prose-counters: var(--color-text-secondary);
+  --tw-prose-bullets: var(--color-border);
+  --tw-prose-hr: var(--color-border);
+  --tw-prose-quotes: var(--color-text-secondary);
+  --tw-prose-quote-borders: var(--color-border);
+  --tw-prose-captions: var(--color-text-secondary);
+  --tw-prose-code: var(--color-text);
+  --tw-prose-pre-code: var(--color-text);
+  --tw-prose-pre-bg: var(--color-surface);
+  --tw-prose-th-borders: var(--color-border);
+  --tw-prose-td-borders: var(--color-border);
+  --tw-prose-kbd: var(--color-text);
+  --tw-prose-kbd-shadows: transparent;
+}
+
+/* ===== 专注阅读 ===== */
+
+[data-reading-mode='true'] .cookie-notice {
+  display: none;
+}
+
+.reading-mode-shell {
+  background: transparent;
+}
+
+.reading-mode-article {
+  min-height: 100vh;
+}
+
+.reading-mode-article .post-header {
+  max-width: 44rem;
+  margin-bottom: var(--space-10);
+}
+
+.reading-mode-article .post-body {
+  max-width: var(--article-width);
+}
+
+.reading-mode-article .post-body > div {
+  max-width: 44rem;
+}
+
+.reading-mode-article .post-prose {
+  font-size: 1.1875rem;
+  line-height: 1.95;
+}
+
+.reading-mode-article .post-prose :is(p, .md-paragraph),
+.reading-mode-article .post-prose li {
+  line-height: 1.95;
+}
+
+.reading-mode-article .post-prose :is(p, .md-paragraph) {
+  margin-bottom: var(--space-6);
+}
+
+.reading-mode-article .post-prose h2,
+.reading-mode-article .post-prose h3,
+.reading-mode-article .post-prose h4 {
+  scroll-margin-top: var(--space-8);
+}
+
+.reading-mode-article .post-prose pre,
+.reading-mode-article .post-prose .code-block,
+.reading-mode-article .post-prose .table-wrapper,
+.reading-mode-article .post-prose .mermaid-container {
+  margin-top: var(--space-7);
+  margin-bottom: var(--space-7);
+}
+
+.reading-mode-article .post-prose figure {
+  margin-top: var(--space-7);
+  margin-bottom: var(--space-7);
+}
+
+.reading-mode-article .post-prose img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  object-fit: contain;
+}
+
+@media (max-width: 767px) {
+  .reading-mode-article .post-header {
+    margin-bottom: var(--space-7);
+  }
+
+  .reading-mode-article .post-prose {
+    font-size: 1.125rem;
+    line-height: 1.95;
+  }
+
+  .reading-mode-article .post-prose :is(p, .md-paragraph),
+  .reading-mode-article .post-prose li {
+    line-height: 1.95;
+  }
+
+  .reading-mode-article .post-prose :is(p, .md-paragraph) {
+    margin-bottom: var(--space-5);
+  }
+}

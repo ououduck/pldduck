@@ -238,7 +238,7 @@ const main = async () => {
   }
 
   try {
-    await sendFeishuWebhookMessage(text, { event: 'friend-backlink-audit', title: '🔗 pldduck 友链反链巡检' });
+    await sendFeishuWebhookMessage(text, { event: 'friend-backlink-audit', title: 'pldduck 友链反链巡检' });
     logger.info('飞书巡检报告已发送');
   } catch (error) {
     logger.error('飞书通知发送失败（巡检为只读，不影响仓库）', { error: formatError(error) });

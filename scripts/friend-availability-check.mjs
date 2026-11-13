@@ -300,13 +300,13 @@ const main = async () => {
     text.push(
       applied.length === plan.writes.length
         ? `实际提交 ${applied.length} 个文件`
-        : `⚠️ 计划写入 ${plan.writes.length} 个，实际提交 ${applied.length} 个（其余见 Actions 日志）`,
+        : `计划写入 ${plan.writes.length} 个，实际提交 ${applied.length} 个（其余见 Actions 日志）`,
     );
   }
   try {
     await sendFeishuWebhookMessage(text.filter(Boolean).join('\n'), {
       event: 'friend-availability',
-      title: '🔗 pldduck 友链失联审核',
+      title: 'pldduck 友链失联审核',
     });
   } catch (error) {
     logger.error('飞书通知失败（不影响数据同步）', { error: formatError(error) });

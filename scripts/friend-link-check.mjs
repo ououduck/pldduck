@@ -731,7 +731,7 @@ const publishRecord = async ({ issue, validated, filename, verdict, source }) =>
       `${action} ${filePath}（commit ${commitSha.slice(0, 7)}）`,
       `站点：${record.url}`,
       `检测：${verdict?.verdict ?? '未执行'}`,
-      deployed ? '已触发 deploy.yml，部署跑完后生效' : '⚠️ 部署触发失败，请手动运行 deploy.yml',
+      deployed ? '已触发 deploy.yml，部署跑完后生效' : '部署触发失败，请手动运行 deploy.yml',
       issueUrl(issue.number),
     ].join('\n'),
   );

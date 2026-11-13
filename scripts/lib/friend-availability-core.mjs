@@ -203,14 +203,14 @@ export const planToFeishuText = (plan, { dryRun = false } = {}) => {
     dryRun
       ? 'DRY RUN：只报告，不写入、不触发部署'
       : summary.aborted
-        ? `⚠️ 本轮熔断（不可达占比 ${(summary.deadRatio * 100).toFixed(0)}%），未写入任何改动`
+        ? `本轮熔断（不可达占比 ${(summary.deadRatio * 100).toFixed(0)}%），未写入任何改动`
         : `已写入 ${summary.writes} 个文件${summary.writes > 0 ? '，已触发一次部署' : '（无改动，未触发部署）'}`,
   ];
   if (summary.overCap > 0) {
-    head.push(`⚠️ ${summary.overCap} 个站点确认失联但超出单轮标记上限，留到下一轮`);
+    head.push(`${summary.overCap} 个站点确认失联但超出单轮标记上限，留到下一轮`);
   }
   if (summary.invalid > 0) {
-    head.push(`⚠️ ${summary.invalid} 条记录探测被拦截或不可用，未改动`);
+    head.push(`${summary.invalid} 条记录探测被拦截或不可用，未改动`);
   }
 
   const changed = plan.results.filter((row) => row.action === MARK || row.action === RESTORE);

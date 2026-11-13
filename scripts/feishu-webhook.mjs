@@ -59,14 +59,14 @@ const MAX_TITLE_CHARS = 120;
 
 /** workflow_run 结论 → 展示文案（未知结论回退原文）。 */
 const CONCLUSION_LABELS = Object.freeze({
-  success: '✅ 成功',
-  failure: '❌ 失败',
-  cancelled: '⏹ 已取消',
-  timed_out: '⏱ 超时',
-  action_required: '🔔 需要处理',
-  neutral: '➖ 中性',
-  skipped: '⏭ 已跳过',
-  stale: '🕓 已过期',
+  success: '成功',
+  failure: '失败',
+  cancelled: '已取消',
+  timed_out: '超时',
+  action_required: '需要处理',
+  neutral: '中性',
+  skipped: '已跳过',
+  stale: '已过期',
 });
 
 /* ------------------------------------------------------------------ */
@@ -137,7 +137,7 @@ const buildPushMessage = (event) => {
   const pusher = event.pusher?.name || event.sender?.login || 'unknown';
   const compareUrl = event.compare || event.head_commit?.url;
 
-  const lines = [`🚀 pldduck 推送更新`, ''];
+  const lines = [`pldduck 推送更新`, ''];
   lines.push(`分支: ${escapeHtml(branch)}`);
   lines.push(`提交: ${commits.length} 个 · 推送人: ${escapeHtml(pusher)}`);
 
@@ -187,7 +187,7 @@ const buildCommentMessage = (event) => {
   });
   const surfaceLabel = { shuoshuo: '说说', guestbook: '留言板', article: '文章评论' }[surface] || '讨论区';
 
-  const lines = ['💬 pldduck 新评论', ''];
+  const lines = ['pldduck 新评论', ''];
   lines.push(`区域: ${surfaceLabel}`);
   lines.push(`位置: ${escapeHtml(truncate(title, MAX_TITLE_CHARS))}`);
   lines.push(`作者: ${escapeHtml(author)}`);
@@ -208,7 +208,7 @@ const buildDiscussionMessage = (event) => {
   const body = oneLine(truncate(discussion.body, MAX_BODY_PREVIEW_CHARS));
   const url = discussion.html_url;
 
-  const lines = ['💬 pldduck 新讨论', ''];
+  const lines = ['pldduck 新讨论', ''];
   lines.push(`标题: ${escapeHtml(truncate(title, MAX_TITLE_CHARS))}`);
   lines.push(`作者: ${escapeHtml(author)}`);
   if (body) lines.push(`内容: ${escapeHtml(body)}`);
@@ -228,7 +228,7 @@ const buildIssueMessage = (event) => {
   const body = oneLine(truncate(issue.body, MAX_BODY_PREVIEW_CHARS));
   const url = issue.html_url;
 
-  const lines = ['📮 pldduck 新 Issue', ''];
+  const lines = ['pldduck 新 Issue', ''];
   lines.push(`标题: ${escapeHtml(truncate(title, MAX_TITLE_CHARS))}`);
   lines.push(`作者: ${escapeHtml(author)}`);
   if (body) lines.push(`内容: ${escapeHtml(body)}`);
@@ -269,7 +269,7 @@ const buildWorkflowRunMessage = (event) => {
     }
   }
 
-  const lines = [`⚙️ pldduck Action 完成`, ''];
+  const lines = [`pldduck Action 完成`, ''];
   lines.push(`工作流: ${escapeHtml(name)}${runNumber ? ` #${escapeHtml(String(runNumber))}` : ''}`);
   lines.push(`结果: ${escapeHtml(label)}`);
   lines.push(`分支: ${escapeHtml(branch)}`);
@@ -289,12 +289,12 @@ const buildTestMessage = (event) => {
   const repo = repoName(event);
   const actor = event.sender?.login || 'manual';
   return [
-    '🔔 pldduck 飞书机器人 Webhook 通知测试',
+    'pldduck 飞书机器人 Webhook 通知测试',
     '',
     `仓库: ${escapeHtml(repo)}`,
     `触发人: ${escapeHtml(actor)}`,
     '',
-    '配置正常，消息推送成功 ✅',
+    '配置正常，消息推送成功',
   ].join('\n');
 };
 

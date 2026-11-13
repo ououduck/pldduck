@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
+import { renderToString } from 'react-dom/server';
 import { Layout } from './Layout';
 import { resolveNavLabel } from './siteNav';
 import { pingVercount } from '@/services/vercount';
@@ -164,6 +165,114 @@ describe('Layout', () => {
     expect(screen.getByText('页面内容')).toBeInTheDocument();
   });
 
+  // 路由内容的入场淡入已从 framer-motion（AnimatePresence + motion.div）迁到 CSS：
+  // 首帧/水合不淡入（等价 AnimatePresence initial={false}），只有客户端 pathname
+  // 变化后由 Layout 挂 `.route-content-fade-in` 重放一次 150ms 淡入。
+  it('路由内容容器首帧不淡入：无动画类、无内联 opacity（SSR 首帧必须可见）', () => {
+    renderLayout();
+    const container = screen.getByTestId('route-content');
+    expect(container).not.toHaveClass('route-content-fade-in');
+    expect(container.style.opacity).toBe('');
+    expect(container.getAttribute('style')).toBeNull();
+  });
+
+  it('SSR 首帧输出可见的路由内容：没有 opacity:0、也没有淡入类', () => {
+    const html = renderToString(
+      <MemoryRouter initialEntries={['/']}>
+        <Layout>
+          <div>页面内容</div>
+        </Layout>
+      </MemoryRouter>,
+    );
+
+    expect(html).toContain('data-testid="route-content"');
+    expect(html).toContain('页面内容');
+    expect(html).not.toContain('route-content-fade-in');
+    expect(html).not.toMatch(/opacity:\s*0/);
+  });
+
+  it('客户端路由切换后重放一次进入淡入，并把页面滚回顶部', async () => {
+    const user = userEvent.setup();
+    // jsdom 的 window.scrollTo 未实现（会打印 Not implemented），这里用 spy 断言真实调用。
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+
+    try {
+      renderLayout();
+      expect(scrollToSpy).not.toHaveBeenCalled();
+
+      await user.click(within(sidebar()).getByRole('link', { name: /^文章/ }));
+      await waitFor(() => expect(probePathname).toBe('/posts'));
+
+      // CSS 类由 Layout 挂在同一个 div 容器上（容器以自增 key 重挂来重放动画）。
+      await waitFor(() => expect(screen.getByTestId('route-content')).toHaveClass('route-content-fade-in'));
+      // 原 AnimatePresence onExitComplete 的「无 View Transitions 时滚动到顶部」不能丢。
+      expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
+    } finally {
+      scrollToSpy.mockRestore();
+    }
+  });
+
+  it('View Transitions 模式下不挂 CSS 淡入类（过渡交给浏览器原生）', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Layout hasViewTransition>
+          <LocationProbe />
+          <div>页面内容</div>
+        </Layout>
+      </MemoryRouter>,
+    );
+
+    await user.click(within(sidebar()).getByRole('link', { name: /^文章/ }));
+    await waitFor(() => expect(probePathname).toBe('/posts'));
+    expect(screen.getByTestId('route-content')).not.toHaveClass('route-content-fade-in');
+  });
+
+  it('prefers-reduced-motion 下路由切换不重放淡入', async () => {
+    const user = userEvent.setup();
+    const originalMatchMedia = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn((query: string) => ({
+        matches: query.includes('prefers-reduced-motion'),
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    try {
+      renderLayout();
+      await user.click(within(sidebar()).getByRole('link', { name: /^文章/ }));
+      await waitFor(() => expect(probePathname).toBe('/posts'));
+      expect(screen.getByTestId('route-content')).not.toHaveClass('route-content-fade-in');
+    } finally {
+      Object.defineProperty(window, 'matchMedia', { writable: true, value: originalMatchMedia });
+    }
+  });
+
+  it('移动抽屉面板是没有内联动效样式的普通 aside（动画全部由 CSS 驱动）', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    await user.click(screen.getByRole('button', { name: '打开导航菜单' }));
+    // 只关心节点本身：面板一挂载（closed/opening 相位）就已带齐稳定的 DOM 属性，
+    // 不必等 340ms 的位移动画结束，避免等待动画时长的用例在慢机器上抖动。
+    const panel = await screen.findByTestId('mobile-nav-panel');
+
+    // 抽屉动画由 data-* + CSS 承担：节点上没有 framer-motion 写入的 opacity/transform 内联样式。
+    expect(panel.tagName).toBe('ASIDE');
+    expect(panel.style.opacity).toBe('');
+    expect(panel.style.transform).toBe('');
+    // DOM 语义与之前保持一致：模态对话框、可从脚本聚焦。
+    expect(panel).toHaveAttribute('role', 'dialog');
+    expect(panel).toHaveAttribute('aria-modal', 'true');
+    expect(panel).toHaveAttribute('tabindex', '-1');
+  });
+
   it('导航面板中不含反馈入口', async () => {
     const user = userEvent.setup();
     renderLayout();
@@ -237,12 +346,16 @@ describe('Layout', () => {
 
   // 等待移动端导航动画完成（data-state 从 opening 推进到 open）：
   // 用 waitFor 轮询状态而非固定 sleep —— 动画时长（MOBILE_NAV_ANIMATION_DURATION_MS）
-  // 调整时测试不脆断，也不拖慢套件。
+  // 调整时测试不脆断，也不拖慢套件。超时放宽到 3s：动画本身是双 rAF + 340ms 计时，
+  // 全量并发跑测试（多个 worker 抢 CPU）时 jsdom 的 rAF/计时器抖动会超过默认 1s。
   const waitForNavOpen = async () => {
-    await waitFor(() => {
-      const panel = screen.getByTestId('mobile-nav-panel');
-      expect(panel.getAttribute('data-state')).toBe('open');
-    });
+    await waitFor(
+      () => {
+        const panel = screen.getByTestId('mobile-nav-panel');
+        expect(panel.getAttribute('data-state')).toBe('open');
+      },
+      { timeout: 3000 },
+    );
   };
   const waitForNavClosed = async () => {
     await waitFor(() => {

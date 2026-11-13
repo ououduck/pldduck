@@ -4,7 +4,8 @@
  *
  * - 只订阅 siteStatusStore 的 workersLimit 事件（10 分钟节流在 store 内完成），
  *   组件自己不请求状态，也不缓存结果；
- * - 轻量克制：不做持续动画/闪烁，只有 150ms 一次性透明度淡入（无位移，
+ * - 轻量克制：不做持续动画/闪烁，只有 150ms 一次性透明度淡入（CSS 动画
+ *   `.toast-fade-in`，见 src/styles/motion-fallbacks.css；无位移，
  *   因此 prefers-reduced-motion 下也不需要额外的位移动画分支）；
  * - 挂在 AppShell 内的 ErrorBoundary 里，所有页面、阅读模式与手机端都能提示；
  * - z-index 高于顶栏（nav=50）/侧栏（60）/移动抽屉（85）、低于 modal（100），
@@ -14,7 +15,6 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
 import { AlertCircle } from 'lucide-react';
 import { subscribeWorkersLimit } from '@/services/siteStatusStore';
 
@@ -57,15 +57,12 @@ export const WorkersLimitToast: React.FC = () => {
   }
 
   return (
-    <motion.div
+    <div
       role="alert"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.15, ease: 'easeOut' }}
-      className="pointer-events-none fixed inset-x-3 top-[max(calc(env(safe-area-inset-top,0px)+4.25rem),4.25rem)] z-[90] mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-control border border-red-300 bg-red-50 px-3.5 py-2.5 text-sm font-semibold text-red-800 shadow-lg dark:border-red-900 dark:bg-red-950/90 dark:text-red-100 sm:top-[max(calc(env(safe-area-inset-top,0px)+4.75rem),4.75rem)]"
+      className="toast-fade-in pointer-events-none fixed inset-x-3 top-[max(calc(env(safe-area-inset-top,0px)+4.25rem),4.25rem)] z-[90] mx-auto flex w-fit max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-control border border-red-300 bg-red-50 px-3.5 py-2.5 text-sm font-semibold text-red-800 shadow-lg dark:border-red-900 dark:bg-red-950/90 dark:text-red-100 sm:top-[max(calc(env(safe-area-inset-top,0px)+4.75rem),4.75rem)]"
     >
       <AlertCircle size={16} aria-hidden="true" className="shrink-0 text-red-600 dark:text-red-400" />
       <span>{WORKERS_LIMIT_MESSAGE}</span>
-    </motion.div>
+    </div>
   );
 };

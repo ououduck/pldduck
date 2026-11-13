@@ -69,6 +69,11 @@ describe('WorkersLimitToast', () => {
     expect(alert.className).toContain('safe-area-inset-top');
     expect(alert.className).toContain('max-w-[calc(100vw-1.5rem)]');
     expect(alert).toHaveClass('pointer-events-none');
+
+    // 150ms 淡入改由 CSS 类承担（framer-motion 已移出首屏关键路径），
+    // 节点上不再有 framer 写入的内联 opacity:0 起始态。
+    expect(alert).toHaveClass('toast-fade-in');
+    expect(alert.style.opacity).toBe('');
   });
 
   it('3 秒后自动收回', () => {

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { CookieNotice } from './CookieNotice';
+import { CookieNotice, COOKIE_NOTICE_EXIT_DURATION_MS } from './CookieNotice';
 
 const CONSENT_KEY = 'cookie-consent';
 
@@ -12,6 +12,27 @@ const renderNotice = () =>
       <CookieNotice />
     </MemoryRouter>,
   );
+
+/** 覆盖 matchMedia，让站点 useReducedMotion 读到 true（jsdom 默认没有 matchMedia）。 */
+const stubPrefersReducedMotion = () => {
+  const originalMatchMedia = window.matchMedia;
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn((query: string) => ({
+      matches: query.includes('prefers-reduced-motion'),
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+  return () => {
+    Object.defineProperty(window, 'matchMedia', { writable: true, value: originalMatchMedia });
+  };
+};
 
 describe('CookieNotice', () => {
   beforeEach(() => {
@@ -90,5 +111,59 @@ describe('CookieNotice', () => {
     expect(dialog.className).toContain('supports-[height:100svh]:max-h-[calc(100svh-2rem)]');
     // 不能只剩裸 svh 一种写法。
     expect(dialog.className).not.toMatch(/(^|\s)max-h-\[calc\(100svh/);
+  });
+
+  // 动效已从 framer-motion（会把 motion chunk 拖进首屏）迁到 CSS：
+  // 入场/退场只挂 CSS 动画类，节点上不再有 framer 写的内联 opacity/transform。
+  it('入场用 CSS 动画类实现，不写内联 opacity:0', () => {
+    renderNotice();
+    const dialog = screen.getByRole('dialog', { name: 'Cookie 与隐私' });
+
+    expect(dialog).toHaveClass('cookie-dialog-in');
+    expect(dialog.parentElement).toHaveClass('cookie-overlay-in');
+    expect(dialog.style.opacity).toBe('');
+    expect(dialog.style.transform).toBe('');
+  });
+
+  it('关闭后先播退场动画（保持挂载），时长到才卸载', () => {
+    vi.useFakeTimers();
+    try {
+      renderNotice();
+      fireEvent.click(screen.getByRole('button', { name: '同意' }));
+
+      // 退场类切在同一节点上，动画期间对话框仍在 DOM 里（保留原退场观感）。
+      const dialog = screen.getByRole('dialog', { name: 'Cookie 与隐私' });
+      expect(dialog).toHaveClass('cookie-dialog-out');
+      expect(dialog.parentElement).toHaveClass('cookie-overlay-out');
+
+      act(() => {
+        vi.advanceTimersByTime(COOKIE_NOTICE_EXIT_DURATION_MS - 1);
+      });
+      expect(screen.getByRole('dialog', { name: 'Cookie 与隐私' })).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reduced-motion 下 0 时长：关闭即卸载，不挂动画类', () => {
+    const restoreMatchMedia = stubPrefersReducedMotion();
+
+    try {
+      renderNotice();
+      const dialog = screen.getByRole('dialog', { name: 'Cookie 与隐私' });
+      expect(dialog).not.toHaveClass('cookie-dialog-in');
+      expect(dialog.parentElement).not.toHaveClass('cookie-overlay-in');
+
+      fireEvent.click(screen.getByRole('button', { name: '同意' }));
+      // 不做退场动画也就不该有 200ms 延迟。
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    } finally {
+      restoreMatchMedia();
+    }
   });
 });

@@ -1,0 +1,122 @@
+/**
+ * framer-motion 移出首屏后的 CSS 动画兜底（由 Layout 首屏 eager 引入）。
+ *
+ * 背景：Layout 的路由容器、Workers 上限提示、Cookie 弹窗原先用 framer-motion 驱动
+ * 入场/退场，把 motion chunk 拖进了全站首屏关键路径。这三处动画都只做透明度
+ * （Cookie 对话框额外带 scale/translate），没有任何手势、弹簧或中断式过渡，
+ * 因此可以等价地用 CSS animation 表达，交互后才出现的弹层仍继续用 framer-motion。
+ *
+ * 约定：
+ * - 类名统一带语义前缀（route-content-* / toast-* / cookie-*），避免与 index.css 冲突；
+ *   特别注意 index.css 已有 `@keyframes route-fade-in/out`（View Transitions 用），
+ *   这里的关键帧一律另起名字；
+ * - 关键帧只写 from/to 两态，基础类不带 opacity: 动画不生效时内容默认可见 ——
+ *   SSR/无 JS 首帧绝不能是 opacity:0（见 ai-rules/build-ssg.md 常见陷阱）；
+ * - 时长/曲线与原 framer 参数逐项对齐：路由 150ms cubic-bezier(0.22,1,0.36,1)
+ *   （= motion.ts easeSmooth = --ease-standard）、Toast 150ms ease-out、
+ *   Cookie 遮罩 180ms ease-out / 对话框 200ms ease-out。
+ */
+
+/* ===== 路由内容进入淡入 =====
+   只在客户端路由 pathname 变化后由 Layout 挂类（首帧/水合不挂，等价原
+   AnimatePresence initial={false}）；组件以 key 重挂来重放动画，因此动画类常驻无害。
+   View Transitions 生效时由浏览器原生过渡接管，不加这个类。 */
+@keyframes route-content-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.route-content-fade-in {
+  animation: route-content-fade-in var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+/* ===== Workers 上限提示淡入 =====
+   原实现是 framer 的 150ms opacity 淡入，只做透明度、无位移，reduced-motion 下
+   也照常播放（组件未接 useReducedMotion），这里保持同一行为，故不写禁用分支。 */
+@keyframes toast-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.toast-fade-in {
+  animation: toast-fade-in 150ms ease-out both;
+}
+
+/* ===== Cookie 弹窗入场/退场 =====
+   遮罩只淡入淡出（0.18s）；对话框另外从 scale(0.98) + translateY(8px) 归位（0.2s）。
+   退场类由组件在关闭时切换，动画结束后（200ms，见 CookieNotice 常量）再卸载。 */
+@keyframes cookie-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cookie-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes cookie-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cookie-dialog-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+.cookie-overlay-in {
+  animation: cookie-overlay-in 180ms ease-out both;
+}
+
+.cookie-overlay-out {
+  animation: cookie-overlay-out 180ms ease-out both;
+}
+
+.cookie-dialog-in {
+  animation: cookie-dialog-in 200ms ease-out both;
+}
+
+.cookie-dialog-out {
+  animation: cookie-dialog-out 200ms ease-out both;
+}
+
+/* 减少动效：路由淡入与 Cookie 弹窗直接落到终态（与原先 framer 的 duration 0 等价）。
+   Toast 不在此列（原实现同样不区分 reduced-motion）。 */
+@media (prefers-reduced-motion: reduce) {
+  .route-content-fade-in,
+  .cookie-overlay-in,
+  .cookie-overlay-out,
+  .cookie-dialog-in,
+  .cookie-dialog-out {
+    animation: none;
+  }
+}

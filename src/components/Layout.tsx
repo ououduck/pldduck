@@ -5,16 +5,15 @@
  */
 
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { pingVercount } from '@/services/vercount';
 
+import '@/styles/motion-fallbacks.css';
 import { SiteSidebar, SiteSidebarBody } from './SiteSidebar';
 import { SiteTopBar } from './SiteTopBar';
 import { useReducedMotion as useSiteReducedMotion } from '@/hooks/useReducedMotion';
 import { hasOpenOverlay, lockBodyScroll, unlockBodyScroll } from '@/hooks/useModalOverlay';
 import { useReadingMode, ReadingModeProvider } from './ReadingModeContext';
-import { routeTransition } from '@/utils/motion';
 
 const BackToTop = lazy(() => import('./BackToTop').then((m) => ({ default: m.BackToTop })));
 const CommandPalette = lazy(() => import('./CommandPalette').then((m) => ({ default: m.CommandPalette })));
@@ -92,7 +91,9 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
   const [isMobileNavMounted, setIsMobileNavMounted] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const shouldReduceMotion = useReducedMotion();
+  // 统一读站点自己的 useReducedMotion（framer-motion 已从首屏依赖链移除）：
+  // 该 hook 在 SSR/水合首帧返回 false，与旧实现一致，只在客户端纠正。
+  const shouldReduceMotion = useSiteReducedMotion();
   const animationFrameRef = useRef<number | null>(null);
   const transitionTimerRef = useRef<number | null>(null);
   const afterCloseActionRef = useRef<(() => void) | null>(null);
@@ -673,7 +674,7 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
             onClick={() => requestCloseMobileNav()}
           />
 
-          <motion.aside
+          <aside
             ref={mobileNavPanelRef}
             id="mobile-navigation-panel"
             role="dialog"
@@ -704,7 +705,7 @@ const Navbar = ({ onSearchNavigate }: NavbarProps) => {
                 fillHeight
               />
             </div>
-          </motion.aside>
+          </aside>
         </div>
       )}
     </>
@@ -719,8 +720,6 @@ interface LayoutProps {
   children: React.ReactNode;
   hasViewTransition?: boolean;
 }
-
-const routeShellVariants = routeTransition;
 
 const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => {
   const location = useLocation();
@@ -768,14 +767,32 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
       root.style.removeProperty('--article-heading-offset');
     };
   }, [isReadingMode]);
-  const routeVariants = prefersReducedMotion
-    ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
-    : routeShellVariants;
-  // View Transitions 模式下视觉过渡由浏览器原生接管，framer 侧用恒等变体
-  // （无淡入淡出），避免双重动画。
-  const viewTransitionRouteVariants = { initial: { opacity: 1 }, animate: { opacity: 1 } } as const;
-  // 仅 query 变化时保持组件挂载，避免搜索输入导致首页动画重启。
-  const routeContentKey = location.pathname;
+  // 路由内容切换（纯 CSS 动画，见 src/styles/motion-fallbacks.css）：
+  // - 首帧/水合不淡入：等价原 AnimatePresence initial={false}，SSR 输出里也不能有
+  //   opacity:0（内容不可见是硬伤）；
+  // - 客户端 pathname 变化后重放一次 150ms opacity 淡入（原 routeTransition 参数）：
+  //   用自增的 key 重挂容器来重放 CSS 动画，不按状态切换容器节点类型（历史上的
+  //   div / motion.div 分支曾使整棵页面子树水合后重挂）；
+  // - prefers-reduced-motion 或 View Transitions 生效时不加动画类（后者交给原生过渡）；
+  // - 滚动回顶部原先由 AnimatePresence 的 onExitComplete 触发，现在在这里做；
+  //   View Transitions 分支的滚动由 AppRoutes 在原生过渡回调里完成，不重复。
+  const [routeAnimationKey, setRouteAnimationKey] = useState(0);
+  const previousPathnameRef = useRef(location.pathname);
+
+  useEffect(() => {
+    if (previousPathnameRef.current === location.pathname) {
+      return;
+    }
+
+    previousPathnameRef.current = location.pathname;
+    setRouteAnimationKey((key) => key + 1);
+
+    if (!hasViewTransition) {
+      window.scrollTo({ top: 0, behavior: 'auto' as ScrollBehavior });
+    }
+  }, [hasViewTransition, location.pathname]);
+
+  const shouldAnimateRoute = routeAnimationKey > 0 && !prefersReducedMotion && !hasViewTransition;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -836,30 +853,21 @@ const LayoutShell: React.FC<LayoutProps> = ({ children, hasViewTransition }) => 
           tabIndex={-1}
           className="relative min-w-0 w-full flex-grow px-3 pt-6 pb-8 outline-none sm:px-6 sm:pt-8 md:pt-10"
         >
-          {/* 路由内容容器：统一使用 AnimatePresence + motion.div（无论是否启用
-              View Transitions）。曾按 hasViewTransition 分支渲染 div / motion.div 两种
-              容器，水合后 hasViewTransition 翻转会使父容器类型变化，导致整棵页面子树
-              卸载重挂（页面 state 丢失、图片重新加载、effect 重跑重复上报统计）。
-              现在容器类型恒定，仅按需切换：
+          {/* 路由内容容器：始终是同一个 div 节点类型（不按 hasViewTransition 分支换成
+              另一种容器 —— 水合后该值翻转会让整棵页面子树卸载重挂：页面 state 丢失、
+              图片重新加载、effect 重跑重复上报统计）。按需切换的只有：
               - hasViewTransition：挂 viewTransitionName，视觉过渡交给原生
                 View Transition（AppRoutes 负责 startViewTransition 包裹）；
-              - 否则：仅进入淡入（无退出动画，避免旧页淡出造成的空白间隙）。 */}
-          <AnimatePresence
-            mode="wait"
-            initial={false}
-            onExitComplete={() => window.scrollTo({ top: 0, behavior: 'auto' as ScrollBehavior })}
+              - 否则：pathname 变化后由 CSS 重放一次进入淡入（无退出动画，避免旧页
+                淡出造成的空白间隙；动画类见 motion-fallbacks.css）。 */}
+          <div
+            key={routeAnimationKey}
+            data-testid="route-content"
+            style={hasViewTransition ? { viewTransitionName: 'route-content' } : undefined}
+            className={`mx-auto min-w-0 w-full max-w-7xl${shouldAnimateRoute ? ' route-content-fade-in' : ''}`}
           >
-            <motion.div
-              key={routeContentKey}
-              variants={hasViewTransition ? viewTransitionRouteVariants : routeVariants}
-              initial="initial"
-              animate="animate"
-              style={hasViewTransition ? { viewTransitionName: 'route-content' } : undefined}
-              className="mx-auto min-w-0 w-full max-w-7xl"
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+            {children}
+          </div>
         </main>
         {!isReadingMode && (
           <Suspense fallback={null}>

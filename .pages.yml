@@ -234,6 +234,16 @@ actions:
       message: 将逐个请求 posts/ 中全部外链（Markdown 链接 + HTML 链接，排除图片与站内锚点）：发现的失效链接会按文章分组汇总（带行号与 HTTP 状态）推送到 飞书机器人 Webhook，不修改仓库、不触发部署。
       button: 开始扫描
 
+  # ── 友链反链巡检：只读检查 friends/ 站点是否仍挂本站反链，结果推飞书 ──
+  - name: friend-backlink-audit
+    label: 友链反链巡检
+    workflow: friend-backlink-audit.yml
+    ref: current
+    confirm:
+      title: 确认巡检友链反链？
+      message: 将逐个打开 friends/ 里的站点（静态抓取 + 必要时无头浏览器渲染），把未检测到本站反链的站点汇总推送到飞书。只读：不修改仓库、不改 Issue、不触发部署。
+      button: 开始巡检
+
   # ── 友链失联审核：探测 friends/*.json 全部站点，双向同步「已失联」开关并触发一次部署 ──
   - name: friend-availability-audit
     label: 友链失联审核

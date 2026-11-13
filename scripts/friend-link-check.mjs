@@ -32,17 +32,9 @@ import {
   installGlobalErrorHandlers,
   sanitizeLogValue,
 } from './lib/gh-actions-logger.mjs';
-import {
-  fetchWithRetry,
-  getSafeFetchAgent,
-  isSafePublicHttpUrl,
-  readResponseBytesLimited,
-  RetryableHttpError,
-  sanitizeUrlForLogs,
-} from './lib/http.mjs';
+import { sanitizeUrlForLogs } from './lib/http.mjs';
 import {
   BACKLINK_VERDICTS,
-  RESTRICTED_STATUS_CODES,
   buildAcceptedHosts,
   buildTransportVerdict,
   classifyReachability,
@@ -50,6 +42,7 @@ import {
   findBacklink,
   findBacklinkInAnchors,
 } from './lib/friend-backlink.mjs';
+import { createPageFetcher } from './lib/friend-page-fetch.mjs';
 import { renderPage } from './lib/render-html.mjs';
 import { findBlacklistHit, loadFriendBlacklist } from './lib/friend-blacklist.mjs';
 import {
@@ -118,13 +111,6 @@ const LABELS = Object.freeze({
 });
 /** 互斥的结论标签：机器人自己摘放，人工标签（approved/rejected）永不触碰。 */
 const DETECTION_LABELS = [LABELS.ok, LABELS.missing, LABELS.needsInfo, LABELS.unreachable];
-
-const REQUEST_HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-  'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-};
 
 const args = process.argv.slice(2);
 const hasFlag = (name) => args.includes(`--${name}`);
@@ -210,60 +196,15 @@ const closeIssue = async (number, reason = 'not_planned') => {
 /* ------------------------------------------------------------------ */
 
 /**
- * 逐跳跟随重定向抓取一个 HTML 页面；每一跳都重新做 SSRF 校验（初始地址安全
- * 不代表跳转目标安全）。返回 { html, finalUrl, status, truncated } 或 { transport }。
- * @param {string} url
- * @param {{limitBytes?: number}} [options] 只要状态码时用小上限，别把整站首页读进内存
+ * 逐跳跟随重定向抓取一个 HTML 页面（实现见 lib/friend-page-fetch，与反链巡检共用）。
+ * 每一跳都重新做 SSRF 校验（初始地址安全不代表跳转目标安全）。
  */
-const fetchHtml = async (url, { limitBytes = MAX_RESPONSE_BYTES } = {}) => {
-  let current = url;
-  const dispatcher = await getSafeFetchAgent();
-  for (let hops = 0; hops <= MAX_REDIRECTS; hops += 1) {
-    if (!(await isSafePublicHttpUrl(current))) {
-      return { transport: buildTransportVerdict({ error: '非公开 HTTP(S) 地址（SSRF 防护拦截）' }) };
-    }
-
-    let response;
-    try {
-      response = await fetchWithRetry(
-        current,
-        { method: 'GET', redirect: 'manual', headers: REQUEST_HEADERS },
-        { timeoutMs: REQUEST_TIMEOUT_MS, retries: REQUEST_RETRIES, dispatcher },
-      );
-    } catch (error) {
-      const status = error instanceof RetryableHttpError ? error.status : 0;
-      if (RESTRICTED_STATUS_CODES.has(status)) return { transport: buildTransportVerdict({ status }) };
-      return { transport: buildTransportVerdict({ error: formatError(error) }) };
-    }
-
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get('location');
-      await response.body?.cancel().catch(() => {});
-      if (!location) return { transport: buildTransportVerdict({ error: '重定向缺少 Location' }) };
-      try {
-        current = new URL(location, current).toString();
-      } catch {
-        return { transport: buildTransportVerdict({ error: '重定向 Location 非法' }) };
-      }
-      continue;
-    }
-
-    if (RESTRICTED_STATUS_CODES.has(response.status)) {
-      await response.body?.cancel().catch(() => {});
-      return { transport: buildTransportVerdict({ status: response.status }) };
-    }
-
-    if (!response.ok) {
-      await response.body?.cancel().catch(() => {});
-      return { transport: buildTransportVerdict({ status: response.status }) };
-    }
-
-    const { bytes, truncated } = await readResponseBytesLimited(response, { maxBytes: limitBytes });
-    const { text } = decodeHtmlBytes(bytes, response.headers.get('content-type') || '');
-    return { html: text, finalUrl: current, status: response.status, truncated };
-  }
-  return { transport: buildTransportVerdict({ error: `重定向超过 ${MAX_REDIRECTS} 跳` }) };
-};
+const fetchHtml = createPageFetcher({
+  timeoutMs: REQUEST_TIMEOUT_MS,
+  maxBytes: MAX_RESPONSE_BYTES,
+  maxRedirects: MAX_REDIRECTS,
+  retries: REQUEST_RETRIES,
+});
 
 /** 可达性探测只需要状态码，读 64 KB 足够（别把整站首页/图片拉进内存）。 */
 const PROBE_LIMIT_BYTES = 64 * 1024;

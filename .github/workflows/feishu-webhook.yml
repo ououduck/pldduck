@@ -45,6 +45,7 @@ on:
       - "Comment Keyword Recheck"
       - "Deploy to Cloudflare Worker"
       - "Friend Availability Audit"
+      - "Friend Backlink Audit"
       - "Friend Link Check"
       - "Notify Blog Post Update"
     types: [completed]

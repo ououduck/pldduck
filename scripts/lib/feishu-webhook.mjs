@@ -24,6 +24,7 @@ const CARD_TEMPLATES = Object.freeze({
   'friend-review': 'blue',
   'friend-added': 'green',
   'friend-blacklisted': 'red',
+  'friend-backlink-audit': 'orange',
   'friend-deploy': 'purple',
 });
 

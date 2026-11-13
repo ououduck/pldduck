@@ -1,0 +1,66 @@
+# friend-backlink-audit.yml — 友链反链巡检（只读）
+#
+# 每天逐个检查 friends/ 里的站点是否仍挂着指向本站的反链：
+#   静态抓取优先 → 未命中且页面可达时用无头浏览器渲染一次（JS 挂件）→
+#   把「未检测到反链」与「无法判定」的站点汇总推送飞书。
+#
+# 只读：不写仓库、不改 Issue、不触发部署；下架仍在 Pages CMS 人工处理。
+# 也可在 Pages CMS 侧边栏点「友链反链巡检」手动跑一次。
+name: Friend Backlink Audit
+
+on:
+  schedule:
+    # 每天 03:00 UTC（北京时间 11:00），避开 02:00 的失联巡检。
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: 'Pages CMS payload as JSON，手动触发可用 {"repository":{"ref":"main"}}'
+        required: true
+        type: string
+      dry_run:
+        description: '只打印报告，不推送飞书'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: friend-backlink-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install headless Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Audit friend backlinks
+        env:
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          FRIEND_AUDIT_DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: node scripts/friend-backlink-audit.mjs

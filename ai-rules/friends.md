@@ -21,6 +21,7 @@
 - `scripts/friend-link-check.mjs`（事件编排、抓取、GitHub API）
 - `scripts/lib/friend-backlink.mjs`（反链判定纯函数：`findBacklinkInAnchors` 是静态/渲染共用口径，`findBacklink` 只负责从 HTML 提取锚点）/ `scripts/lib/render-html.mjs`（渲染兜底：Playwright/Chromium + 逐请求 SSRF 护栏，失败一律退回静态结论）/ `scripts/lib/friend-form-core.mjs`（表单解析 + 记录校验，唯一校验权威；`withUnavailable` 是 B 道唯一的序列化出口）
 - `config/friend-blacklist.json`（Pages CMS「友链黑名单」直接编辑；匹配在 `scripts/lib/friend-blacklist.mjs`，泛域名口径见规则 15）
+- `scripts/friend-backlink-audit.mjs`（每日反链巡检：只读 + 渲染兜底 + 飞书汇总）/ `scripts/lib/friend-backlink-audit-core.mjs`（分类与报告文案纯函数）/ `.github/workflows/friend-backlink-audit.yml`
 - `src/types.ts`（`Friend.unavailable` 的 JSDoc 与本节口径同步）
 - `scripts/generate-site-data.mjs`（失联分组：缺键视为 false，不视为主列表之外的独立来源）
 - `.github/workflows/friend-availability-audit.yml`（B 道：定时 + CMS 手动按钮）
@@ -74,6 +75,7 @@
     - `example.com` 匹配裸域 + 所有子域；`*.example.com` 只匹配子域（不匹配裸域）；其它位置出现 `*`、空条目、单标签域名一律判无效并忽略（无效条数记日志，不影响有效条目）；
     - 检查范围是**站点地址、反链页面、头像**三个地址（防止「申报 A 站、反链挂在被拉黑的 B 站」绕过）。
       命中后：固定文案评论 + 打 `friend-blacklisted`、**关闭 Issue**、飞书「已拦截」，不写文件、不进入人工审核；`publishRecord` 里还有一层纵深防御，人工打 `friend-approved` 也会被拦（要收录须先从 CMS 移除该域名）。黑名单配置读不出来时**不静默放行**：评论提示配置不可用、打 `friend-needs-info` 转人工。
+16. **反链巡检（只读，2026-11）**：`.github/workflows/friend-backlink-audit.yml` 每天 03:00 UTC + Pages CMS「友链反链巡检」按钮；逐个检查 `friends/*.json`（跳过 `unavailable: true`，失联是 B 道的职责）是否仍挂着指向本站的反链：静态抓取优先 → 未命中且页面可达时用无头浏览器渲染兜底 → 分类：`found` = 正常；`not-found` / `js-only` = 未检测到；`offsite` / `restricted` / `fetch-error`、以及静态 `js-only` 但渲染失败 = 无法判定。结果汇总推飞书（全部正常时不发，`FRIEND_AUDIT_ALWAYS_NOTIFY=1` 可强制常报；`dry_run` dispatch 输入只打印）。**只读**：不写仓库、不改 Issue、不触发部署，下架仍在 Pages CMS 人工处理；渲染总预算与环境变量见 `.env.example`。
 
 ## 常见陷阱
 

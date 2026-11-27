@@ -1,0 +1,56 @@
+# discussion-publish.yml — 新建说说 / 留言后触发一次部署
+#
+# 为什么需要它：说说与留言板自 2026-11 起改为「一条内容 = 一条 Discussion」，
+# 列表数据是**构建期**抓取生成的（generated/discussions.json）。新建一条 Discussion
+# 只会产生 discussion 事件，不会改仓库文件，也就不会触发任何部署 —— 新内容要等
+# 下一次有人推代码才出现。
+#
+# 本 workflow 把「新建/编辑/删除 discussion」转成一次 deploy.yml 的 dispatch，
+# 让列表在下一次部署里刷新（GITHUB_TOKEN 的 push 不触发 workflow，dispatch 可以）。
+#
+# 说明：
+#   - 只 dispatch，不写仓库、不改讨论；
+#   - 与其它自动化共用 concurrency，避免连发多条时叠一堆部署；
+#   - 机器人自己发的评论不触发（只监听 discussion 本身的 created/edited/deleted）。
+name: Discussion Publish
+
+on:
+  discussion:
+    types: [created, edited, deleted]
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: 'Pages CMS payload as JSON，手动触发可用 {"repository":{"ref":"main"}}'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  # 连发多条内容时只保留最新一次部署（旧的一次会自动取消，因为它已经没有意义）。
+  group: discussion-publish
+  cancel-in-progress: true
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # 机器人自己（giscus 自动建讨论等）不需要触发部署：只有人发的内容才要刷新列表。
+    if: github.event_name == 'workflow_dispatch' || github.event.sender.type != 'Bot'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Dispatch deploy
+        env:
+          # token 只走 env，不内插进 run:（Actions 命令注入面）。
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/dispatch-deploy.mjs

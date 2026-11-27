@@ -21,6 +21,15 @@ const DEFAULT_STATIC_ROUTES = new Set([
   '/search',
 ]);
 
+/**
+ * 带参数的站内路由前缀（2026-11 起说说/留言各有逐条详情页）。
+ *
+ * 这里只做「形状」校验：`/shuoshuo/12` 是合法的站内路由，但内容校验阶段拿不到
+ * discussion 列表（在线数据），因此**不校验编号是否存在** —— 与文章 `/post/<id>`
+ * 的目标存在性校验刻意不同，别把两者混成一套。
+ */
+const PARAMETERIZED_ROUTE_PATTERNS = [/^\/(?:shuoshuo|guestbook)\/\d+$/];
+
 const isEscaped = (value, index) => {
   let slashCount = 0;
   for (let cursor = index - 1; cursor >= 0 && value[cursor] === '\\'; cursor -= 1) {
@@ -392,7 +401,7 @@ export const validatePostContent = (post, context = {}) => {
         );
         return;
       }
-    } else if (!staticRoutes.has(pathname)) {
+    } else if (!staticRoutes.has(pathname) && !PARAMETERIZED_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname))) {
       errors.push(
         lineError(filename, link.line + lineOffset, `link "${link.rawTarget}" targets an unknown site route`),
       );

@@ -44,6 +44,7 @@ on:
       - "Comment Keyword Filter"
       - "Comment Keyword Recheck"
       - "Deploy to Cloudflare Worker"
+      - "Discussion Publish"
       - "Friend Availability Audit"
       - "Friend Backlink Audit"
       - "Friend Link Check"

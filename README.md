@@ -29,9 +29,9 @@
 | `/` | 小部件（Bento）个人主页：名片、联系方式、推荐阅读、访问统计、写作档案、热门标签、服务状态 |
 | `/posts`、`/post/:id` | Markdown 文章，构建期校验 frontmatter；标签筛选，无 category |
 | `/archive`、`/posts?tag=` | 归档时间线；标签筛选在文章列表页（独立 `/tags` 页已退役） |
-| `/shuoshuo` | Giscus 公告 Discussion，每条评论 = 一条说说 |
-| `/friends` | 友链展示（正常/失联分组）与申请入口 |
-| `/guestbook` | Giscus 单讨论留言板，与文章评论共用反垃圾链路 |
+| `/shuoshuo`、`/shuoshuo/:number` | 说说列表与单条详情；**一条说说 = 一条 Discussion**，评论按编号精确锁定 |
+| `/friends` | 友链展示（正常/失联分组）与申请入口；每周巡检记录里的「友链页面地址」是否仍挂本站反链 |
+| `/guestbook`、`/guestbook/:number` | 留言板列表与单份留言详情；**一份留言 = 一条 Discussion**，与文章评论共用反垃圾链路 |
 | `/search`、`Ctrl/Cmd + K` | 构建期生成的搜索索引，命令面板与搜索页共用评分 |
 | `/privacy` | 隐私政策（本地存储、统计、Giscus、第三方链接） |
 | `/cover`、`/watermark` | 封面生成器（批量 ZIP）与图片水印，全部本地处理 |
@@ -61,7 +61,8 @@ npm run dev                 # http://localhost:3000
 ```
 
 常用环境变量：`VITE_SITE_URL`（影响 canonical / OG / RSS / Sitemap）、`VITE_BASE_PATH`（子路径部署）、
-`VITE_BETTERSTACK_STATUS_PAGE_URL`（覆盖状态页地址）。
+`VITE_BETTERSTACK_STATUS_PAGE_URL`（覆盖状态页地址）、`GITHUB_TOKEN`（构建期拉取文章评论数与说说/留言列表；
+未设置时本地构建会把这两个区域降级渲染，不影响其它页面）。
 
 提交前自查：
 

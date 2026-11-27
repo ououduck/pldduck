@@ -11,7 +11,7 @@ import { withBasePath } from './base-path.mjs';
 import { parseEnvNumber } from './lib/env.mjs';
 import { createBuildLogger } from './build-logger.mjs';
 import { loadPostsWithContent } from './ssg-data-loader.mjs';
-import { SSG_STATIC_PAGES, NOT_FOUND_CSS_ENTRY, POST_CSS_ENTRY } from '../config/routes.mjs';
+import { SSG_STATIC_PAGES, NOT_FOUND_CSS_ENTRY, POST_CSS_ENTRY, ROUTES } from '../config/routes.mjs';
 
 const logger = createBuildLogger('ssg');
 
@@ -20,6 +20,7 @@ const __dirname = path.dirname(__filename);
 
 const DIST_DIR = path.join(__dirname, '../dist');
 const DIST_SSR_DIR = path.join(__dirname, '../dist-ssr');
+const DISCUSSIONS_FILE = path.join(__dirname, '../generated/discussions.json');
 const POSTS_FILE = path.join(__dirname, '../generated/posts.json');
 
 const siteConfig = loadSiteConfig({ logger });
@@ -344,8 +345,49 @@ const loadRouteCssMap = (distDir) => {
   }
 };
 
-/** 从模板 HTML 中提取已存在的 stylesheet href，避免路由级样式重复注入同一 URL。 */
-const extractStylesheetHrefs = (html) => {
+/**
+ * 读取构建期抓取的说说/留言列表，产出需要预渲染的详情页清单。
+ *
+ * 每条内容一个页面（/shuoshuo/<number>、/guestbook/<number>）：只有真正存在的内容
+ * 才预渲染，`discussions.json` 缺失或某条编号非法时跳过（不制造 404 页）。
+ * @returns {Array<{ url: string, cssEntry: string }>}
+ */
+const loadDiscussionEntries = () => {
+  if (!fs.existsSync(DISCUSSIONS_FILE)) {
+    logger.warn('generated/discussions.json not found; 说说/留言详情页不预渲染（列表按降级态渲染）');
+    return [];
+  }
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(DISCUSSIONS_FILE, 'utf-8'));
+  } catch (error) {
+    logger.warn('generated/discussions.json is unreadable; 详情页不预渲染', formatError(error));
+    return [];
+  }
+
+  const cssEntryBySurface = new Map(
+    ROUTES.filter((route) => route.ssg === 'discussions').map((route) => [
+      /** @type {string} */ (route.segment),
+      /** @type {string} */ (route.cssEntry),
+    ]),
+  );
+
+  const entries = [];
+  for (const [area, list] of Object.entries(data ?? {})) {
+    const cssEntry = cssEntryBySurface.get(area);
+    if (!cssEntry || !Array.isArray(list)) continue;
+    for (const item of list) {
+      const number = Number(item?.number);
+      if (!Number.isFinite(number) || number <= 0) continue;
+      entries.push({ url: `/${area}/${number}`, cssEntry });
+    }
+  }
+  return entries;
+};
+
+/** 从模板 HTML 中提取已存在的 stylesheet href，避免路由级样式重复注入同一 URL。 */ const extractStylesheetHrefs = (
+  html,
+) => {
   const hrefs = new Set();
   for (const match of html.matchAll(/<link\b[^>]*>/gi)) {
     const tag = match[0];
@@ -585,6 +627,27 @@ export const runSsg = async ({
     `count=${staticPages.length} failed=${failedPages.filter((item) => staticPages.some((page) => item.url === `/${page.path}`)).length} skipped=${staticSkipped}`,
   );
 
+  // 2.1 说说与留言详情页：一条内容 = 一条 Discussion（2026-11 评论通知改造）。
+  // 列表内容来自构建期生成的 generated/discussions.json；抓不到（无 token / API 失败 /
+  // 分类未配置）时没有条目可预渲染 —— 这不是错误，列表页会按降级态渲染，
+  // 详情页由 SPA 兜底（访问时能查到数据就正常渲染，查不到显示「找不到」）。
+  const discussionEntries = loadDiscussionEntries();
+  for (const entry of discussionEntries) {
+    if (budgetExceeded()) {
+      skippedPages.push(entry.url);
+      continue;
+    }
+    try {
+      await writePage(entry.url, entry.url.replace(/^\//, ''), '', entry.cssEntry);
+    } catch (error) {
+      failedPages.push({ url: entry.url, error: formatError(error) });
+    }
+  }
+  logger.step(
+    'Generated discussion detail pages',
+    `count=${discussionEntries.length} failed=${failedPages.filter((item) => discussionEntries.some((entry) => entry.url === item.url)).length}`,
+  );
+
   // 3. 首页。
   if (budgetExceeded()) {
     skippedPages.push('/');
@@ -650,7 +713,7 @@ export const runSsg = async ({
       firstFew: skippedPages.slice(0, 10),
     });
   }
-  const totalPages = posts.length + staticPages.length + 2;
+  const totalPages = posts.length + staticPages.length + discussionEntries.length + 2;
   if (failedPages.length > 0 || skippedPages.length > 0) {
     for (const failed of failedPages) {
       logger.error('Page generation failed', `${failed.url}: ${failed.error}`);
@@ -659,6 +722,7 @@ export const runSsg = async ({
       pages: totalPages,
       posts: posts.length,
       static: staticPages.length,
+      discussions: discussionEntries.length,
       failed: failedPages.length,
       skipped: skippedPages.length,
       siteUrl: SITE_URL,
@@ -674,6 +738,7 @@ export const runSsg = async ({
     pages: totalPages,
     posts: posts.length,
     static: staticPages.length,
+    discussions: discussionEntries.length,
     skipped: skippedPages.length,
     routeCss: routeCssInjected,
     siteUrl: SITE_URL,

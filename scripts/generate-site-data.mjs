@@ -20,6 +20,7 @@ import {
 import { extractMarkdownHeadings } from '../src/utils/headings-core.mjs';
 import { buildRssFeed } from './feed-generator.mjs';
 import { fetchCommentCounts } from './fetch-giscus-comments.mjs';
+import { fetchDiscussionLists } from './fetch-discussions.mjs';
 import { SITEMAP_PAGES } from '../config/routes.mjs';
 
 const logger = createBuildLogger('gen:data');
@@ -572,6 +573,24 @@ const friends = friendFiles.flatMap((filename) => {
     return [];
   }
 });
+
+// ── 说说与留言板：2026-11 起「一条内容 = 一个 Discussion」（见 ai-rules/shuoshuo.md /
+// guestbook.md 与 scripts/lib/discussion-list-core.mjs 的说明）：GitHub 的邮件通知是
+// Discussion 级的，只有拆成一条一帖，访客才不会收到与自己无关的回复通知。
+// 列表数据在构建期抓成 generated/discussions.json（客户端 eager 内联，SSG 首帧直出）；
+// 抓取失败时保留"不写文件"的策略（页面按降级态渲染），不阻塞构建。
+const discussionLists = await fetchDiscussionLists();
+if (discussionLists) {
+  fs.writeFileSync(path.join(OUTPUT_JSON_DIR, 'discussions.json'), JSON.stringify(discussionLists, null, 2));
+  logger.step(
+    'Generated discussions.json',
+    `shuoshuo=${discussionLists.shuoshuo.length} guestbook=${discussionLists.guestbook.length}`,
+  );
+} else {
+  // 未抓到时删掉旧产物：留着上一次的列表会让页面展示已经不存在的讨论。
+  fs.rmSync(path.join(OUTPUT_JSON_DIR, 'discussions.json'), { force: true });
+  logger.warn('discussions.json 未生成（无 token / API 失败 / 分类未配置），说说与留言板列表将按降级态渲染');
+}
 
 fs.writeFileSync(path.join(OUTPUT_JSON_DIR, 'friends.json'), JSON.stringify(friends, null, 2));
 logger.step('Generated friends.json', `friends=${friends.length} sourceFiles=${friendFiles.length}`);

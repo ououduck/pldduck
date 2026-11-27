@@ -282,6 +282,8 @@ const main = async () => {
   const surface = resolveCommentSurface({
     discussionNumber: discussion.number,
     categoryName: discussion.category?.name,
+    guestbookCategoryName: surfaceConfig?.guestbookCategoryName,
+    shuoshuoCategoryName: surfaceConfig?.shuoshuoCategoryName,
     guestbookDiscussionId: surfaceConfig?.guestbookDiscussionId,
     shuoshuoDiscussionId: surfaceConfig?.shuoshuoDiscussionId,
     articleCategoryName: surfaceConfig?.articleCategoryName,

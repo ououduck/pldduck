@@ -2,9 +2,9 @@
 
 ## 功能概述
 
-构建期生成全部站点数据：`generated/posts.json`、`generated/friends.json` 等（前端 services 消费）、sitemap（页面/文章/图片/索引）、robots.txt、RSS/feed、llms.txt/llms-full.txt；同时校验文章 front matter 与内部链接/本地图片引用。
+构建期生成全部站点数据：`generated/posts.json`、`generated/friends.json`、`generated/discussions.json` 等（前端 services 消费）、sitemap（页面/文章/图片/索引）、robots.txt、RSS/feed、llms.txt/llms-full.txt；同时校验文章 front matter 与内部链接/本地图片引用。
 
-> 说说改由 giscus 承载（`config/comments.config.json.shuoshuo.discussionId`），构建期不再解析 `shuoshuo/*.md`，`generated/shuoshuo.json` 与 `sitemap-shuoshuo.xml` 一并退役。
+> 说说与留言板自 2026-11 起「一条内容 = 一条 Discussion」，内容仍在 GitHub Discussions，**构建期不再解析任何 markdown**；`generated/discussions.json` 由 `scripts/fetch-discussions.mjs` 通过 GraphQL 抓取（需要 `GITHUB_TOKEN`），前端 eager 内联后由 SSG 逐条预渲染详情页。`generated/shuoshuo.json` 与 `sitemap-shuoshuo.xml` 仍处于退役状态。
 
 ## 关键文件
 
@@ -23,7 +23,9 @@
 6. **产物计数**：summary 的 outputs 从 generated//public/ 实际统计（禁止硬编码）。
 7. **共享核心**：front matter 剥离（markdown-core.mjs）、标题提取（headings-core.mjs）是 src/scripts 共享模块，改动必须两端一致。
 8. **异常兜底**：uncaughtException/unhandledRejection handler 必须在记录日志后确保进程退出（宽限期强制 process.exit(1)），不得依赖「异常后无挂起异步」的假设 —— 脚本含顶层 await（fetchCommentCounts），异常发生在异步窗口时进程可能带不一致状态继续/挂起。
-9. **评论数匹配口径**：fetch-giscus-comments 的 discussion 标题（页面 URL pathname）匹配必须叠加 BASE_PATH（withBasePath），子路径部署时 `/post/<id>` 匹配不上会导致评论数静默全缺。
+9. **评论数匹配口径**：fetch-giscus-comments 的 discussion 标题（页面 URL pathname）匹配必须叠加 BASE_PATH（withBasePath），子路径部署时 `/post/<id>` 匹配不上会导致评论数静默全缺。排除说说/留言评论时按**分类名**（`shuoshuo.categoryName` / `guestbook.categoryName`）判定，不要只认单个固定 discussionId —— 一条一帖之后编号不再固定。
+10. **discussions.json 的降级口径**：抓取失败 / 无 token / 分类未配置时**不写文件并删除旧产物**（留着上一次的列表会让页面展示已经不存在的讨论），同时 warn；页面按「取不到数据」降级，不阻塞构建。`GITHUB_TOKEN` 是 secret，Actions 里必须由 build 步骤显式 `env:` 注入（deploy.yml / ci.yml 已配）。
+11. **迁移前的合集讨论要排除**：`guestbook.discussionId` / `shuoshuo.discussionId` 指向旧合集讨论，抓取时按编号剔除（它是备份，不是内容条目）。
 
 ## 常见陷阱
 

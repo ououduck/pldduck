@@ -22,7 +22,9 @@ const PostsPage = lazy(pageLoaders['/posts']);
 const ArchivePage = lazy(pageLoaders['/archive']);
 const Friends = lazy(pageLoaders['/friends']);
 const ShuoShuoPage = lazy(pageLoaders['/shuoshuo']);
+const ShuoShuoDetailPage = lazy(() => import('./pages/ShuoShuoDetail').then((m) => ({ default: m.ShuoShuoDetail })));
 const GuestbookPage = lazy(pageLoaders['/guestbook']);
+const GuestbookDetailPage = lazy(() => import('./pages/GuestbookDetail').then((m) => ({ default: m.GuestbookDetail })));
 const CoverGenerator = lazy(pageLoaders['/cover']);
 const Watermark = lazy(pageLoaders['/watermark']);
 const SearchPage = lazy(pageLoaders['/search']);
@@ -151,9 +153,11 @@ const AppRoutes: React.FC = () => {
           <Route path="/tags" element={<TagsRedirect />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/shuoshuo" element={<ShuoShuoPage />} />
-          {/* 旧说说详情深链 /shuoshuo/<id> 已退役，重定向回列表页；与 public/_redirects 成对。 */}
-          <Route path="/shuoshuo/:splat" element={<Navigate to="/shuoshuo" replace />} />
+          {/* 2026-11：一条说说 = 一条 Discussion，详情页承载它自己的评论区。 */}
+          <Route path="/shuoshuo/:number" element={<ShuoShuoDetailPage />} />
           <Route path="/guestbook" element={<GuestbookPage />} />
+          {/* 留言同理：一份留言 = 一条 Discussion。 */}
+          <Route path="/guestbook/:number" element={<GuestbookDetailPage />} />
           <Route path="/cover" element={<CoverGenerator />} />
           <Route path="/watermark" element={<Watermark />} />
           <Route path="/search" element={<SearchPage />} />

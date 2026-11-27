@@ -60,12 +60,21 @@ export interface SiteComments {
 }
 
 export interface SiteGuestbook {
-  discussionId: number;
+  /** 留言板分类名（2026-11 起「一份留言 = 一条 Discussion」，按分类判定区域与新建入口）。 */
+  categoryName: string;
+  /** 留言板分类 ID（GraphQL 抓列表用）。 */
+  categoryId: string;
+  /** 旧口径：单个合集 Discussion 编号（迁移兜底，新结构下不再使用）。 */
+  discussionId?: number;
 }
 
 export interface SiteShuoShuo {
-  /** 承载「说说」的 GitHub Discussion 编号（公告分类下，每条评论 = 一条说说）。 */
-  discussionId: number;
+  /** 说说分类名（每条说说 = 一条 Discussion，2026-11 评论通知改造）。 */
+  categoryName: string;
+  /** 说说分类 ID（GraphQL 抓列表用）。 */
+  categoryId: string;
+  /** 旧口径：单个合集 Discussion 编号（迁移兜底，新结构下不再使用）。 */
+  discussionId?: number;
 }
 
 export interface SiteFriendsPage {
@@ -111,7 +120,7 @@ export interface SiteConfig {
   giscusEnabled?: boolean;
   comments: SiteComments;
   guestbook: SiteGuestbook;
-  /** 说说数据源：giscus 内嵌锁定的公告 Discussion（来自 config/comments.config.json 的 shuoshuo 段）。 */
+  /** 说说数据源：GitHub Discussions「说说」分类（每条说说 = 一条 Discussion）。 */
   shuoshuo: SiteShuoShuo;
   friendsPage: SiteFriendsPage;
   /** 文章内容仓库（"在 GitHub 上编辑此文"/查看源文件入口使用）。 */

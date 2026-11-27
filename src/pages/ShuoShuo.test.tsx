@@ -1,24 +1,34 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ShuoShuo } from './ShuoShuo';
 import { siteConfig } from '@config/site.config';
+import type { DiscussionEntry } from '../types';
 
-// GiscusComments 会在视口接近时注入脚本与 iframe，测试环境不需要联网：
-// mock 成 data-testid 桩，直接暴露 props 便于断言 mapping / term。
-const giscusMock = vi.hoisted(() => ({
-  mapping: '',
-  term: undefined as string | number | undefined,
-  card: false,
+// 2026-11：说说页改成「列表 + 详情」，列表本身不再内嵌 giscus（评论区在详情页）。
+// 构建期数据用 mock 注入，覆盖「有条目」与「抓不到数据」两条路径。
+const entry: DiscussionEntry = {
+  number: 137,
+  title: '第一条说说',
+  body: '正文',
+  excerpt: '第一条说说',
+  images: [],
+  createdAt: '2026-11-20T10:00:00Z',
+  updatedAt: '2026-11-20T10:00:00Z',
+  author: { login: 'ououduck', avatarUrl: '', url: 'https://github.com/ououduck' },
+  commentCount: 3,
+  reactionCount: 1,
+  url: 'https://github.com/ououduck/pldduck/discussions/137',
+};
+
+const dataMock = vi.hoisted(() => ({
+  list: [] as DiscussionEntry[],
+  available: true,
 }));
 
-vi.mock('@/components/GiscusComments', () => ({
-  GiscusComments: ({ mapping, term, card }: { mapping?: string; term?: string | number; card?: boolean }) => {
-    giscusMock.mapping = mapping ?? '';
-    giscusMock.term = term;
-    giscusMock.card = card ?? false;
-    return <div data-testid="mock-giscus" />;
-  },
+vi.mock('@/services/discussions', () => ({
+  getInitialDiscussionList: () => dataMock.list,
+  hasDiscussionList: () => dataMock.available,
 }));
 
 const renderShuoShuo = (initialEntry = '/shuoshuo') =>
@@ -30,7 +40,12 @@ const renderShuoShuo = (initialEntry = '/shuoshuo') =>
     </MemoryRouter>,
   );
 
-describe('ShuoShuo', () => {
+describe('ShuoShuo（列表页）', () => {
+  beforeEach(() => {
+    dataMock.list = [];
+    dataMock.available = true;
+  });
+
   it('渲染阅读字体页面标题与介绍，不再输出英文眉题', () => {
     renderShuoShuo();
     const heading = screen.getByRole('heading', { level: 1, name: '说说' });
@@ -41,14 +56,42 @@ describe('ShuoShuo', () => {
     expect(screen.queryByText('ShuoShuo · Moments')).not.toBeInTheDocument();
   });
 
-  it('giscusEnabled=true 时按公告 discussion 编号锁定内嵌评论区', () => {
-    // 默认配置（config/comments.config.json）里 giscusEnabled 为 true；
-    // mapping 必须是 number（精确锁定，不自动建讨论），term 是 shuoshuo.discussionId。
+  it('页头说明「每条说说一个独立讨论」的通知口径', () => {
+    renderShuoShuo();
+    expect(screen.getByText(/每条说说是一个独立讨论/)).toBeInTheDocument();
+  });
+
+  it('有条目时逐条链到各自详情页（评论区在详情页，列表不订阅任何讨论）', () => {
+    dataMock.list = [entry];
+    renderShuoShuo();
+    const links = screen.getAllByRole('link', { name: '第一条说说' });
+    expect(links[0]).toHaveAttribute('href', '/shuoshuo/137');
+    expect(document.querySelector('.giscus-comments')).toBeNull();
+  });
+
+  it('抓到数据但没有内容时是空态（不是错误态）', () => {
+    dataMock.list = [];
+    dataMock.available = true;
+    renderShuoShuo();
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('还没有说说');
+    expect(status).not.toHaveTextContent('暂时取不到');
+  });
+
+  it('构建期没抓到列表时如实说「取不到」，不伪装成空列表', () => {
+    dataMock.list = [];
+    dataMock.available = false;
+    renderShuoShuo();
+    const status = screen.getByRole('alert');
+    expect(status).toHaveTextContent('说说列表暂时取不到');
+  });
+
+  it('提供「在 GitHub 发布说说」入口（新建 Discussion 是唯一的发布方式）', () => {
     expect(siteConfig.giscusEnabled).toBe(true);
     renderShuoShuo();
-    expect(screen.getByTestId('mock-giscus')).toBeInTheDocument();
-    expect(giscusMock.mapping).toBe('number');
-    expect(giscusMock.term).toBe(siteConfig.shuoshuo.discussionId);
-    expect(giscusMock.card).toBe(true);
+    const link = screen.getByRole('link', { name: /在 GitHub 发布说说/ });
+    expect(link).toHaveAttribute('href', expect.stringContaining('/discussions/new?category='));
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 });

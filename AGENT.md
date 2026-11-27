@@ -97,6 +97,7 @@
 - [ ] 服务状态链路改动已跑 `npx vitest run worker/index.test.mjs src/services/siteStatus.test.ts src/services/siteStatusStore.test.ts src/services/siteStatusStore.ssr.test.ts src/components/SiteStatusBadge.test.tsx src/components/WorkersLimitToast.test.tsx`
 - [ ] 首页 / 侧栏 / Footer 改动已跑 `npx vitest run src/pages/Home.test.tsx src/services/homeStats.test.ts src/components/Layout.test.tsx`
 - [ ] 友链相关改动已跑 `npx vitest run scripts/lib/friend-form-core.test.mjs scripts/lib/friend-backlink.test.mjs scripts/lib/friend-blacklist.test.mjs scripts/lib/render-html.test.mjs scripts/lib/friend-backlink-audit-core.test.mjs scripts/workflows-config.test.mjs scripts/pagescms-config.test.mjs`
+- [ ] 说说/留言（一条内容 = 一条 Discussion）改动已跑 `npx vitest run src/utils/discussion-core.test.mjs src/pages/ShuoShuo.test.tsx src/pages/ShuoShuoDetail.test.tsx src/pages/Guestbook.test.tsx src/pages/GuestbookDetail.test.tsx scripts/lib/comment-surface.test.mjs scripts/routes-consistency.test.mjs`，并 `npm run build` 确认逐条详情页真的生成（SSG 汇总的 `discussions=N`）
 - [ ] 提交信息中文、粒度为一个逻辑任务、未 push
 
 ## 六、免责与授权

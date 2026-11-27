@@ -53,6 +53,22 @@ export const preloadPage = (path: string) => {
     return;
   }
 
+  // 说说/留言详情：一条内容一个页面，悬停列表项时提前取对应 chunk
+  // （detail 页面不在 PRELOADABLE_PATHS 里 —— 那是无参数的静态页清单）。
+  if (path.startsWith('/shuoshuo/')) {
+    import('../pages/ShuoShuoDetail').catch(() => {
+      preloadedPaths.delete(path);
+    });
+    return;
+  }
+
+  if (path.startsWith('/guestbook/')) {
+    import('../pages/GuestbookDetail').catch(() => {
+      preloadedPaths.delete(path);
+    });
+    return;
+  }
+
   const loader = pageLoaders[path];
   if (loader) {
     loader().catch(() => {

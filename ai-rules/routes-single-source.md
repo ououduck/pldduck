@@ -34,9 +34,12 @@ SEO（`title` 只写前缀，站点名后缀由 `ssg.mjs` 用 `siteConfig.title`
    另立一份路径表、`switch` 白名单或正则常量。
 2. **文章的 URL 是对外契约**：`/post/:id` 及其 `segment` 不得改动——旧博客域名上挂着
    这些地址的 301，外链与搜索收录也按此格式，改一次即全部作废。
-   旧 `/shuoshuo/:id`（说说详情）已随自建管线退役（数据源改为 giscus，无独立页面），
-   保留 `path: '/shuoshuo/:splat'` 别名路由 + `public/_redirects` 的 `301 /shuoshuo/:splat →
-/shuoshuo` 兜住历史深链，与文章 `/posts/:id → /post/:id` 是同一处理模式。
+   说说与留言自 2026-11 起为「一条内容 = 一条 Discussion」，各有**逐条详情路由**
+   `/shuoshuo/:number`、`/guestbook/:number`（`ssg: 'discussions'`，由构建期
+   `generated/discussions.json` 逐条预渲染），并与 `public/_redirects` 的分工如下：
+   数字编号是新详情页，**不要**在 `_redirects` 里为它们写 301；自建管线时代的
+   非数字旧深链（`/shuoshuo/<slug>`）由 `ShuoShuoDetail` 的 `<Navigate replace>`
+   回列表页（不再用 `:splat` 别名路由 —— 那个路由已被真正的详情页取代）。
 3. **`seo.title` 只写页面名前缀**（如「归档」），站点名后缀由 `ssg.mjs` 统一拼
    `siteConfig.title`；写全会导致「A - 跑路的duck - 跑路的duck」这类重复。
 4. **首页是唯一例外**：`/` 的 title 由 `siteConfig.seoHomeTitle` 逐字覆盖，不走拼接规则。

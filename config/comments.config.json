@@ -9,9 +9,13 @@
     "strict": false
   },
   "guestbook": {
+    "categoryName": "留言板",
+    "categoryId": "DIC_kwDOVDnR6M4DHfzz",
     "discussionId": 2
   },
   "shuoshuo": {
+    "categoryName": "说说",
+    "categoryId": "DIC_kwDOVDnR6M4DJbiC",
     "discussionId": 4
   }
 }

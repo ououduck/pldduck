@@ -46,7 +46,7 @@ export const NotFound: React.FC = () => {
     <div>
       <Seo title="页面不存在" description="你访问的页面不存在，可能已经移动或删除。" noindex />
       <NotFoundState
-        title="这篇文章跑路了 🏃"
+        title="这篇文章跑路了"
         description="你访问的页面不存在，可能已经移动、重命名，或者链接本身已经失效。试试搜索，或者从下面的入口继续浏览。"
         backLabel="返回首页"
         debugLabel={`Path: ${clientPath}`}

@@ -181,13 +181,9 @@ const buildCommentMessage = (event) => {
   const surface = resolveCommentSurface({
     discussionNumber: discussion.number,
     categoryName: discussion.category?.name,
-    guestbookCategoryName: surfaceConfig?.guestbookCategoryName,
-    shuoshuoCategoryName: surfaceConfig?.shuoshuoCategoryName,
-    guestbookDiscussionId: surfaceConfig?.guestbookDiscussionId,
-    shuoshuoDiscussionId: surfaceConfig?.shuoshuoDiscussionId,
     articleCategoryName: surfaceConfig?.articleCategoryName,
   });
-  const surfaceLabel = { shuoshuo: '说说', guestbook: '留言板', article: '文章评论' }[surface] || '讨论区';
+  const surfaceLabel = { article: '文章评论' }[surface] || '讨论区';
 
   const lines = ['pldduck 新评论', ''];
   lines.push(`区域: ${surfaceLabel}`);

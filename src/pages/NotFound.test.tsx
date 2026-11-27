@@ -49,7 +49,7 @@ describe('NotFound — 调试路径水合一致性', () => {
 describe('NotFound — 404 页功能模块', () => {
   it('渲染搜索输入框、快速入口与跑路文案', () => {
     renderAtPath('/missing');
-    expect(screen.getByRole('heading', { name: '这篇文章跑路了 🏃' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '这篇文章跑路了' })).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: '搜索本站内容' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /归档/ })).toHaveAttribute('href', '/archive');
     expect(screen.getByRole('link', { name: /标签/ })).toHaveAttribute('href', '/posts');

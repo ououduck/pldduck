@@ -3,7 +3,6 @@
  * 内容面向普通访客，不替代针对特定司法辖区的法律意见。
  */
 
-import { Link } from 'react-router-dom';
 import { siteConfig } from '@config/site.config';
 import { absoluteSiteUrl } from '@/utils/siteUrl';
 import { Seo, buildSiteSchemas } from '../components/Seo';
@@ -29,7 +28,7 @@ const policySections = [
   {
     title: '评论与 GitHub',
     paragraphs: [
-      '文章评论、留言板和说说使用 Giscus，评论数据实际存储在 GitHub Discussions。发表评论需要登录 GitHub，GitHub 的账号信息与隐私政策由 GitHub 独立处理；本站不接触你的 GitHub 密码。',
+      '文章评论使用 Giscus，评论数据实际存储在 GitHub Discussions。发表评论需要登录 GitHub，GitHub 的账号信息与隐私政策由 GitHub 独立处理；本站不接触你的 GitHub 密码。',
       '评论会经过自动化反垃圾与关键词审核（Akismet、关键词过滤），命中规则的内容可能被折叠或删除。',
     ],
   },
@@ -99,14 +98,7 @@ export const Privacy = () => {
             >
               {siteConfig.social.rawEmail}
             </a>
-            ，或通过{' '}
-            <Link
-              to="/guestbook"
-              className="font-medium text-content underline decoration-line underline-offset-4 transition-colors hover:decoration-content"
-            >
-              留言板
-            </Link>{' '}
-            联系。
+            ，或在文章评论区留言。
           </p>
         </section>
       </article>

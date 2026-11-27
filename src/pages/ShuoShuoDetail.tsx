@@ -1,161 +1,161 @@
 /**
- * 说说详情页（/shuoshuo/:number）：一条说说 + 它自己的评论区。
+ * 说说详情页（/shuoshuo/:id）：单条短动态的独立可索引页面。
  *
- * 这是 2026-11 评论通知改造的核心：评论区用 giscus 的 `mapping="number"` 精确锁定
- * 这一条 Discussion，所以只有参与过这一条的人才会收到它的邮件通知 —— 而不再是
- * 「留过言就收到所有说说/留言的回复」。
+ * 内容来自构建期内联的 generated/shuoshuo.json（eager glob），首帧与 SSG 输出
+ * 逐字一致；取不到条目时显示「找不到这条说说」，不发起任何请求。
  *
- * SSR 一致性：条目来自构建期内联的 generated/discussions.json（eager glob），
- * 首帧与 SSG 输出逐字一致；取不到条目时显示「找不到这条说说」，不发起任何请求。
+ * 评论区已于 2026-11 下线：说说只承载内容本身，互动统一收敛到文章评论。
  */
 
 import { useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { siteConfig } from '@config/site.config';
 import { absoluteSiteUrl } from '@/utils/siteUrl';
+import { shuoshuoPath, buildShuoShuoDescription } from '@/utils/shuoshuo';
 import { Seo, buildSiteSchemas } from '../components/Seo';
-import { GiscusComments } from '@/components/GiscusComments';
-import { DiscussionMarkdown } from '@/components/DiscussionMarkdown';
-import { ImageViewer } from '@/components/ImageViewer';
-import { ContentStatus } from '@/components/ContentStatus';
-import { formatDiscussionDateTime, toDateTimeAttr } from '@/utils/discussionDate';
-import {
-  buildDiscussionMetaDescription,
-  discussionPath,
-  readMigrationByline,
-  stripMigrationArtifacts,
-} from '@/utils/discussion-core.mjs';
-import { getInitialDiscussion } from '@/services/discussions';
+import { ShuoShuoItem } from '@/components/ShuoShuoItem';
+import { ImageViewer, type ImageViewerImage } from '@/components/ImageViewer';
+import { ShareModal } from '@/components/ShareModal';
+import { NotFoundState } from '@/components/NotFoundState';
+import { formatDate } from '@/utils/date';
+import { stripMarkdown } from '@/utils/markdownText';
+import { copyTextToClipboard } from '@/utils/clipboard';
+import { getInitialShuoShuoItem, getShuoShuoTitle } from '@/services/shuoshuo';
 
 export const ShuoShuoDetail = () => {
-  const { number } = useParams<{ number: string }>();
-  const parsed = Number(number);
-  // 旧说说深链（/shuoshuo/<id>，id 是自建管线的 slug）与本站详情页共用同一路径形状：
-  // 非纯正整数的参数一律当退役深链，回列表页（与改造前的 301 契约一致）。
-  const isLegacyDeepLink = !/^\d+$/.test(String(number ?? ''));
-  const entry = useMemo(
-    () => (Number.isFinite(parsed) && parsed > 0 ? getInitialDiscussion('shuoshuo', parsed) : undefined),
-    [parsed],
-  );
-  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const { id } = useParams<{ id: string }>();
+  const item = useMemo(() => (id ? getInitialShuoShuoItem(id) : undefined), [id]);
+  const strippedContent = useMemo(() => stripMarkdown(item?.content ?? ''), [item?.content]);
+  const [previewGallery, setPreviewGallery] = useState<{ images: ImageViewerImage[]; index: number } | null>(null);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [autoCopied, setAutoCopied] = useState<boolean | null>(null);
 
-  if (isLegacyDeepLink) {
-    return <Navigate to="/shuoshuo" replace />;
-  }
-
-  if (!entry) {
+  if (!item) {
+    // 说说不存在：SPA 内以 200 响应返回该内容，必须 noindex，
+    // 避免爬虫把已删除说说的 URL 视为可索引页面收录。
     return (
-      <div className="mx-auto max-w-3xl pb-12 pt-6 md:pb-20 md:pt-10">
-        <Seo
-          title="说说不存在"
-          description="这条说说不存在或已被删除。"
-          url={discussionPath('shuoshuo', parsed)}
-          noindex
+      <>
+        <Seo title="未找到这条说说" description="你访问的说说不存在，可能已经删除或链接失效。" noindex />
+        <NotFoundState
+          title="未找到这条说说"
+          description="这条说说可能已经被删除，或者链接地址已经发生变化。"
+          debugLabel={`说说标识：${id || '未知'}`}
+          backTo="/shuoshuo"
+          backLabel="返回全部说说"
         />
-        <ContentStatus
-          className="rounded-overlay border-0 bg-surface"
-          title="找不到这条说说"
-          description="它可能已被删除，或链接里的编号不对。"
-          variant="error"
-          actionLabel="返回说说列表"
-          onAction={() => {
-            window.location.assign('/shuoshuo');
-          }}
-        />
-        <div className="mt-4 px-1 text-xs">
-          <Link to="/shuoshuo" className="inline-flex items-center gap-1.5 text-content-muted hover:text-accent">
-            <ArrowLeft size={13} aria-hidden="true" />
-            <span>返回说说列表</span>
-          </Link>
-        </div>
-      </div>
+      </>
     );
   }
 
-  const description = buildDiscussionMetaDescription({
-    excerpt: entry.excerpt || entry.title,
+  const title = getShuoShuoTitle(item);
+  const description = buildShuoShuoDescription({
+    excerpt: strippedContent || title,
+    authorName: siteConfig.author.name,
+    date: item.date,
     siteTitle: siteConfig.title,
-    surface: 'shuoshuo',
   });
+  const shareImage = item.images && item.images.length > 0 ? item.images[0] : siteConfig.seoImage;
+
+  const handleShare = async () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : siteConfig.url;
+    const url = absoluteSiteUrl(shuoshuoPath(item.id), origin);
+    setShareUrl(url);
+    setIsShareOpen(true);
+    setAutoCopied(null);
+    const copied = await copyTextToClipboard(url);
+    setAutoCopied(copied);
+  };
+
+  const structuredData = [
+    ...buildSiteSchemas(description),
+    {
+      '@context': 'https://schema.org',
+      // SocialMediaPosting 是 Article 的子类型，语义上最贴合「朋友圈式短动态」。
+      '@type': 'SocialMediaPosting',
+      headline: title,
+      description,
+      ...(shareImage ? { image: [absoluteSiteUrl(shareImage, siteConfig.url)] } : {}),
+      datePublished: item.date,
+      author: {
+        '@type': 'Person',
+        name: siteConfig.author.name,
+        url: siteConfig.social.github,
+        email: siteConfig.social.rawEmail,
+      },
+      articleBody: strippedContent,
+      inLanguage: 'zh-CN',
+      isPartOf: {
+        '@type': 'WebSite',
+        name: siteConfig.title,
+        url: absoluteSiteUrl('/', siteConfig.url),
+      },
+      mainEntityOfPage: absoluteSiteUrl(shuoshuoPath(item.id), siteConfig.url),
+      publisher: {
+        '@type': 'Organization',
+        name: siteConfig.title,
+        url: siteConfig.url,
+        logo: {
+          '@type': 'ImageObject',
+          url: absoluteSiteUrl(siteConfig.logo, siteConfig.url),
+        },
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: '首页', item: absoluteSiteUrl('/', siteConfig.url) },
+        { '@type': 'ListItem', position: 2, name: '说说', item: absoluteSiteUrl('/shuoshuo', siteConfig.url) },
+        { '@type': 'ListItem', position: 3, name: title, item: absoluteSiteUrl(shuoshuoPath(item.id), siteConfig.url) },
+      ],
+    },
+  ];
 
   return (
     <div className="mx-auto max-w-3xl pb-12 pt-6 md:pb-20 md:pt-10">
       <Seo
-        title={entry.title}
+        title={`说说：${title}`}
         description={description}
-        url={discussionPath('shuoshuo', entry.number)}
+        image={shareImage}
+        url={shuoshuoPath(item.id)}
         type="article"
-        publishedTime={entry.createdAt}
-        modifiedTime={entry.updatedAt}
-        structuredData={[
-          ...buildSiteSchemas(description),
-          {
-            '@context': 'https://schema.org',
-            '@type': 'SocialMediaPosting',
-            headline: entry.title,
-            articleBody: entry.excerpt || entry.title,
-            datePublished: entry.createdAt,
-            dateModified: entry.updatedAt,
-            url: absoluteSiteUrl(discussionPath('shuoshuo', entry.number), siteConfig.url),
-            inLanguage: 'zh-CN',
-            ...(entry.author.login
-              ? {
-                  author: {
-                    '@type': 'Person',
-                    name: entry.author.login,
-                    ...(entry.author.url ? { url: entry.author.url } : {}),
-                  },
-                }
-              : {}),
-          },
-        ]}
+        publishedTime={item.date}
+        structuredData={structuredData}
       />
 
-      <article className="rounded-overlay bg-surface p-6 md:p-8">
-        <header>
-          <h1 className="font-sans text-2xl font-bold leading-9 tracking-tight text-content md:text-3xl md:leading-10">
-            {entry.title}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-content-muted">
-            <time dateTime={toDateTimeAttr(entry.createdAt) || undefined}>
-              {formatDiscussionDateTime(entry.createdAt)}
-            </time>
-            {entry.author.login && <span>{entry.author.login}</span>}
-            <a
-              href={entry.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 hover:text-accent"
-            >
-              <span>在 GitHub 查看</span>
-              <ExternalLink size={11} aria-hidden="true" />
-            </a>
-          </div>
-        </header>
+      <nav aria-label="面包屑" className="mb-4 flex min-w-0 items-center gap-1.5 px-1 text-xs text-content-muted">
+        <Link to="/" className="inline-flex items-center gap-1 transition-colors hover:text-content">
+          <ArrowLeft size={13} aria-hidden="true" />
+          首页
+        </Link>
+        <ChevronRight size={11} aria-hidden="true" />
+        <Link to="/shuoshuo" className="transition-colors hover:text-content">
+          说说
+        </Link>
+        <ChevronRight size={11} aria-hidden="true" />
+        <span className="truncate" aria-current="page">
+          {title}
+        </span>
+      </nav>
 
-        <div className="mt-4 text-[15px] text-content md:text-base">
-          <DiscussionMarkdown
-            content={stripMigrationArtifacts(entry.body)}
-            onPreviewImage={({ src }) => {
-              setPreviewSrc(src);
-            }}
-          />
-        </div>
+      <h1 className="mb-4 px-1 font-sans text-2xl font-bold leading-9 tracking-tight text-content md:text-3xl">
+        {title}
+        <span className="sr-only">
+          ，{siteConfig.author.name} 于{' '}
+          {formatDate(item.date, 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })} 发布
+        </span>
+      </h1>
 
-        {/* 迁移内容的原作者署名：新 Discussion 的作者必然是仓库主，不单独展示就丢了原作者。 */}
-        {(() => {
-          const byline = readMigrationByline(entry.body);
-          if (!byline) return null;
-          return (
-            <p className="mt-4 border-t border-line pt-3 text-xs leading-6 text-content-tertiary">
-              本条由 @{byline.author} 于 {byline.date} 发布的旧说说迁移而来
-            </p>
-          );
-        })()}
-      </article>
-
-      <GiscusComments key={entry.number} mapping="number" term={entry.number} card />
+      <div data-shuoshuo-id={item.id}>
+        <ShuoShuoItem
+          item={item}
+          onPreview={(images, index) => setPreviewGallery({ images, index })}
+          onShare={handleShare}
+          showDetailLink={false}
+        />
+      </div>
 
       <div className="mt-4 px-1 text-xs">
         <Link to="/shuoshuo" className="inline-flex items-center gap-1.5 text-content-muted hover:text-accent">
@@ -164,13 +164,27 @@ export const ShuoShuoDetail = () => {
         </Link>
       </div>
 
-      {previewSrc && (
+      {previewGallery && (
         <ImageViewer
-          src={previewSrc}
-          alt={entry.title}
+          src={null}
+          images={previewGallery.images}
+          initialIndex={previewGallery.index}
+          onClose={() => setPreviewGallery(null)}
+        />
+      )}
+
+      {isShareOpen && (
+        <ShareModal
+          isOpen={isShareOpen}
           onClose={() => {
-            setPreviewSrc(null);
+            setIsShareOpen(false);
+            setAutoCopied(null);
           }}
+          title={title}
+          excerpt={strippedContent}
+          url={shareUrl}
+          autoCopied={autoCopied}
+          contentLabel="这条说说"
         />
       )}
     </div>

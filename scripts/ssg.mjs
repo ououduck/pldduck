@@ -11,7 +11,7 @@ import { withBasePath } from './base-path.mjs';
 import { parseEnvNumber } from './lib/env.mjs';
 import { createBuildLogger } from './build-logger.mjs';
 import { loadPostsWithContent } from './ssg-data-loader.mjs';
-import { SSG_STATIC_PAGES, NOT_FOUND_CSS_ENTRY, POST_CSS_ENTRY, ROUTES } from '../config/routes.mjs';
+import { SSG_STATIC_PAGES, NOT_FOUND_CSS_ENTRY, POST_CSS_ENTRY, SHUOSHUO_DETAIL_CSS_ENTRY } from '../config/routes.mjs';
 
 const logger = createBuildLogger('ssg');
 
@@ -20,7 +20,7 @@ const __dirname = path.dirname(__filename);
 
 const DIST_DIR = path.join(__dirname, '../dist');
 const DIST_SSR_DIR = path.join(__dirname, '../dist-ssr');
-const DISCUSSIONS_FILE = path.join(__dirname, '../generated/discussions.json');
+const SHUOSHUO_FILE = path.join(__dirname, '../generated/shuoshuo.json');
 const POSTS_FILE = path.join(__dirname, '../generated/posts.json');
 
 const siteConfig = loadSiteConfig({ logger });
@@ -346,43 +346,33 @@ const loadRouteCssMap = (distDir) => {
 };
 
 /**
- * 读取构建期抓取的说说/留言列表，产出需要预渲染的详情页清单。
+ * 读取构建期解析的说说列表（generated/shuoshuo.json，来自 shuoshuo/*.md），
+ * 产出需要预渲染的详情页清单。
  *
- * 每条内容一个页面（/shuoshuo/<number>、/guestbook/<number>）：只有真正存在的内容
- * 才预渲染，`discussions.json` 缺失或某条编号非法时跳过（不制造 404 页）。
- * @returns {Array<{ url: string, cssEntry: string }>}
+ * 每条说说一个页面（/shuoshuo/<id>）：也只有真正存在的内容才预渲染，
+ * 文件缺失或某条 id 非法时跳过（不制造 404 页）。
+ * @returns {Array<{ url: string, outDir: string, firstImage?: string }>}
  */
-const loadDiscussionEntries = () => {
-  if (!fs.existsSync(DISCUSSIONS_FILE)) {
-    logger.warn('generated/discussions.json not found; 说说/留言详情页不预渲染（列表按降级态渲染）');
+const loadShuoShuoEntries = () => {
+  if (!fs.existsSync(SHUOSHUO_FILE)) {
+    logger.warn('generated/shuoshuo.json not found; 说说详情页不预渲染（列表按空态渲染）');
     return [];
   }
   let data;
   try {
-    data = JSON.parse(fs.readFileSync(DISCUSSIONS_FILE, 'utf-8'));
+    data = JSON.parse(fs.readFileSync(SHUOSHUO_FILE, 'utf-8'));
   } catch (error) {
-    logger.warn('generated/discussions.json is unreadable; 详情页不预渲染', formatError(error));
+    logger.warn('generated/shuoshuo.json is unreadable; 说说详情页不预渲染', formatError(error));
     return [];
   }
 
-  const cssEntryBySurface = new Map(
-    ROUTES.filter((route) => route.ssg === 'discussions').map((route) => [
-      /** @type {string} */ (route.segment),
-      /** @type {string} */ (route.cssEntry),
-    ]),
-  );
-
-  const entries = [];
-  for (const [area, list] of Object.entries(data ?? {})) {
-    const cssEntry = cssEntryBySurface.get(area);
-    if (!cssEntry || !Array.isArray(list)) continue;
-    for (const item of list) {
-      const number = Number(item?.number);
-      if (!Number.isFinite(number) || number <= 0) continue;
-      entries.push({ url: `/${area}/${number}`, cssEntry });
-    }
-  }
-  return entries;
+  return (Array.isArray(data) ? data : [])
+    .filter((item) => typeof item?.id === 'string' && /^[A-Za-z0-9_-]+$/.test(item.id))
+    .map((item) => ({
+      url: `/shuoshuo/${item.id}`,
+      outDir: `shuoshuo/${item.id}`,
+      firstImage: Array.isArray(item.images) ? item.images[0] : undefined,
+    }));
 };
 
 /** 从模板 HTML 中提取已存在的 stylesheet href，避免路由级样式重复注入同一 URL。 */ const extractStylesheetHrefs = (
@@ -627,25 +617,25 @@ export const runSsg = async ({
     `count=${staticPages.length} failed=${failedPages.filter((item) => staticPages.some((page) => item.url === `/${page.path}`)).length} skipped=${staticSkipped}`,
   );
 
-  // 2.1 说说与留言详情页：一条内容 = 一条 Discussion（2026-11 评论通知改造）。
-  // 列表内容来自构建期生成的 generated/discussions.json；抓不到（无 token / API 失败 /
-  // 分类未配置）时没有条目可预渲染 —— 这不是错误，列表页会按降级态渲染，
-  // 详情页由 SPA 兜底（访问时能查到数据就正常渲染，查不到显示「找不到」）。
-  const discussionEntries = loadDiscussionEntries();
-  for (const entry of discussionEntries) {
+  // 2.1 说说详情页：每条说说一个独立可索引页面 /shuoshuo/<id>（SSG 静态 HTML）。
+  // 与文章页一致，正文随首帧 HTML 输出，爬虫/智能体无需执行 JS 即可读取。
+  // 首图 preload 同文章封面：单变体 href 与 <img src> 一致，无 srcset 故不输出 imagesizes。
+  const shuoshuoEntries = loadShuoShuoEntries();
+  for (const entry of shuoshuoEntries) {
     if (budgetExceeded()) {
       skippedPages.push(entry.url);
       continue;
     }
+    const extraHead = entry.firstImage ? createImagePreload(toAbsoluteUrl(entry.firstImage, SITE_URL, BASE_PATH)) : '';
     try {
-      await writePage(entry.url, entry.url.replace(/^\//, ''), '', entry.cssEntry);
+      await writePage(entry.url, entry.outDir, extraHead, SHUOSHUO_DETAIL_CSS_ENTRY);
     } catch (error) {
       failedPages.push({ url: entry.url, error: formatError(error) });
     }
   }
   logger.step(
-    'Generated discussion detail pages',
-    `count=${discussionEntries.length} failed=${failedPages.filter((item) => discussionEntries.some((entry) => entry.url === item.url)).length}`,
+    'Generated shuoshuo detail pages',
+    `count=${shuoshuoEntries.length} failed=${failedPages.filter((item) => shuoshuoEntries.some((entry) => entry.url === item.url)).length}`,
   );
 
   // 3. 首页。
@@ -713,7 +703,7 @@ export const runSsg = async ({
       firstFew: skippedPages.slice(0, 10),
     });
   }
-  const totalPages = posts.length + staticPages.length + discussionEntries.length + 2;
+  const totalPages = posts.length + staticPages.length + shuoshuoEntries.length + 2;
   if (failedPages.length > 0 || skippedPages.length > 0) {
     for (const failed of failedPages) {
       logger.error('Page generation failed', `${failed.url}: ${failed.error}`);
@@ -722,7 +712,7 @@ export const runSsg = async ({
       pages: totalPages,
       posts: posts.length,
       static: staticPages.length,
-      discussions: discussionEntries.length,
+      shuoshuo: shuoshuoEntries.length,
       failed: failedPages.length,
       skipped: skippedPages.length,
       siteUrl: SITE_URL,
@@ -738,7 +728,7 @@ export const runSsg = async ({
     pages: totalPages,
     posts: posts.length,
     static: staticPages.length,
-    discussions: discussionEntries.length,
+    shuoshuo: shuoshuoEntries.length,
     skipped: skippedPages.length,
     routeCss: routeCssInjected,
     siteUrl: SITE_URL,

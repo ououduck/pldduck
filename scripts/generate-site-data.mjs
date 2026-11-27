@@ -1,6 +1,10 @@
 /**
- * 站点数据生成：解析 posts/friends 内容并输出 generated/posts.json、搜索索引、sitemap、llms.txt 等全部构建期数据。
- * 说说改由 giscus 内嵌承载（公告 Discussion），构建期不再解析 shuoshuo/*.md。
+ * 站点数据生成：解析 posts/shuoshuo/friends 内容并输出 generated/posts.json、
+ * generated/shuoshuo.json、搜索索引、sitemap、llms.txt 等全部构建期数据。
+ *
+ * 说说回到 Markdown 内容管线（2026-11）：条目由 Pages CMS 的「说说」集合维护
+ * （shuoshuo/*.md，frontmatter 提供 id / date / images，正文即动态内容），
+ * 构建期解析为 generated/shuoshuo.json，前端 eager 内联后 SSG 首帧直出。
  */
 
 import 'dotenv/config';
@@ -20,7 +24,6 @@ import {
 import { extractMarkdownHeadings } from '../src/utils/headings-core.mjs';
 import { buildRssFeed } from './feed-generator.mjs';
 import { fetchCommentCounts } from './fetch-giscus-comments.mjs';
-import { fetchDiscussionLists } from './fetch-discussions.mjs';
 import { SITEMAP_PAGES } from '../config/routes.mjs';
 
 const logger = createBuildLogger('gen:data');
@@ -68,8 +71,12 @@ const __dirname = path.dirname(__filename);
 const POSTS_DIR = path.join(__dirname, '../posts');
 const IMAGE_ROOT = path.join(__dirname, '../posts-img');
 const FRIENDS_DIR = path.join(__dirname, '../friends');
+const SHUOSHUO_DIR = path.join(__dirname, '../shuoshuo');
 const OUTPUT_JSON_DIR = path.join(__dirname, '../generated');
 const PUBLIC_DIR = path.join(__dirname, '../public');
+
+/** 说说正文字数上限（字符）：短动态，超长说明写错了文件。 */
+const MAX_SHUOSHUO_BODY_CHARS = 5000;
 
 /**
  * 单篇文章文件大小上限（字节）：5 MiB。
@@ -433,8 +440,85 @@ const buildPost = (record) => {
       };
 };
 
-// ── 说说（短动态）改由 giscus 内嵌承载（公告 Discussion 每条评论 = 一条说说），
-// 构建期不再解析 shuoshuo/*.md，产物 shuoshuo.json / per-item sitemap / llms 说说段一并退役。
+// ── 说说（短动态）：shuoshuo/*.md 由 Pages CMS「说说」集合维护，
+// frontmatter 提供 id / date / images（九宫格图片），正文即动态内容。
+// 与文章同级的质量门槛：id/date 缺失、格式非法或重复一律 fail-closed，
+// 避免脏数据进入产物。解析提前到文章内容校验之前：文章正文里的
+// /shuoshuo/<id> 链接需要校验目标说说存在。
+const shuoshuoFiles = fs.existsSync(SHUOSHUO_DIR)
+  ? fs.readdirSync(SHUOSHUO_DIR).filter((file) => file.endsWith('.md'))
+  : [];
+
+const shuoshuoRecords = shuoshuoFiles.map((filename) => {
+  const filePath = path.join(SHUOSHUO_DIR, filename);
+  let data = {};
+  let content = '';
+
+  try {
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    ({ data, content } = matter(fileContent));
+  } catch (error) {
+    validationErrors.push(
+      `Invalid front matter in shuoshuo/${filename}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  const id = typeof data.id === 'string' ? data.id.trim() : '';
+  const formattedDate = formatFrontmatterDate(data.date);
+  const images = Array.isArray(data.images) ? data.images.map((value) => String(value).trim()).filter(Boolean) : [];
+  const body = content.trim();
+
+  if (!id) {
+    validationErrors.push(`Invalid front matter in shuoshuo/${filename}: id must be a non-empty string`);
+  } else if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+    validationErrors.push(
+      `Invalid front matter in shuoshuo/${filename}: id "${id}" only allows letters, digits, hyphens and underscores (it becomes the /shuoshuo/<id> URL segment)`,
+    );
+  }
+  if (!formattedDate || !validateDateString(formattedDate)) {
+    validationErrors.push(`Invalid front matter in shuoshuo/${filename}: date must use YYYY-MM-DD format`);
+  }
+  if (body.length > MAX_SHUOSHUO_BODY_CHARS) {
+    validationErrors.push(
+      `shuoshuo/${filename}: body is ${body.length} characters, exceeding the ${MAX_SHUOSHUO_BODY_CHARS} character limit for short posts`,
+    );
+  }
+  images.forEach((image, index) => {
+    if (!/^(?:https?:\/\/|\/)/i.test(image)) {
+      validationErrors.push(
+        `Invalid front matter in shuoshuo/${filename}: images[${index}] "${image}" must be an http(s) URL or a root-relative path`,
+      );
+    }
+  });
+
+  return {
+    filename,
+    id,
+    date: formattedDate,
+    images,
+    content: body,
+    filePath: `/shuoshuo/${filename}`,
+  };
+});
+
+const seenShuoShuoIds = new Map();
+shuoshuoRecords.forEach((record) => {
+  if (!record.id) return;
+  const previous = seenShuoShuoIds.get(record.id);
+  if (previous) {
+    validationErrors.push(
+      `Duplicate shuoshuo id "${record.id}" found in shuoshuo/${record.filename} and shuoshuo/${previous}.`,
+    );
+  } else {
+    seenShuoShuoIds.set(record.id, record.filename);
+  }
+});
+
+const shuoshuo = shuoshuoRecords
+  .filter((record) => record.id && record.date)
+  // 时间倒序（最新在前）；同一日期按 id 升序，保证同一份输入产出同一顺序（SSG 确定性）。
+  .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
+  .map(({ filename: _filename, ...record }) => record);
 
 postRecords.forEach((record) => {
   // 草稿不参与内容级严格校验（图片 alt/本地图片文件/coverImage/站内链接与路由
@@ -448,6 +532,7 @@ postRecords.forEach((record) => {
       allPosts: allPostIndex,
       publishedPosts: publishedPostIndex,
       staticRoutes: DEFAULT_STATIC_ROUTES,
+      shuoshuoIds: new Set(shuoshuo.map((item) => item.id)),
       skipFrontMatter: true,
       lineOffset: record.contentStartLine,
     }),
@@ -574,23 +659,13 @@ const friends = friendFiles.flatMap((filename) => {
   }
 });
 
-// ── 说说与留言板：2026-11 起「一条内容 = 一个 Discussion」（见 ai-rules/shuoshuo.md /
-// guestbook.md 与 scripts/lib/discussion-list-core.mjs 的说明）：GitHub 的邮件通知是
-// Discussion 级的，只有拆成一条一帖，访客才不会收到与自己无关的回复通知。
-// 列表数据在构建期抓成 generated/discussions.json（客户端 eager 内联，SSG 首帧直出）；
-// 抓取失败时保留"不写文件"的策略（页面按降级态渲染），不阻塞构建。
-const discussionLists = await fetchDiscussionLists();
-if (discussionLists) {
-  fs.writeFileSync(path.join(OUTPUT_JSON_DIR, 'discussions.json'), JSON.stringify(discussionLists, null, 2));
-  logger.step(
-    'Generated discussions.json',
-    `shuoshuo=${discussionLists.shuoshuo.length} guestbook=${discussionLists.guestbook.length}`,
-  );
-} else {
-  // 未抓到时删掉旧产物：留着上一次的列表会让页面展示已经不存在的讨论。
-  fs.rmSync(path.join(OUTPUT_JSON_DIR, 'discussions.json'), { force: true });
-  logger.warn('discussions.json 未生成（无 token / API 失败 / 分类未配置），说说与留言板列表将按降级态渲染');
-}
+// ── 说说产物：generated/shuoshuo.json（前端 services/shuoshuo.ts eager 内联，
+// SSG 首帧直出）。留言板与说说评论区已于 2026-11 下线，站点不再抓取 GitHub
+// Discussions —— 内容全部来自仓库内 shuoshuo/*.md，构建结果可复现。
+fs.writeFileSync(path.join(OUTPUT_JSON_DIR, 'shuoshuo.json'), JSON.stringify(shuoshuo, null, 2));
+logger.step('Generated shuoshuo.json', `shuoshuo=${shuoshuo.length} sourceFiles=${shuoshuoFiles.length}`);
+// 旧产物清理：discussions.json 是已下线管线留下的文件，残留会让旧页面读到过期数据。
+fs.rmSync(path.join(OUTPUT_JSON_DIR, 'discussions.json'), { force: true });
 
 fs.writeFileSync(path.join(OUTPUT_JSON_DIR, 'friends.json'), JSON.stringify(friends, null, 2));
 logger.step('Generated friends.json', `friends=${friends.length} sourceFiles=${friendFiles.length}`);
@@ -698,8 +773,8 @@ const generateSitemap = () => {
 </urlset>`;
   fs.writeFileSync(path.join(PUBLIC_DIR, 'sitemap-images.xml'), imagesXml);
 
-  // 4. sitemap index：聚合三个子 sitemap，robots.txt 指向该 index。
-  //    （说说详情页 /shuoshuo/<id> 已随自建管线退役，不再有 sitemap-shuoshuo.xml。）
+  // 4. sitemap index：聚合三个子 sitemap，robots.txt 指向该 index。（说说列表页
+  //    已由 sitemap-pages.xml 覆盖，单条说说不单独出站点地图。）
   const sitemapIndexXml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <sitemap>
@@ -803,6 +878,11 @@ const generateLlmsTxt = () => {
     (post) =>
       `- [${escapeLinkText(post.title)}](${siteAbsoluteUrl(`/post/${post.id}`)}): ${post.excerpt.replace(/\n+/g, ' ').trim()}`,
   );
+  // 说说为短动态，直接把剥离 Markdown 后的纯文本附在链接后，便于智能体直接读取内容。
+  const shuoshuoLines = shuoshuo.map((item) => {
+    const snippet = markdownToSearchText(item.content).slice(0, 60) || '图片动态';
+    return `- [说说：${escapeLinkText(snippet)}](${siteAbsoluteUrl(`/shuoshuo/${item.id}`)})`;
+  });
 
   const content = [
     `# ${SITE_TITLE}`,
@@ -826,6 +906,7 @@ const generateLlmsTxt = () => {
     '',
     ...postLines,
     '',
+    ...(shuoshuoLines.length > 0 ? ['## 说说', '', ...shuoshuoLines, ''] : []),
     '## 全文版',
     '',
     `Full-text version: ${siteAbsoluteUrl('/llms-full.txt')}`,
@@ -833,7 +914,7 @@ const generateLlmsTxt = () => {
   ].join('\n');
 
   fs.writeFileSync(path.join(PUBLIC_DIR, 'llms.txt'), content);
-  logger.step('Generated llms.txt', `posts=${posts.length}`);
+  logger.step('Generated llms.txt', `posts=${posts.length} shuoshuo=${shuoshuo.length}`);
 };
 
 /**
@@ -915,6 +996,7 @@ if (process.exitCode) {
   logger.summary({
     posts: posts.length,
     friends: friends.length,
+    shuoshuo: shuoshuo.length,
     outputs: countGeneratedOutputs(),
     siteUrl: SITE_URL,
     status: 'failed',
@@ -923,6 +1005,7 @@ if (process.exitCode) {
   logger.summary({
     posts: posts.length,
     friends: friends.length,
+    shuoshuo: shuoshuo.length,
     outputs: countGeneratedOutputs(),
     siteUrl: SITE_URL,
   });

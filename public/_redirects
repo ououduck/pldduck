@@ -16,7 +16,10 @@
 # 是最常见的误写，这里用真 301 交给爬虫与外链，避免同一篇文章出现两个 URL。
 /posts/:splat  /post/:splat  301
 #
-# 说说与留言板自 2026-11 起改成「一条内容 = 一条 Discussion」，各条有自己的详情页
-# （/shuoshuo/<number>、/guestbook/<number>）。旧的 /shuoshuo/<id> 自建管线深链早已退役，
-# 但新的详情页占用了同一路径形状：非纯数字的旧深链仍在 App.tsx 里 301 回列表页
-# （<Navigate replace>），不在这里做规则 —— 否则会把新的数字详情页一起 301 掉。
+# 留言板已整体下线（2026-11）：页面、路由与评论区一并删除，旧外链统一 301 收回
+# 文章列表，避免 404。精确规则先于 splat。
+/guestbook  /posts  301
+/guestbook/*  /posts  301
+#
+# 说说的详情页是 /shuoshuo/<id>，id 来自 shuoshuo/*.md 的 frontmatter（静态数据），
+# 由 SSG 逐条预渲染，没有需要重定向的历史路径形状。

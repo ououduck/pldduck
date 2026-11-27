@@ -46,7 +46,7 @@ const toCardMarkdown = (text) =>
   sanitizeText(text)
     .replace(/<b>([\s\S]*?)<\/b>/gi, '**$1**')
     // 飞书卡片 markdown 把 `![alt](x)` 当作"图片"解析，且只认飞书上传返回的 img_key（img_v2_…）；
-    // 正文里的外部图片 URL（如说说/评论带的 ![](https://img.pldduck.com/…)）会被拒：
+    // 正文里的外部图片 URL（如评论带的 ![](https://img.pldduck.com/…)）会被拒：
     // ErrCode 200570 "card contains invalid image keys"。去掉前导 `!` 降级为普通链接，
     // 图片地址仍可点击跳转，但不再被当成图片渲染。
     .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (_match, alt, url) => `[${alt || '图片'}](${url})`)

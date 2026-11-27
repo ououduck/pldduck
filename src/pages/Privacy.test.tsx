@@ -21,7 +21,9 @@ describe('Privacy', () => {
     expect(screen.getByText('本站会保存什么')).toBeInTheDocument();
     expect(screen.getByText('访问统计')).toBeInTheDocument();
     expect(screen.getByText('评论与 GitHub')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /留言板/ })).toHaveAttribute('href', '/guestbook');
+    // 留言板已下线：隐私政策里不再有指向 /guestbook 的联系入口。
+    expect(screen.queryByRole('link', { name: /留言板/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/或在文章评论区留言/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /pldduck@outlook\.com/ })).toHaveAttribute(
       'href',
       expect.stringMatching(/^mailto:/),

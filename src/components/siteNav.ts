@@ -4,17 +4,7 @@
  * 新增页面时这里与 `config/routes.mjs` 需同步维护（见 ai-rules/layout-nav.md）。
  */
 
-import {
-  Archive,
-  BookOpen,
-  House,
-  Image as ImageIcon,
-  MessageCircle,
-  MessageSquareText,
-  Stamp,
-  TrainFront,
-  Users,
-} from 'lucide-react';
+import { Archive, BookOpen, House, Image as ImageIcon, MessageCircle, Stamp, TrainFront, Users } from 'lucide-react';
 
 /** lucide 图标组件类型：沿用 Layout 既有写法，避免依赖 lucide 的类型导出名。 */
 type NavIcon = typeof BookOpen;
@@ -57,7 +47,6 @@ export const navGroups: NavGroup[] = [
       { key: 'shuoshuo', path: '/shuoshuo', label: '说说', hint: '朋友圈式动态', icon: MessageCircle },
       { key: 'archive', path: '/archive', label: '归档', hint: '时间归档', icon: Archive },
       { key: 'friends', path: '/friends', label: '友链', hint: '友情链接', icon: Users },
-      { key: 'guestbook', path: '/guestbook', label: '留言', hint: '留言互动', icon: MessageSquareText },
       {
         key: 'travellings',
         href: 'https://www.travellings.cn/go.html',

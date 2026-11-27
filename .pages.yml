@@ -36,6 +36,38 @@ content:
           format: markdown
           switcher: true   # 允许切换源码模式编辑数学公式/Mermaid/嵌套图片链接
 
+  # ── 说说（短动态）集合：朋友圈式短动态，正文 Markdown，图片按九宫格展示 ──
+  - name: shuoshuo
+    label: 说说
+    type: collection
+    path: shuoshuo
+    format: yaml-frontmatter
+    filename: "{fields.id}.md"
+    view:
+      primary: date
+      sort: date
+      order: desc
+    fields:
+      - name: id
+        label: 标识（英文字母/数字/下划线/短横线，作为文件名与 /shuoshuo/ 路径）
+        type: string
+        required: true
+        pattern:
+          regex: "^[A-Za-z0-9_-]+$"
+          message: 标识仅支持英文字母、数字、下划线和短横线（中文等字符会使文件名生成失败）
+      - { name: date, label: 发布时间, type: date, required: true }
+      - name: images
+        label: 图片链接（可选，九宫格展示）
+        description: 每行一个图片地址；1 张按大图展示，2 张两列，3 张及以上按九宫格排列，点击可放大浏览
+        type: string
+        list: true
+      - name: body
+        label: 内容
+        type: rich-text
+        options:
+          format: markdown
+          switcher: true
+
   # ── 友链集合：直接读写 friends/ 目录下的 JSON 文件，不改动既有文件结构 ──
   - name: friends
     label: 友链
@@ -106,7 +138,7 @@ content:
       - { name: keywords, label: 关键词（子串匹配）, type: string, list: true }
       - { name: patterns, label: 正则表达式（忽略大小写）, type: string, list: true }
 
-  # ── 站点配置：按用途拆成两份文件（站点配置 / 评论与留言板），
+  # ── 站点配置：按用途拆成两份文件（站点配置 / 评论配置），
   #    构建期与运行期各加载器再合并回同一份 siteConfig，消费方无需感知拆分 ──
   - name: siteConfig
     label: 站点配置
@@ -170,9 +202,9 @@ content:
           - { name: repoUrl, label: 内容仓库地址, type: string }
           - { name: defaultBranch, label: 默认分支, type: string }
 
-  # ── 评论与留言板（config/comments.config.json）：合并回 siteConfig 的 giscusEnabled / comments / guestbook ──
+  # ── 评论（config/comments.config.json）：合并回 siteConfig 的 giscusEnabled / comments ──
   - name: commentsConfig
-    label: 评论与留言板
+    label: 评论
     type: file
     path: config/comments.config.json
     format: json
@@ -194,28 +226,6 @@ content:
             label: 严格匹配
             description: 关闭（推荐）：按标题匹配并允许自动建讨论；开启：按正文 SHA-1 哈希匹配（历史讨论需含哈希标记）
             type: boolean
-      - name: guestbook
-        label: 留言板
-        description: 留言板按「一份留言 = 一条 Discussion」工作（这样访客只会收到自己参与过的那份留言的通知）。分类名与分类 ID 都要填，构建期用它拉取留言列表；分类只能在 GitHub 网页端的 Discussions 里创建
-        type: object
-        fields:
-          - { name: categoryName, label: 分类名, type: string }
-          - { name: categoryId, label: 分类 ID, type: string }
-          - name: discussionId
-            label: 旧版合集讨论编号（迁移兜底，通常留空）
-            description: 改造前承载全部留言的那个 Discussion 编号。仅在评论审核需要继续识别旧讨论时填写；新结构不使用它
-            type: number
-      - name: shuoshuo
-        label: 说说（GitHub Discussions 分类）
-        description: 说说按「一条说说 = 一条 Discussion」工作（这样访客只会收到自己参与过的那条的通知）。分类名与分类 ID 都要填，构建期用它拉取说说列表
-        type: object
-        fields:
-          - { name: categoryName, label: 分类名, type: string }
-          - { name: categoryId, label: 分类 ID, type: string }
-          - name: discussionId
-            label: 旧版合集讨论编号（迁移兜底，通常留空）
-            description: 改造前承载全部说说的那个 Discussion 编号。仅在评论审核需要继续识别旧讨论时填写；新结构不使用它
-            type: number
 
 # ── 部署动作：CMS 侧边栏按钮，触发 .github/workflows/deploy.yml ──
 # 文档: https://pagescms.org/docs/configuration/actions/
@@ -268,16 +278,6 @@ actions:
       title: 确认审核友链失联状态？
       message: 将逐个请求 friends/ 中每个友链的站点地址（不可达的等 30 秒复测一次），并按结论**覆写「已失联」开关**（含取消站长手工勾选）：有改动时提交 friends/*.json 并触发一次部署。单轮最多标记 3 个，不可达过半自动熔断只报告。
       button: 开始审核
-
-  # ── 说说/留言发布后重新部署：新建 Discussion 会触发本 workflow，刷新列表与详情页 ──
-  - name: publish-discussion-content
-    label: 刷新说说/留言列表
-    workflow: discussion-publish.yml
-    ref: current
-    confirm:
-      title: 确认重新部署？
-      message: 说说与留言板按「一条内容 = 一条 Discussion」工作，列表数据在构建期抓取。新建或编辑一条内容后需要重新部署一次，列表与详情页才会更新（在 GitHub 上新建 Discussion 时也会自动触发）。
-      button: 开始部署
 
   # ── 飞书机器人 Webhook 通知测试：验证 FEISHU_WEBHOOK_URL 配置，并向飞书机器人 Webhook 发送测试消息 ──
   - name: test-feishu-webhook

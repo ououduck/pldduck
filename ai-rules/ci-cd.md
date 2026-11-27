@@ -6,7 +6,7 @@ GitHub Actions 自动化：ci（push/PR 全量门禁）、deploy（手动部署�
 
 ## 关键文件
 
-- `.github/workflows/*.yml`（12 个）
+- `.github/workflows/*.yml`（11 个）
 - `.pages.yml`（CMS 集合/字段/动作按钮）
 
 ## 修改规则（必须遵守）

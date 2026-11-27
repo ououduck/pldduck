@@ -23,8 +23,6 @@ const ArchivePage = lazy(pageLoaders['/archive']);
 const Friends = lazy(pageLoaders['/friends']);
 const ShuoShuoPage = lazy(pageLoaders['/shuoshuo']);
 const ShuoShuoDetailPage = lazy(() => import('./pages/ShuoShuoDetail').then((m) => ({ default: m.ShuoShuoDetail })));
-const GuestbookPage = lazy(pageLoaders['/guestbook']);
-const GuestbookDetailPage = lazy(() => import('./pages/GuestbookDetail').then((m) => ({ default: m.GuestbookDetail })));
 const CoverGenerator = lazy(pageLoaders['/cover']);
 const Watermark = lazy(pageLoaders['/watermark']);
 const SearchPage = lazy(pageLoaders['/search']);
@@ -153,11 +151,8 @@ const AppRoutes: React.FC = () => {
           <Route path="/tags" element={<TagsRedirect />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/shuoshuo" element={<ShuoShuoPage />} />
-          {/* 2026-11：一条说说 = 一条 Discussion，详情页承载它自己的评论区。 */}
-          <Route path="/shuoshuo/:number" element={<ShuoShuoDetailPage />} />
-          <Route path="/guestbook" element={<GuestbookPage />} />
-          {/* 留言同理：一份留言 = 一条 Discussion。 */}
-          <Route path="/guestbook/:number" element={<GuestbookDetailPage />} />
+          {/* 每条说说一个可索引详情页（/shuoshuo/<id>），内容来自 shuoshuo/*.md。 */}
+          <Route path="/shuoshuo/:id" element={<ShuoShuoDetailPage />} />
           <Route path="/cover" element={<CoverGenerator />} />
           <Route path="/watermark" element={<Watermark />} />
           <Route path="/search" element={<SearchPage />} />

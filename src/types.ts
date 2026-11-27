@@ -1,9 +1,7 @@
 /**
  * 全站共享数据类型：文章（Post/PostMetadata/PostAuthor）、友链（Friend）与
- * 说说/留言板条目（DiscussionEntry）。
+ * 说说（ShuoShuo）。
  * 数据源为构建期生成的 JSON（generated/*），客户端数据层（services/*）按本文件契约读写。
- * 说说与留言板自 2026-11 起「一条内容 = 一个 Discussion」（generated/discussions.json），
- * 评论仍由 giscus 按 discussion 编号承载。
  */
 export interface PostAuthor {
   name: string;
@@ -63,38 +61,18 @@ export interface Friend {
 }
 
 /**
- * 一条说说 / 一份留言（= GitHub Discussions 里的一条 Discussion）。
- *
- * 为什么一条内容一个 Discussion：GitHub 的邮件通知是 **Discussion 级**的 ——
- * 谁在某条 discussion 里留过言就会被自动 watch，之后该 discussion 下每条评论都会
- * 给他发邮件，且没有 per-reply 订阅可配（giscus 也没有）。单帖单 Discussion 之后，
- * 访客只会收到自己参与过的那一条的通知（2026-11 用户反馈修复）。
+ * 说说（短动态）：类似朋友圈的一句话内容，正文为 Markdown，images 为可选九宫格图片。
+ * 数据源是 shuoshuo/*.md（Pages CMS「说说」集合），构建期解析为 generated/shuoshuo.json。
  */
-export interface DiscussionEntry {
-  /** Discussion 编号（详情路由与 giscus 的 mapping=number 都用它）。 */
-  number: number;
-  title: string;
-  /** Markdown 原文（详情页渲染）。 */
-  body: string;
-  /** 构建期算好的单行摘要（列表页用，避免前端再解析 Markdown）。 */
-  excerpt: string;
-  /** 正文里的图片地址（只含 http(s) 与站内绝对路径，列表页图片墙用）。 */
-  images: string[];
-  createdAt: string;
-  updatedAt: string;
-  author: {
-    login: string;
-    avatarUrl: string;
-    url: string;
-  };
-  commentCount: number;
-  reactionCount: number;
-  /** GitHub 上的原始地址（「在 GitHub 查看」入口）。 */
-  url: string;
-}
-
-/** generated/discussions.json 的形状：两个区域的列表，各自按创建时间倒序。 */
-export interface DiscussionLists {
-  shuoshuo: DiscussionEntry[];
-  guestbook: DiscussionEntry[];
+export interface ShuoShuo {
+  /** URL 标识，同时是 /shuoshuo/<id> 的路径段（仅字母、数字、下划线、短横线）。 */
+  id: string;
+  /** 发布日期（YYYY-MM-DD）。 */
+  date: string;
+  /** 九宫格图片地址（http(s) 或站内绝对路径），可为空。 */
+  images?: string[];
+  /** Markdown 正文。 */
+  content: string;
+  /** 源文件路径（如 /shuoshuo/hello-shuoshuo.md），供「在 GitHub 上编辑」类入口使用。 */
+  filePath: string;
 }

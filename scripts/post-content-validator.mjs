@@ -15,20 +15,19 @@ const DEFAULT_STATIC_ROUTES = new Set([
   '/tags',
   '/friends',
   '/shuoshuo',
-  '/guestbook',
   '/cover',
   '/watermark',
   '/search',
+  '/privacy',
 ]);
 
 /**
- * 带参数的站内路由前缀（2026-11 起说说/留言各有逐条详情页）。
+ * 带参数的站内路由前缀（说说详情页 `/shuoshuo/<id>`）。
  *
- * 这里只做「形状」校验：`/shuoshuo/12` 是合法的站内路由，但内容校验阶段拿不到
- * discussion 列表（在线数据），因此**不校验编号是否存在** —— 与文章 `/post/<id>`
- * 的目标存在性校验刻意不同，别把两者混成一套。
+ * id 由 `shuoshuo/*.md` 的 frontmatter 决定，与文章一样是仓库内静态数据，
+ * 因此这里**只做形状校验**，目标存在性由调用方通过 `shuoshuoIds` 单独判断。
  */
-const PARAMETERIZED_ROUTE_PATTERNS = [/^\/(?:shuoshuo|guestbook)\/\d+$/];
+const PARAMETERIZED_ROUTE_PATTERNS = [/^\/shuoshuo\/[A-Za-z0-9_-]+$/];
 
 const isEscaped = (value, index) => {
   let slashCount = 0;
@@ -260,6 +259,7 @@ export const validatePostContent = (post, context = {}) => {
     imageRoot = path.resolve('posts-img'),
     publishedPosts = new Map(),
     staticRoutes = DEFAULT_STATIC_ROUTES,
+    shuoshuoIds = null,
     lineOffset = 0,
     skipFrontMatter = false,
   } = context;
@@ -406,6 +406,18 @@ export const validatePostContent = (post, context = {}) => {
         lineError(filename, link.line + lineOffset, `link "${link.rawTarget}" targets an unknown site route`),
       );
       return;
+    }
+
+    // 说说详情页：目标必须真实存在（shuoshuo/*.md 里声明的 id），
+    // 否则文章里会留下一条指向 404 的站内链接。
+    if (pathname.startsWith('/shuoshuo/') && shuoshuoIds) {
+      const targetShuoShuoId = pathname.slice('/shuoshuo/'.length);
+      if (!shuoshuoIds.has(targetShuoShuoId)) {
+        errors.push(
+          lineError(filename, link.line + lineOffset, `link "${link.rawTarget}" targets a missing shuoshuo entry`),
+        );
+        return;
+      }
     }
 
     if (route.anchor && targetPost) {

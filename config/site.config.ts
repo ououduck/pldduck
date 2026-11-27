@@ -1,9 +1,9 @@
 /**
  * 站点配置。
  *
- * 数据源是同目录下的两份 JSON —— 拆分只为 PagesCMS 编辑体验（站点基础信息 / 评论与留言板），
- * 对外仍是**单一合并对象**：`siteConfig.comments` / `siteConfig.guestbook` 的访问方式
- * 与拆分前完全一致，消费方无需感知文件边界。保存即推送仓库生效，无需改动代码。
+ * 数据源是同目录下的两份 JSON —— 拆分只为 Pages CMS 编辑体验（站点基础信息 / 评论配置），
+ * 对外仍是**单一合并对象**：`siteConfig.comments` 的访问方式与拆分前完全一致，
+ * 消费方无需感知文件边界。保存即推送仓库生效，无需改动代码。
  * 本文件仅负责加载 JSON 并提供类型约束：JSON 缺字段/类型不符会在
  * `npm run typecheck` 时直接报错（fail-fast）。
  *
@@ -59,24 +59,6 @@ export interface SiteComments {
   strict?: boolean;
 }
 
-export interface SiteGuestbook {
-  /** 留言板分类名（2026-11 起「一份留言 = 一条 Discussion」，按分类判定区域与新建入口）。 */
-  categoryName: string;
-  /** 留言板分类 ID（GraphQL 抓列表用）。 */
-  categoryId: string;
-  /** 旧口径：单个合集 Discussion 编号（迁移兜底，新结构下不再使用）。 */
-  discussionId?: number;
-}
-
-export interface SiteShuoShuo {
-  /** 说说分类名（每条说说 = 一条 Discussion，2026-11 评论通知改造）。 */
-  categoryName: string;
-  /** 说说分类 ID（GraphQL 抓列表用）。 */
-  categoryId: string;
-  /** 旧口径：单个合集 Discussion 编号（迁移兜底，新结构下不再使用）。 */
-  discussionId?: number;
-}
-
 export interface SiteFriendsPage {
   repoUrl: string;
   repoFriendsUrl: string;
@@ -116,12 +98,9 @@ export interface SiteConfig {
   social: SiteSocial;
   author: SiteAuthor;
   toc?: SiteToc;
-  /** 是否启用 Giscus（文章评论区 + 留言板统一开关）。 */
+  /** 是否启用 Giscus 评论区（仅作用于文章页；说说与留言板评论区已于 2026-11 下线）。 */
   giscusEnabled?: boolean;
   comments: SiteComments;
-  guestbook: SiteGuestbook;
-  /** 说说数据源：GitHub Discussions「说说」分类（每条说说 = 一条 Discussion）。 */
-  shuoshuo: SiteShuoShuo;
   friendsPage: SiteFriendsPage;
   /** 文章内容仓库（"在 GitHub 上编辑此文"/查看源文件入口使用）。 */
   content?: SiteContent;

@@ -663,7 +663,9 @@ const publishRecord = async ({ issue, validated, filename, verdict, source }) =>
     : null;
   const existing = DRY_RUN ? localPreview : await readRepoFile(filePath);
   const original = existing ? JSON.parse(existing.content) : null;
-  const json = original ? mergeRecordJson(original, record, filename) : buildRecordJson({ record, filename });
+  const json = original
+    ? mergeRecordJson(original, record, filename, backlinkUrl)
+    : buildRecordJson({ record, filename, backlinkUrl });
 
   const action = original ? '更新' : '新增';
   logger.info('准备写入友链文件', { file: filePath, action });
@@ -693,7 +695,13 @@ const publishRecord = async ({ issue, validated, filename, verdict, source }) =>
     }
     const readBack = await readRepoFile(filePath);
     const parsedBack = readBack ? JSON.parse(readBack.content) : null;
-    if (!parsedBack || parsedBack.url !== record.url || parsedBack.name !== record.name) {
+    if (
+      !parsedBack ||
+      parsedBack.url !== record.url ||
+      parsedBack.name !== record.name ||
+      // 友链页面地址必须真的落盘：这是后续每周反链巡检唯一的检测入口（见 ai-rules/friends.md 规则 17）。
+      (backlinkUrl ? parsedBack.backlinkUrl !== backlinkUrl : false)
+    ) {
       logger.error('回读校验不通过：文件内容与本次记录不一致', { file: filePath });
     }
   }

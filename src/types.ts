@@ -50,6 +50,10 @@ export interface Friend {
   description: string;
   avatar: string;
   url: string;
+  /** 友链页面地址（对方站点上挂着本站链接的那个页面，如 https://xxx.com/links）。
+   *  由站长在 Pages CMS 里维护；每周反链巡检优先检测它，为空时回落 `url`（站点首页）。
+   *  前端只透传、不渲染（见 ai-rules/friends.md 规则 17）。 */
+  backlinkUrl?: string;
   /** 已失联标记：由友链失联巡检（.github/workflows/friend-availability-audit.yml）每日双向同步，
    *  Pages CMS 里的手工勾选会被下一轮巡检覆写；未配置（缺失/false）默认视为正常，
    *  true 时在友链页归入「已失联的博客」板块。前端只读。 */

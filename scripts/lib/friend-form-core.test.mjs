@@ -311,6 +311,31 @@ describe('buildRecordJson / mergeRecordJson', () => {
     expect(json).toContain('\n  "name"');
   });
 
+  it('友链页面地址写在 unavailable 之前，为空时不输出该键', () => {
+    const json = buildRecordJson({
+      record,
+      filename: 'ayeez',
+      backlinkUrl: 'https://blog.Ayeez.cn/links',
+    });
+    expect(Object.keys(JSON.parse(json))).toEqual([
+      'name',
+      'filename',
+      'description',
+      'avatar',
+      'url',
+      'backlinkUrl',
+      'unavailable',
+    ]);
+    expect(JSON.parse(json).backlinkUrl).toBe('https://blog.Ayeez.cn/links');
+
+    // 空串/空白/undefined 都不产出键：存量记录补 backlinkUrl 不能靠「顺手写个空值」制造全量 diff。
+    for (const empty of ['', '   ', undefined, null]) {
+      expect(Object.keys(JSON.parse(buildRecordJson({ record, filename: 'ayeez', backlinkUrl: empty })))).not.toContain(
+        'backlinkUrl',
+      );
+    }
+  });
+
   it('filename 键必须存在（缺了它 Pages CMS 会生成 .json 点文件）', () => {
     expect(JSON.parse(buildRecordJson({ record, filename: 'ayeez' })).filename).toBe('ayeez');
   });
@@ -342,6 +367,25 @@ describe('buildRecordJson / mergeRecordJson', () => {
     expect(JSON.parse(mergeRecordJson({ unavailable: undefined }, record, 'a')).unavailable).toBe(false);
     expect(JSON.parse(buildRecordJson({ record, filename: 'a', unavailable: 'true' })).unavailable).toBe(false);
   });
+
+  it('合并时友链页面地址：本次申报优先，未申报保留原值', () => {
+    const original = {
+      name: '旧名',
+      filename: 'ayeez',
+      description: '旧简介',
+      avatar: 'https://a/1.png',
+      url: 'https://old',
+      backlinkUrl: 'https://old/links',
+      unavailable: false,
+    };
+    // 本次申请填了新的反链页 → 覆盖原值。
+    expect(JSON.parse(mergeRecordJson(original, record, 'ayeez', 'https://blog.Ayeez.cn/friends')).backlinkUrl).toBe(
+      'https://blog.Ayeez.cn/friends',
+    );
+    // 本次没填（重新检测/人工放行时正文可能没改）→ 不能把站长在 CMS 里填的地址清空。
+    expect(JSON.parse(mergeRecordJson(original, record, 'ayeez')).backlinkUrl).toBe('https://old/links');
+    expect(JSON.parse(mergeRecordJson(original, record, 'ayeez', '   ')).backlinkUrl).toBe('https://old/links');
+  });
 });
 
 describe('withUnavailable（失联巡检的唯一写入形态）', () => {
@@ -360,6 +404,23 @@ describe('withUnavailable（失联巡检的唯一写入形态）', () => {
     expect(JSON.parse(json)).toEqual({ ...original, unavailable: true });
     expect(json).toBe(JSON.stringify({ ...original, unavailable: true }, null, 2));
     expect(json.endsWith('}')).toBe(true);
+  });
+
+  it('必须透传 backlinkUrl：漏了它失联巡检每轮都会抹掉站长填的友链页面地址', () => {
+    const withBacklink = { ...original, backlinkUrl: 'https://blog.ayeez.cn/links' };
+    const parsed = JSON.parse(withUnavailable(withBacklink, true));
+    expect(parsed.backlinkUrl).toBe('https://blog.ayeez.cn/links');
+    expect(Object.keys(parsed)).toEqual([
+      'name',
+      'filename',
+      'description',
+      'avatar',
+      'url',
+      'backlinkUrl',
+      'unavailable',
+    ]);
+    // 没有该键的记录不凭空多出空串键。
+    expect(Object.keys(JSON.parse(withUnavailable(original, true)))).not.toContain('backlinkUrl');
   });
 
   it('不改动传入对象', () => {

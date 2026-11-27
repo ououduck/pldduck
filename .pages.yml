@@ -62,6 +62,10 @@ content:
       - { name: description, label: 站点简介, type: text, required: true }
       - { name: avatar, label: 头像地址, type: string, required: true }
       - { name: url, label: 站点地址, type: string, required: true }
+      - name: backlinkUrl
+        label: 友链页面地址
+        description: 对方站点上挂着本站链接的那个页面（通常是 https://对方域名/links 或 /friends）。每周反链巡检优先检测这个页面；留空时回落检测站点首页（多数站点首页没有友链区块，容易漏判）。申请收录时填过的地址会自动写入这里
+        type: string
       - name: unavailable
         label: 已失联
         description: 勾选后该友链归入「已失联的博客」板块。每日失联巡检会按探测结果双向覆写此开关（两次探测都打不开则勾上、恢复访问则取消），手工勾选会在下一轮巡检时被覆盖
@@ -234,14 +238,14 @@ actions:
       message: 将逐个请求 posts/ 中全部外链（Markdown 链接 + HTML 链接，排除图片与站内锚点）：发现的失效链接会按文章分组汇总（带行号与 HTTP 状态）推送到 飞书机器人 Webhook，不修改仓库、不触发部署。
       button: 开始扫描
 
-  # ── 友链反链巡检：只读检查 friends/ 站点是否仍挂本站反链，结果推飞书 ──
+  # ── 友链反链巡检：只读检查 friends/ 站点是否仍挂本站反链（每周一自动跑），结果推飞书 ──
   - name: friend-backlink-audit
     label: 友链反链巡检
     workflow: friend-backlink-audit.yml
     ref: current
     confirm:
       title: 确认巡检友链反链？
-      message: 将逐个打开 friends/ 里的站点（静态抓取 + 必要时无头浏览器渲染），把未检测到本站反链的站点汇总推送到飞书。只读：不修改仓库、不改 Issue、不触发部署。
+      message: 将逐个打开 friends/ 里每条记录的「友链页面地址」（未填写的回落站点首页；静态抓取 + 必要时无头浏览器渲染），把未检测到本站反链、无法判定以及未填写友链页面地址的站点汇总推送到飞书。只读：不修改仓库、不改 Issue、不删除友链、不触发部署。
       button: 开始巡检
 
   # ── 友链失联审核：探测 friends/*.json 全部站点，双向同步「已失联」开关并触发一次部署 ──

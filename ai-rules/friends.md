@@ -21,7 +21,7 @@
 - `scripts/friend-link-check.mjs`（事件编排、抓取、GitHub API）
 - `scripts/lib/friend-backlink.mjs`（反链判定纯函数：`findBacklinkInAnchors` 是静态/渲染共用口径，`findBacklink` 只负责从 HTML 提取锚点）/ `scripts/lib/render-html.mjs`（渲染兜底：Playwright/Chromium + 逐请求 SSRF 护栏，失败一律退回静态结论）/ `scripts/lib/friend-form-core.mjs`（表单解析 + 记录校验，唯一校验权威；`withUnavailable` 是 B 道唯一的序列化出口）
 - `config/friend-blacklist.json`（Pages CMS「友链黑名单」直接编辑；匹配在 `scripts/lib/friend-blacklist.mjs`，泛域名口径见规则 15）
-- `scripts/friend-backlink-audit.mjs`（每日反链巡检：只读 + 渲染兜底 + 飞书汇总）/ `scripts/lib/friend-backlink-audit-core.mjs`（分类与报告文案纯函数）/ `.github/workflows/friend-backlink-audit.yml`
+- `scripts/friend-backlink-audit.mjs`（每周反链巡检：只读 + 优先检测 `backlinkUrl` + 渲染兜底 + 飞书汇总）/ `scripts/lib/friend-backlink-audit-core.mjs`（分类与报告文案纯函数）/ `.github/workflows/friend-backlink-audit.yml`
 - `scripts/lib/friend-page-fetch.mjs`（申请检测与反链巡检共用的 HTML 抓取：逐跳重定向都重新做 SSRF 校验、受限状态码分类、限量读取 + 字符集解码）
 - `src/types.ts`（`Friend.unavailable` 的 JSDoc 与本节口径同步）
 - `scripts/generate-site-data.mjs`（失联分组：缺键视为 false，不视为主列表之外的独立来源）
@@ -76,7 +76,14 @@
     - `example.com` 匹配裸域 + 所有子域；`*.example.com` 只匹配子域（不匹配裸域）；其它位置出现 `*`、空条目、单标签域名一律判无效并忽略（无效条数记日志，不影响有效条目）；
     - 检查范围是**站点地址、反链页面、头像**三个地址（防止「申报 A 站、反链挂在被拉黑的 B 站」绕过）。
       命中后：固定文案评论 + 打 `friend-blacklisted`、**关闭 Issue**、飞书「已拦截」，不写文件、不进入人工审核；`publishRecord` 里还有一层纵深防御，人工打 `friend-approved` 也会被拦（要收录须先从 CMS 移除该域名）。黑名单配置读不出来时**不静默放行**：评论提示配置不可用、打 `friend-needs-info` 转人工。
-16. **反链巡检（只读，2026-11）**：`.github/workflows/friend-backlink-audit.yml` 每天 03:00 UTC + Pages CMS「友链反链巡检」按钮；逐个检查 `friends/*.json`（跳过 `unavailable: true`，失联是 B 道的职责）是否仍挂着指向本站的反链：静态抓取优先 → 未命中且页面可达时用无头浏览器渲染兜底 → 分类：`found` = 正常；`not-found` / `js-only` = 未检测到；`offsite` / `restricted` / `fetch-error`、以及静态 `js-only` 但渲染失败 = 无法判定。结果汇总推飞书（全部正常时不发，`FRIEND_AUDIT_ALWAYS_NOTIFY=1` 可强制常报；`dry_run` dispatch 输入只打印）。**只读**：不写仓库、不改 Issue、不触发部署，下架仍在 Pages CMS 人工处理；渲染总预算与环境变量见 `.env.example`。飞书报告同样遵守「纯文字、无 Emoji」。
+16. **反链巡检（只读，2026-11 改为每周）**：`.github/workflows/friend-backlink-audit.yml` **每周一 03:00 UTC（北京时间周一 11:00）** + Pages CMS「友链反链巡检」按钮；逐个检查 `friends/*.json`（跳过 `unavailable: true`，失联是 B 道的职责）是否仍挂着指向本站的反链：**检测入口优先用记录的 `backlinkUrl`（见规则 17），为空才回落站点首页** → 静态抓取优先 → 未命中且页面可达时用无头浏览器渲染兜底 → 分类：`found` = 正常；`not-found` / `js-only` = 未检测到；`offsite` / `restricted` / `fetch-error`、以及静态 `js-only` 但渲染失败 = 无法判定。结果汇总推飞书（全部正常且都已填友链页面地址时不发，`FRIEND_AUDIT_ALWAYS_NOTIFY=1` 可强制常报；`dry_run` dispatch 输入只打印）。**只读：不写仓库、不改 Issue、不删任何友链、不触发部署**（2026-11 用户明确要求「检测到没有反链只发飞书通知，不要直接删除」），下架仍在 Pages CMS 人工处理；渲染总预算与环境变量见 `.env.example`。飞书报告同样遵守「纯文字、无 Emoji」，且必须写明「仅通知、不会自动删除」。
+17. **友链页面地址 `backlinkUrl`（2026-11 用户授权新增的第 7 个键）**：好友通常把本站链接挂在 `/links`、`/friends` 这类子页面，抓站点首页看不到反链 —— 这是「存量友链无法复核」的根因。因此：
+    - `friends/*.json` 增加 `backlinkUrl`（友链页面地址），Pages CMS「友链」集合里可编辑（`.pages.yml` 已声明该字段，缺了它 CMS 保存会丢键）；
+    - **只在有值时写这个键**：为空不写空串键，避免给每条存量记录制造一次无意义的 diff；`buildRecordJson` / `mergeRecordJson` / `withUnavailable` 三处都必须保证这一点；
+    - `mergeRecordJson` 取「本次申报值 → 原记录值」：重新检测/人工放行时正文没填，**不得**把站长在 CMS 里填的地址清空；
+    - `withUnavailable`（B 道唯一序列化出口）**必须透传** `backlinkUrl`：漏了它，失联巡检每跑一轮就会抹掉站长填的地址（与「检测无法复现」是同类事故，有单测守着）；
+    - 申请检测（A 道）申报了反链页面地址时，收录必须真的把它落盘（`publishRecord` 写后回读会校验），不能只回显在评论里；
+    - 生成器 `generate-site-data.mjs` 只把合法 http(s) 且有值的 `backlinkUrl` 写进 `generated/friends.json`，前端不渲染该字段（仅供巡检与排障）；巡检侧遇到非法值只 warn 并回落站点首页，不中断整轮。
 
 ## 常见陷阱
 
@@ -86,6 +93,8 @@
 - 改检测/渲染/黑名单/巡检口径时，按 [testing.md](testing.md) 规则 23 跑对应的纯函数测试；改共用抓取层 `friend-page-fetch.mjs` 还要做一次 `--check-url` 冒烟。
 - Issue 表单的正文段序与 label 是解析契约；解析有任何异常（缺段/重复段/乱序）都判 `ambiguous` 转人工，**绝不猜测字段值**。
 - 反链检测以**静态抓取**为主、未命中时用无头浏览器兜底渲染（2026-11），JS 挂件也能识别，但仍可能因加载慢、被墙或反爬拦截而漏检；「不要求服务端直出，但服务端直出的 `<a href>` 最稳」这句提醒只写在**Issue 模板的「申请须知」**里（检测评论只给证据、不再重复指导；页面申请卡已于 2026-10 经用户授权删掉这段重复说明，勾选项只保留「我已在自己的站点上添加了指向本站的链接」），别把它从模板里也删掉 —— 申请人绕过页面直接用模板时，那是唯一能看到口径的地方。渲染兜底的开关是 `FRIEND_RENDER_FALLBACK`（默认开）、单次超时与总预算见 `.env.example`。
+- **巡检抓错页面是「查不出反链」的头号原因**：友链页面地址（`backlinkUrl`）为空时只能查站点首页，而首页通常没有友链区块 —— 报告里的「未填写友链页面地址」分组就是在提醒补这一项，不要把它删掉（2026-11 用户要求列一份待补清单）。
+- **给存量记录批量补 `backlinkUrl` 时不要凭 url 拼 `/links`**：那是猜测，写错地址比留空更糟（会永久给出假阴性）。逐条确认后在 Pages CMS 里填。
 - **可达性闸门跑在境外出口 IP 上**：开了禁海外的站点、带防盗链的头像 CDN 都可能被判打不开而转人工（Issue 保持开启）。误判的补救是让申请人重开 Issue（会立刻重测）或站长直接打 `friend-approved`；不要为了少转人工就把 403 之类改成「不算失败」—— 那等于把闸门关掉。探测只读 64 KB，别拿它当内容检测用。
 - `friend.unavailable` 由 B 段巡检维护：**站长在 CMS 里的手工勾选会被下一轮巡检覆写**（2026-10 授权，不是 bug）。前端只读，A 段机器人也永不写它。目前**没有「让某条永久留在失联列表」的开关** —— 想留住就只靠巡检判定维持，或临时别跑那个 workflow；别为此在记录里私加新键（生成器与 CMS 都不认）。
 - B 段按记录里的 `filename` 键定位文件，键与真实文件名不一致就判「记录不可用」跳过并告警 —— 仓库里已有实例（`friends/xeiu.json` 内写 `filename: "Xe_iu"`）。这类历史漂移要**先修数据**再谈巡检，别放宽匹配（放宽等于让一个文件去改另一个文件）。

@@ -557,6 +557,11 @@ const friends = friendFiles.flatMap((filename) => {
         description: data.description.trim(),
         avatar: friendAvatar,
         url: friendUrl,
+        // 友链页面地址（2026-11）：反链巡检优先检测它，前端不渲染。
+        // 只输出合法 http(s) 且有值的项，缺失/非法一律当没配（巡检回落站点首页）。
+        ...(typeof data.backlinkUrl === 'string' && /^https?:\/\//i.test(data.backlinkUrl.trim())
+          ? { backlinkUrl: data.backlinkUrl.trim() }
+          : {}),
         // 已失联标记透传（由友链失联巡检每日双向写入，见 friend-availability-audit.yml）：
         // 仅 true 时输出，保持产物精简；false/缺失视为正常状态。
         ...(data.unavailable === true ? { unavailable: true } : {}),

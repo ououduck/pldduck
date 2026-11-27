@@ -331,19 +331,26 @@ export const suggestFilename = (login, url, existing = []) => {
 };
 
 /**
- * 生成 friends/<filename>.json 的正文（与 Pages CMS 现有 14 个文件同形状）。
+ * 生成 friends/<filename>.json 的正文（与 Pages CMS 现有文件同形状）。
  *
  * 必须写 filename 键：生成器把它当未知字段丢掉，但缺了它 Pages CMS 的
  * {fields.filename}.json 模板会把条目存成 ".json"（回归见 pagescms-config.test.mjs）。
  * 结尾不加换行：Pages CMS 写出的现有文件就没有尾换行，保持一致以免 diff 噪声。
+ *
+ * `backlinkUrl`（友链页面地址，2026-11 用户授权新增的第 7 个键）**只在有值时输出**：
+ * 存量记录没有这个键，为空时也写一个空串会让每一条老记录都产生一次无意义的 diff；
+ * 反链巡检按「有就用、没有回落站点首页」处理（见 ai-rules/friends.md 规则 17）。
+ *
  * @param {object} input
  * @param {{name: string, description: string, avatar: string, url: string}} input.record
  * @param {string} input.filename
  * @param {boolean} [input.unavailable] 更新时必须透传原值，机器人不许重置站长标记
+ * @param {string} [input.backlinkUrl] 友链页面地址（对方挂本站反链的那个页面）
  * @returns {string}
  */
-export const buildRecordJson = ({ record, filename, unavailable = false }) => {
+export const buildRecordJson = ({ record, filename, unavailable = false, backlinkUrl = '' }) => {
   assertFriendlyPath(filename);
+  const page = cleanInline(backlinkUrl);
   return JSON.stringify(
     {
       name: record.name,
@@ -351,6 +358,7 @@ export const buildRecordJson = ({ record, filename, unavailable = false }) => {
       description: record.description,
       avatar: record.avatar,
       url: record.url,
+      ...(page ? { backlinkUrl: page } : {}),
       unavailable: unavailable === true,
     },
     null,
@@ -360,25 +368,33 @@ export const buildRecordJson = ({ record, filename, unavailable = false }) => {
 
 /**
  * 合并更新：展示字段取本次申报值，`unavailable` 透传原值（机器人永远不许重置站长标记），
- * 其余未知键不保留 —— 产物一律是 canonical 六键形状，避免旧文件里的脏键被重新发布。
+ * 其余未知键不保留 —— 产物一律是 canonical 形状，避免旧文件里的脏键被重新发布。
+ *
+ * `backlinkUrl` 的取值顺序：本次申报值 → 原记录里的值（本次没填就保留站长在 CMS 里填的，
+ * 不能被一次重新检测顺手清空）。
  * @param {object} original 现有 JSON 解析结果
  * @param {object} record 新记录
  * @param {string} filename
+ * @param {string} [backlinkUrl] 本次申报的友链页面地址
  * @returns {string}
  */
-export const mergeRecordJson = (original, record, filename) =>
+export const mergeRecordJson = (original, record, filename, backlinkUrl = '') =>
   buildRecordJson({
     record,
     filename,
     unavailable: original?.unavailable === true,
+    backlinkUrl: cleanInline(backlinkUrl) || cleanInline(original?.backlinkUrl),
   });
 
 /**
  * 只翻 `unavailable` 一个键，展示字段原样透传（失联巡检专用）。
  *
- * 不删键、不改键序：现有 14 个文件都带 `unavailable`，生成器把缺失当 false
+ * 不删键、不改键序：现有文件都带 `unavailable`，生成器把缺失当 false
  * （generate-site-data.mjs），但 Pages CMS 的表单模板按键存在与否渲染，
  * 少写一个键就是一次无谓的 diff。值已一致的比较交给调用方做，本函数总是重新序列化。
+ *
+ * `backlinkUrl` 必须一起透传：漏了它，失联巡检每跑一轮就会把站长在 CMS 里填的
+ * 友链页面地址抹掉（这正是「反链检测无法复现」的同类事故）。
  * @param {object} original 现有 JSON 解析结果
  * @param {boolean} unavailable
  * @returns {string}
@@ -393,6 +409,7 @@ export const withUnavailable = (original, unavailable) => {
     record: original,
     filename: original.filename,
     unavailable: unavailable === true,
+    backlinkUrl: original.backlinkUrl,
   });
 };
 

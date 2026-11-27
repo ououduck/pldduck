@@ -1,12 +1,14 @@
 /**
- * friend-backlink-audit.mjs — 友链反链巡检（**只读**）。
+ * friend-backlink-audit.mjs — 友链反链巡检（**只读**，每周一次）。
  *
  * 逐个检查 friends/ 里的站点是否仍挂着指向本站的反链：
- *   静态抓取 → 没命中且页面可达时用无头浏览器渲染兜底 → 汇总「未检测到」与「无法判定」
- *   的站点推送到飞书。
+ *   优先抓记录里的「友链页面地址」（`backlinkUrl`，2026-11 新增，Pages CMS 可编辑），
+ *   没填才回落站点首页 → 静态抓取 → 没命中且页面可达时用无头浏览器渲染兜底 →
+ *   汇总「未检测到」「无法判定」「未填写友链页面地址」的站点推送到飞书。
  *
- * 不写仓库、不改 Issue、不触发部署；结论只用于提醒站长，不自动下架任何友链
- * （下架仍在 Pages CMS 人工处理，见 ai-rules/friends.md）。
+ * 不写仓库、不改 Issue、不触发部署；结论只用于提醒站长，**检测不到反链只发飞书通知，
+ * 绝不自动删除/下架友链**（2026-11 用户明确要求；下架仍在 Pages CMS 人工处理，
+ * 见 ai-rules/friends.md 规则 17）。
  *
  * 本地调试：
  *   node scripts/friend-backlink-audit.mjs --dry-run --print
@@ -86,7 +88,11 @@ const readFriends = () => {
         continue;
       }
       if (data.unavailable === true) continue;
-      records.push({ filename: file, ...data });
+      records.push({
+        filename: file,
+        backlinkUrl: typeof data.backlinkUrl === 'string' ? data.backlinkUrl : '',
+        ...data,
+      });
     } catch (error) {
       logger.warn('友链记录解析失败，跳过', { file, error: formatError(error) });
     }
@@ -96,7 +102,12 @@ const readFriends = () => {
 
 /**
  * 检查单条友链：静态 → 渲染兜底 → 分类。
- * @param {{ name?: string, url: string, filename: string }} friend
+ *
+ * 检测**优先用记录里的 `backlinkUrl`（友链页面地址）**，只有它为空时才回落站点首页：
+ * 对方通常把本站链接挂在 /links、/friends 这类子页面，抓首页十有八九看不到反链，
+ * 这正是「存量友链没法复核」的根因（2026-11 用户反馈，见 ai-rules/friends.md 规则 17）。
+ *
+ * @param {{ name?: string, url: string, backlinkUrl?: string, filename: string }} friend
  * @param {{ deadline: number }} budget
  * @returns {Promise<object>}
  */
@@ -109,11 +120,29 @@ const checkFriend = async (friend, budget) => {
     // 保留原始 url 作为展示
   }
 
-  const fetched = await fetchHtml(friend.url);
+  // 友链页面地址：CMS 里是手填的自由文本，非法就当作没配，回落站点首页（不中断整轮）。
+  const configured = typeof friend.backlinkUrl === 'string' ? friend.backlinkUrl.trim() : '';
+  let detectionUrl = friend.url;
+  let checkedVia = 'home';
+  if (configured) {
+    if (/^https?:\/\//i.test(configured)) {
+      detectionUrl = configured;
+      checkedVia = 'backlink';
+    } else {
+      logger.warn('backlinkUrl 不是 http(s) 地址，回落站点首页', {
+        file: friend.filename,
+        value: sanitizeLogValue(configured).slice(0, 120),
+      });
+    }
+  }
+
+  const fetched = await fetchHtml(detectionUrl);
   if (fetched.transport) {
     return {
       name,
       host,
+      page: detectionUrl,
+      checkedVia,
       status: BACKLINK_AUDIT_STATUS.UNCERTAIN,
       reason: fetched.transport.message,
       method: '静态',
@@ -122,9 +151,11 @@ const checkFriend = async (friend, budget) => {
 
   let result = findBacklink({
     html: fetched.html,
-    pageUrl: friend.url,
+    pageUrl: detectionUrl,
     finalUrl: fetched.finalUrl,
-    claimedUrl: friend.url,
+    // offsite 判据比的是「这次抓的页面有没有跳到别的域名」，所以拿检测地址本身当申报地址；
+    // 申请闸门那边传的是站点地址，因为那里要求反链页与站点同域（validateFriendRecord 已锁）。
+    claimedUrl: detectionUrl,
     acceptedHosts: ACCEPTED_HOSTS,
     truncated: fetched.truncated,
   });
@@ -133,17 +164,17 @@ const checkFriend = async (friend, budget) => {
 
   if (result.verdict === 'not-found' || result.verdict === 'js-only') {
     if (Date.now() > budget.deadline) {
-      logger.warn('渲染总预算用尽，跳过渲染兜底', { url: sanitizeUrlForLogs(friend.url) });
+      logger.warn('渲染总预算用尽，跳过渲染兜底', { url: sanitizeUrlForLogs(detectionUrl) });
     } else {
-      const rendered = await renderPage(friend.url, { timeoutMs: RENDER_TIMEOUT_MS });
+      const rendered = await renderPage(detectionUrl, { timeoutMs: RENDER_TIMEOUT_MS });
       if (rendered.error) {
         logger.warn('渲染兜底失败，沿用静态结论', {
-          url: sanitizeUrlForLogs(friend.url),
+          url: sanitizeUrlForLogs(detectionUrl),
           error: sanitizeLogValue(rendered.error),
         });
       } else if (rendered.status >= 400) {
         logger.warn('渲染兜底拿到错误状态码，沿用静态结论', {
-          url: sanitizeUrlForLogs(friend.url),
+          url: sanitizeUrlForLogs(detectionUrl),
           status: rendered.status,
         });
       } else {
@@ -151,9 +182,9 @@ const checkFriend = async (friend, budget) => {
         method = '静态 + 渲染';
         result = findBacklinkInAnchors({
           anchors: rendered.anchors,
-          pageUrl: friend.url,
+          pageUrl: detectionUrl,
           finalUrl: rendered.finalUrl,
-          claimedUrl: friend.url,
+          claimedUrl: detectionUrl,
           acceptedHosts: ACCEPTED_HOSTS,
           rendered: true,
           frames: rendered.frames,
@@ -171,13 +202,14 @@ const checkFriend = async (friend, budget) => {
     };
   }
 
-  return { name, host, ...classified, method, verdict: result.verdict };
+  return { name, host, page: detectionUrl, checkedVia, ...classified, method, verdict: result.verdict };
 };
 
 const tableRows = (records) =>
   records.map((record) => ({
     站点: record.name,
     域名: record.host,
+    检测页面: record.page || '',
     结论: record.status,
     方式: record.method,
     说明: record.reason || '',
@@ -206,6 +238,8 @@ const main = async () => {
     logger.info('巡检完成一条', {
       site: record.name,
       host: record.host,
+      page: sanitizeUrlForLogs(record.page || ''),
+      checkedVia: record.checkedVia,
       status: record.status,
       method: record.method,
     });
@@ -221,11 +255,19 @@ const main = async () => {
     ok: summary.ok,
     missing: summary.missing.length,
     uncertain: summary.uncertain.length,
+    unconfigured: summary.unconfigured.length,
   });
 
-  // 全部正常时不发飞书，避免每天一条「一切正常」的噪音；需要常报可设 FRIEND_AUDIT_ALWAYS_NOTIFY=1。
+  // 全部正常时不发飞书，避免每周一条「一切正常」的噪音；需要常报可设 FRIEND_AUDIT_ALWAYS_NOTIFY=1。
+  // 注意：unconfigured（还没填友链页面地址）单独会触发通知 —— 它不影响结论，
+  // 但确实是站长需要补的一步，否则下一轮还是只能查首页。
   const alwaysNotify = String(process.env.FRIEND_AUDIT_ALWAYS_NOTIFY || '').toLowerCase() === 'true';
-  if (summary.missing.length === 0 && summary.uncertain.length === 0 && !alwaysNotify) {
+  if (
+    summary.missing.length === 0 &&
+    summary.uncertain.length === 0 &&
+    summary.unconfigured.length === 0 &&
+    !alwaysNotify
+  ) {
     logger.info('全部友链均检测到反链，本轮不推飞书');
     return 0;
   }

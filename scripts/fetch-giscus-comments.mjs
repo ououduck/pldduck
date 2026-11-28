@@ -73,17 +73,6 @@ const COMMENT_COUNTS_QUERY = `query CommentCounts($owner: String!, $name: String
 export const fetchCommentCounts = async ({ posts, token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '' }) => {
   const siteConfig = loadSiteConfig({ logger });
   const { repo, categoryId } = siteConfig.comments || {};
-  // 说说与留言板自 2026-11 起每条内容一条 Discussion，本身不属于任何文章：
-  // 按分类名排除（不再依赖单个固定编号），避免它们的评论数被算进文章卡片。
-  const nonArticleCategories = new Set(
-    [siteConfig.guestbook?.categoryName, siteConfig.shuoshuo?.categoryName].filter(
-      (name) => typeof name === 'string' && name.trim(),
-    ),
-  );
-  const legacyNonArticleDiscussionIds = [siteConfig.guestbook?.discussionId, siteConfig.shuoshuo?.discussionId].filter(
-    (id) => Number.isFinite(Number(id)),
-  );
-
   if (!repo || typeof repo !== 'string' || !repo.includes('/')) {
     logger.warn('comments.repo 未配置或格式非法，跳过评论数获取');
     return null;
@@ -169,10 +158,7 @@ export const fetchCommentCounts = async ({ posts, token = process.env.GITHUB_TOK
 
       for (const node of discussions.nodes) {
         if (!node || typeof node.title !== 'string') continue;
-        // 排除留言板与说说（不是文章评论区）。
-        if (legacyNonArticleDiscussionIds.some((id) => Number(id) === node.number)) continue;
-        if (nonArticleCategories.has(node.category?.name)) continue;
-        // 防御：配置了 categoryId 时只统计"文章评论"分类的 discussion。
+        // 只统计文章评论区：配置了 categoryId 时严格按分类过滤（站内评论只剩文章一处）。
         if (categoryId && node.category?.id && node.category.id !== categoryId) continue;
 
         const postId = postPathToId.get(parsePathname(node.title));

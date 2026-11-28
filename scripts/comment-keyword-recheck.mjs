@@ -29,7 +29,7 @@ import { pathToFileURL } from 'node:url';
 import { fetchWithRetry, createTimeoutSignal, readResponseText } from './lib/http.mjs';
 import { createActionLogger, formatError, installGlobalErrorHandlers } from './lib/gh-actions-logger.mjs';
 import { loadConfig, matchContent, isExemptAuthor } from './lib/keyword-filter-core.mjs';
-import { loadCommentSurfaceConfig, resolveCommentSurface } from './lib/comment-surface.mjs';
+import { COMMENT_SURFACES, loadCommentSurfaceConfig, resolveCommentSurface } from './lib/comment-surface.mjs';
 
 const logger = createActionLogger('keyword-recheck');
 
@@ -329,6 +329,13 @@ const main = async () => {
       surface,
       comments: comments.length,
     });
+
+    // 站内评论只剩文章评论区：非「文章评论」分类的历史讨论（说说/留言板）不再复查，
+    // 站点已不渲染它们，继续执行删除属于越权处理。
+    if (surface !== COMMENT_SURFACES.ARTICLE) {
+      logger.info('跳过：不是文章评论区', { title: discussion.title, surface });
+      continue;
+    }
 
     for (const comment of comments) {
       scanned += 1;

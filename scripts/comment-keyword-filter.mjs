@@ -29,7 +29,7 @@ import { pathToFileURL } from 'node:url';
 import { fetchWithRetry, createTimeoutSignal, readResponseText } from './lib/http.mjs';
 import { createActionLogger, formatError, installGlobalErrorHandlers } from './lib/gh-actions-logger.mjs';
 import { loadConfig, matchContent, isExemptAuthor } from './lib/keyword-filter-core.mjs';
-import { loadCommentSurfaceConfig, resolveCommentSurface } from './lib/comment-surface.mjs';
+import { COMMENT_SURFACES, loadCommentSurfaceConfig, resolveCommentSurface } from './lib/comment-surface.mjs';
 
 const logger = createActionLogger('keyword');
 
@@ -234,6 +234,12 @@ const main = async () => {
     articleCategoryName: surfaceConfig?.articleCategoryName,
   });
   logger.info('Comment surface resolved', { surface, discussion: subject.discussionNumber ?? 'unknown' });
+  // 站内评论只剩文章评论区：非「文章评论」分类的讨论不再进入关键词处理
+  // （站点已不渲染它们，继续对历史说说/留言讨论执行删除属于越权处理）。
+  if (surface !== COMMENT_SURFACES.ARTICLE) {
+    logger.info('跳过：不是文章评论区', { surface, discussion: subject.discussionNumber ?? 'unknown' });
+    return;
+  }
 
   const hit = matchContent(config, subject.text);
   logger.startGroup(`Keyword filter [${surface}]: @${subject.author || 'unknown'} (${subject.kind}, ${subject.url})`);

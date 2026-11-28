@@ -30,7 +30,7 @@ import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { fetchWithRetry, createTimeoutSignal, readResponseText, RetryableHttpError } from './lib/http.mjs';
 import { createActionLogger, formatError, installGlobalErrorHandlers } from './lib/gh-actions-logger.mjs';
-import { loadCommentSurfaceConfig, resolveCommentSurface } from './lib/comment-surface.mjs';
+import { COMMENT_SURFACES, loadCommentSurfaceConfig, resolveCommentSurface } from './lib/comment-surface.mjs';
 
 const logger = createActionLogger('akismet');
 
@@ -285,6 +285,12 @@ const main = async () => {
     articleCategoryName: surfaceConfig?.articleCategoryName,
   });
   logger.info('Comment surface resolved', { surface, discussion: discussion.number ?? 'unknown' });
+  // 站内评论只剩文章评论区：非「文章评论」分类的讨论（历史说说/留言板分类等）
+  // 不再进入反垃圾链路 —— 站点已不渲染它们，再对它们做 minimize/delete 属于越权处理。
+  if (surface !== COMMENT_SURFACES.ARTICLE) {
+    logger.info('跳过：不是文章评论区', { surface, discussion: discussion.number ?? 'unknown' });
+    return;
+  }
 
   logger.startGroup(
     `Akismet check [${surface}]: @${commentAuthor || 'unknown'} (${discussion.html_url || 'discussion'})`,

@@ -23,7 +23,7 @@
 3. **成功判定兜底**：`isLoaded` 依赖 giscus 的 postMessage 握手；改动时需同时考虑 iframe `load` 兜底信号，防止占位常驻。成功消息到达后必须清掉超时与待触发的自动重试。
 4. **深色主题固定**：全站 `<html class="dark">`，giscus 初始 `theme=dark`；`MutationObserver` 监听 `<html class>` 与容器子节点变化后补发 `setConfig.theme` 的机制保留（用于 iframe 就绪前丢失的那次握手），但站内已无浅色主题切换分支，不要新增浅色分支。
 5. **pathname 映射**：文章评论固定 `mapping="pathname"` —— Giscus 以文章页面 URL 的 pathname 作为 Discussion 标题并自动建讨论。文章评论**不得**改成 `number` / `specific`：`specific` 会按标题文本模糊搜索（搜不到就另建讨论），`number` 需要固定编号，两者都会让「一篇文章一个讨论」失效。缺 term 时禁止静默注入 `data-term`。
-6. **构建期评论数**：`scripts/fetch-giscus-comments.mjs` 用 `fetchWithRetry` 拉全仓库 discussions（GraphQL），**只统计文章评论**：先按 `comments.categoryId` 过滤分类，再按 pathname 匹配 `withBasePath('/post/<id>')`。失败 / 无 token / 限速 / 无匹配一律 warn 后降级（不阻塞构建，评论数不展示）。不需要、也不要再加「排除说说/留言分类」的逻辑。
+6. **构建期评论数**：`scripts/fetch-giscus-comments.mjs` 用 `fetchWithRetry` 拉全仓库 discussions（GraphQL），**只统计文章评论**：按 `comments.categoryId` 严格过滤分类，再按 pathname 匹配 `withBasePath('/post/<id>')`。失败 / 无 token / 限速 / 无匹配一律 warn 后降级（不阻塞构建，评论数不展示）。脚本已不再有「排除说说/留言分类」的分支（那两段配置已删除），不要把它加回来。
 7. **BASE_PATH 匹配口径**：discussion 标题（页面 URL pathname）与文章路由匹配必须叠加 BASE_PATH（`withBasePath`）—— 子路径部署时硬编码 `/post/<id>` 匹配不上，评论数会静默全缺。
 8. **挂载点唯一**：只有文章页挂评论区。说说页（`/shuoshuo`、`/shuoshuo/page/<n>`）、任何列表页/聚合页都不得挂 `GiscusComments`；`src/pages/ShuoShuo.test.tsx` 断言页面里不存在 `.giscus-comments`。`GiscusComments` 的 `card` 变体当前站内已无调用点，不要为「独立内容页」恢复它。
 

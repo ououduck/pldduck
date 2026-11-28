@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-站点/构建/内容配置分层：站点配置按用途拆成两份 JSON（`config/site.config.json` 站点信息、`config/comments.config.json` 评论，均可在 CMS 编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方；另有部署运行配置 `wrangler.jsonc`、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。`comments.config.json` 顶层只有两段：`giscusEnabled`（全局评论开关）与 `comments`（`repo` / `repoId` / `category` / `categoryId` / `origin` / `strict`）—— 站内只剩文章评论区，留言板与说说的评论段（`guestbook` / `shuoshuo`，含各自的 `categoryName` / `discussionId`）已随评论区下线一并删除，不要再建回。文章 category 已删除，随之配套的白名单配置文件也已从 `config/` 移除：构建期不再校验 category，文章元数据只有 `tags`。历史门户配置 `config/portal.config.json` 已于 2026-11 整体移除（首页早已改为小部件布局、不再消费它）。
+站点/构建/内容配置分层：站点配置按用途拆成两份 JSON（`config/site.config.json` 站点信息、`config/comments.config.json` 评论，均可在 CMS 编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方；另有部署运行配置 `wrangler.jsonc`、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。`comments.config.json` 顶层只有两段：`giscusEnabled`（全局评论开关）与 `comments`（`repo` / `repoId` / `category` / `categoryId` / `origin` / `strict`）—— 站内只剩文章评论区，留言板与说说的评论配置段已随评论区下线一并删除，不要再建回。文章 category 已删除，随之配套的白名单配置文件也已从 `config/` 移除：构建期不再校验 category，文章元数据只有 `tags`。历史门户配置 `config/portal.config.json` 已于 2026-11 整体移除（首页早已改为小部件布局、不再消费它）。
 
 ## 关键文件
 

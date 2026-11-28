@@ -1,45 +1,58 @@
 /**
- * 说说路径与摘要口径：列表、详情与 SEO 共用同一套纯函数。
+ * 说说路径与 SEO 口径（前端侧）。
+ *
+ * 分页口径与构建期共用 `config/shuoshuo.mjs`（同一个数字决定 SSG 生成几个
+ * HTML 文件），这里只做前端可用的再导出与文案工具。
  */
 
-/** 说说列表页路径。 */
-export const SHUOSHUO_LIST_PATH = '/shuoshuo';
+import { SHUOSHUO_LIST_PATH, SHUOSHUO_PER_PAGE, shuoshuoPageCount, shuoshuoPagePath } from '@config/shuoshuo.mjs';
 
-/** 单条说说的详情页路径（id 来自 shuoshuo/*.md 的 frontmatter）。 */
-export const shuoshuoPath = (id: string): string => `${SHUOSHUO_LIST_PATH}/${encodeURIComponent(id)}`;
+export { SHUOSHUO_LIST_PATH, SHUOSHUO_PER_PAGE, shuoshuoPageCount, shuoshuoPagePath };
 
 /** meta description 的长度口径：与 SEO 审计（seo-audit.mjs）一致。 */
 const DESCRIPTION_MIN_CHARS = 50;
 const DESCRIPTION_MAX_CHARS = 160;
 
 /**
- * 说说的 meta description：短内容（说说常常只有几个字）单独用作描述既不利于搜索，
+ * 说说页的 meta description：短内容（说说常常只有几个字）单独用作描述既不利于搜索，
  * 也不符合 SEO 审计的长度口径（50–160），因此不足下限时补一句页面上下文。
  *
- * 拼接后**必须仍然满足下限**：只加一次后缀可能还是太短（「恐怖」+ 一句 = 20 余字），
- * 所以按需要叠加说明句，直到达标或到上限为止 —— 不用 while 拼无限长，
- * 候选句用完就返回当前结果（宁可短一点也不超上限）。
- *
- * 纯函数：同样的正文永远得到同样的描述（SSG 与水合一致，不依赖时钟/随机）。
+ * 纯函数：同样的输入永远得到同样的描述（SSG 与水合一致，不依赖时钟/随机）。
  */
+interface ShuoShuoDescriptionInput {
+  /** 页面里第一条说说的正文（没有内容时不传）。 */
+  excerpt?: string;
+  /** 第一条说说的作者名。 */
+  authorName?: string;
+  /** 第一条说说的日期。 */
+  date?: string;
+  siteTitle: string;
+  page?: number;
+  totalPages?: number;
+}
+
 export const buildShuoShuoDescription = ({
   excerpt,
   authorName,
   date,
   siteTitle,
-}: {
-  excerpt: string;
-  authorName: string;
-  date: string;
-  siteTitle: string;
-}): string => {
+  page = 1,
+  totalPages = 1,
+}: ShuoShuoDescriptionInput): string => {
+  const pageSuffix = totalPages > 1 ? `第 ${page} / ${totalPages} 页` : '';
   const text = String(excerpt ?? '')
     .replace(/\s+/g, ' ')
     .trim();
   const core = text.length > 120 ? `${text.slice(0, 120).trimEnd()}…` : text;
-  const base = core ? `${authorName} 的说说（${date}）：${core}` : `${authorName} 于 ${date} 发布的一条说说`;
+  // 拼接时把「分页」与「日期」并进同一对括号，避免出现「（第 2 / 2 页）（2026-08-14）」
+  // 这种括号连排的读感。
+  const context = [pageSuffix, date ?? ''].filter(Boolean).join(' · ');
+  const base = core
+    ? `${authorName ?? siteTitle} 的说说（${context}）：${core}`
+    : `${siteTitle} 说说：类似朋友圈的短动态分享，用一句话、一张图记录当下的想法与生活片段${pageSuffix ? `（${pageSuffix}）` : ''}。`;
+
   if (base.length >= DESCRIPTION_MIN_CHARS) {
-    return base.length > DESCRIPTION_MAX_CHARS ? base.slice(0, DESCRIPTION_MAX_CHARS) : base;
+    return base.length > DESCRIPTION_MAX_CHARS ? `${base.slice(0, DESCRIPTION_MAX_CHARS - 1)}…` : base;
   }
 
   const candidates = [

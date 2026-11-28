@@ -75,7 +75,12 @@ for (const file of files) {
   // 特例页：404 与 PWA 离线兜底页按“不可索引页面”对待，不参与正文级检查。
   const is404 = relativePath === '404.html';
   const isOffline = relativePath === 'offline.html';
+  // 独立静态页（public/ 里手写、不经 SSR/应用壳、没有 #root 的 .html，例如
+  // public/PLDDUCK.html 这类自定义页面）：不参与 SEO 审计 —— 它们的用途不是
+  // 被搜索引擎收录，按站点口径硬要求 title/canonical/JSON-LD 只会制造误报。
+  const isStandaloneStaticPage = !/<div\b[^>]*\bid=["']root["']/i.test(html);
   const isSpecial = is404 || isOffline;
+  if (isStandaloneStaticPage) continue;
 
   // ---- 不可索引页面：必须显式 noindex ----
   if (isSpecial) {

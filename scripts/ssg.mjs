@@ -12,6 +12,7 @@ import { parseEnvNumber } from './lib/env.mjs';
 import { createBuildLogger } from './build-logger.mjs';
 import { loadPostsWithContent } from './ssg-data-loader.mjs';
 import { SSG_STATIC_PAGES, NOT_FOUND_CSS_ENTRY, POST_CSS_ENTRY, SHUOSHUO_DETAIL_CSS_ENTRY } from '../config/routes.mjs';
+import { shuoshuoPagePath, shuoshuoPageCount } from '../config/shuoshuo.mjs';
 
 const logger = createBuildLogger('ssg');
 
@@ -347,32 +348,38 @@ const loadRouteCssMap = (distDir) => {
 
 /**
  * 读取构建期解析的说说列表（generated/shuoshuo.json，来自 shuoshuo/*.md），
- * 产出需要预渲染的详情页清单。
+ * 按「每页 SHUOSHUO_PER_PAGE 条」产出需要预渲染的分页清单。
  *
- * 每条说说一个页面（/shuoshuo/<id>）：也只有真正存在的内容才预渲染，
- * 文件缺失或某条 id 非法时跳过（不制造 404 页）。
- * @returns {Array<{ url: string, outDir: string, firstImage?: string }>}
+ * 设计：说说**不再逐条出 HTML**（逐条独立链接已取消），只有每 10 篇一个页面：
+ *   - 第 1 页 = /shuoshuo（已在静态页清单里，这里不重复生成）；
+ *   - 第 2..N 页 = /shuoshuo/page/<n>。
+ * 文件缺失或空列表时返回空数组：站点只有 /shuoshuo 一个说说明页面。
+ * @returns {Array<{ url: string, outDir: string, page: number }>}
  */
-const loadShuoShuoEntries = () => {
+const loadShuoShuoPages = () => {
   if (!fs.existsSync(SHUOSHUO_FILE)) {
-    logger.warn('generated/shuoshuo.json not found; 说说详情页不预渲染（列表按空态渲染）');
+    logger.warn('generated/shuoshuo.json not found; 说说分页不预渲染（只保留 /shuoshuo）');
     return [];
   }
   let data;
   try {
     data = JSON.parse(fs.readFileSync(SHUOSHUO_FILE, 'utf-8'));
   } catch (error) {
-    logger.warn('generated/shuoshuo.json is unreadable; 说说详情页不预渲染', formatError(error));
+    logger.warn('generated/shuoshuo.json is unreadable; 说说分页不预渲染', formatError(error));
     return [];
   }
 
-  return (Array.isArray(data) ? data : [])
-    .filter((item) => typeof item?.id === 'string' && /^[A-Za-z0-9_-]+$/.test(item.id))
-    .map((item) => ({
-      url: `/shuoshuo/${item.id}`,
-      outDir: `shuoshuo/${item.id}`,
-      firstImage: Array.isArray(item.images) ? item.images[0] : undefined,
-    }));
+  const items = (Array.isArray(data) ? data : []).filter(
+    (item) => typeof item?.id === 'string' && /^[A-Za-z0-9_-]+$/.test(item.id),
+  );
+  const totalPages = shuoshuoPageCount(items.length);
+
+  const pages = [];
+  // 从第 2 页开始：第 1 页由静态页清单负责（/shuoshuo）。
+  for (let page = 2; page <= totalPages; page += 1) {
+    pages.push({ url: shuoshuoPagePath(page), outDir: `shuoshuo/page/${page}`, page });
+  }
+  return pages;
 };
 
 /** 从模板 HTML 中提取已存在的 stylesheet href，避免路由级样式重复注入同一 URL。 */ const extractStylesheetHrefs = (
@@ -617,25 +624,23 @@ export const runSsg = async ({
     `count=${staticPages.length} failed=${failedPages.filter((item) => staticPages.some((page) => item.url === `/${page.path}`)).length} skipped=${staticSkipped}`,
   );
 
-  // 2.1 说说详情页：每条说说一个独立可索引页面 /shuoshuo/<id>（SSG 静态 HTML）。
-  // 与文章页一致，正文随首帧 HTML 输出，爬虫/智能体无需执行 JS 即可读取。
-  // 首图 preload 同文章封面：单变体 href 与 <img src> 一致，无 srcset 故不输出 imagesizes。
-  const shuoshuoEntries = loadShuoShuoEntries();
-  for (const entry of shuoshuoEntries) {
+  // 2.1 说说分页：每 10 篇一个静态 HTML（/shuoshuo/page/<n>），第 1 页即 /shuoshuo。
+  // 逐条说说独立页已取消（2026-11 用户要求减少构建产物数量）。
+  const shuoshuoPages = loadShuoShuoPages();
+  for (const entry of shuoshuoPages) {
     if (budgetExceeded()) {
       skippedPages.push(entry.url);
       continue;
     }
-    const extraHead = entry.firstImage ? createImagePreload(toAbsoluteUrl(entry.firstImage, SITE_URL, BASE_PATH)) : '';
     try {
-      await writePage(entry.url, entry.outDir, extraHead, SHUOSHUO_DETAIL_CSS_ENTRY);
+      await writePage(entry.url, entry.outDir, '', SHUOSHUO_DETAIL_CSS_ENTRY);
     } catch (error) {
       failedPages.push({ url: entry.url, error: formatError(error) });
     }
   }
   logger.step(
-    'Generated shuoshuo detail pages',
-    `count=${shuoshuoEntries.length} failed=${failedPages.filter((item) => shuoshuoEntries.some((entry) => entry.url === item.url)).length}`,
+    'Generated shuoshuo paged pages',
+    `count=${shuoshuoPages.length} failed=${failedPages.filter((item) => shuoshuoPages.some((entry) => entry.url === item.url)).length}`,
   );
 
   // 3. 首页。
@@ -703,7 +708,7 @@ export const runSsg = async ({
       firstFew: skippedPages.slice(0, 10),
     });
   }
-  const totalPages = posts.length + staticPages.length + shuoshuoEntries.length + 2;
+  const totalPages = posts.length + staticPages.length + shuoshuoPages.length + 2;
   if (failedPages.length > 0 || skippedPages.length > 0) {
     for (const failed of failedPages) {
       logger.error('Page generation failed', `${failed.url}: ${failed.error}`);
@@ -712,7 +717,7 @@ export const runSsg = async ({
       pages: totalPages,
       posts: posts.length,
       static: staticPages.length,
-      shuoshuo: shuoshuoEntries.length,
+      shuoshuo: shuoshuoPages.length,
       failed: failedPages.length,
       skipped: skippedPages.length,
       siteUrl: SITE_URL,
@@ -728,7 +733,7 @@ export const runSsg = async ({
     pages: totalPages,
     posts: posts.length,
     static: staticPages.length,
-    shuoshuo: shuoshuoEntries.length,
+    shuoshuo: shuoshuoPages.length,
     skipped: skippedPages.length,
     routeCss: routeCssInjected,
     siteUrl: SITE_URL,

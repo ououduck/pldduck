@@ -99,18 +99,23 @@ for (const filePath of htmlFiles) {
   }
 
   const isOfflineFallback = relativePath === 'offline.html';
-  if (!/<title\b[^>]*>[\s\S]+<\/title>/i.test(html)) errors.push(`${relativePath}: missing title`);
-  if (!isOfflineFallback && !/<meta\b[^>]*\bname=["']description["'][^>]*>/i.test(html))
+  // 原地放置的独立静态页（public/ 里手写的 .html，不经 SSG/应用壳，例如
+  // public/PLDDUCK.html 这类自定义页面）：不参与 SEO 与 SSG 正文审计，
+  // 但仍检查资产引用与体积 —— 否则每加一个自建页都会让构建红。
+  const isStandaloneStaticPage = !/<div\b[^>]*\bid=["']root["']/i.test(html);
+  const skipsSeoAudit = isOfflineFallback || isStandaloneStaticPage;
+  if (!skipsSeoAudit && !/<title\b[^>]*>[\s\S]+<\/title>/i.test(html)) errors.push(`${relativePath}: missing title`);
+  if (!skipsSeoAudit && !/<meta\b[^>]*\bname=["']description["'][^>]*>/i.test(html))
     errors.push(`${relativePath}: missing description`);
-  if (!isOfflineFallback && !/<meta\b[^>]*\bname=["']robots["'][^>]*>/i.test(html))
+  if (!skipsSeoAudit && !/<meta\b[^>]*\bname=["']robots["'][^>]*>/i.test(html))
     errors.push(`${relativePath}: missing robots`);
   if (canonicalCount > 1) errors.push(`${relativePath}: duplicate canonical tags (${canonicalCount})`);
   // offline.html 是独立的应用壳兜底页（客户端渲染、无 SEO 需求），
-  // 不要求 JSON-LD 与 SSG 正文，避免误报。
-  if (!isOfflineFallback && jsonLdTags.length === 0) warnings.push(`${relativePath}: missing JSON-LD`);
-  if (!isOfflineFallback && rootContent === '')
+  // 独立静态页同理：不要求 JSON-LD 与 SSG 正文，避免误报。
+  if (!skipsSeoAudit && jsonLdTags.length === 0) warnings.push(`${relativePath}: missing JSON-LD`);
+  if (!skipsSeoAudit && rootContent === '')
     warnings.push(`${relativePath}: static HTML has an empty root; content remains client-rendered`);
-  if (!isOfflineFallback && rootContent.length < 64)
+  if (!skipsSeoAudit && rootContent.length < 64)
     warnings.push(
       `${relativePath}: root content looks too thin (${rootContent.length} chars); SSG may not have rendered body content`,
     );

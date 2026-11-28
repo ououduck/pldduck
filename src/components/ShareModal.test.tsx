@@ -51,9 +51,9 @@ describe('ShareModal', () => {
     const user = userEvent.setup();
     const { copyTextToClipboard } = await import('@/utils/clipboard');
     render(<ShareModal isOpen {...baseProps} onClose={vi.fn()} />);
-    await user.click(screen.getByRole('button', { name: '仅复制链接' }));
+    await user.click(screen.getByRole('button', { name: '复制链接' }));
     expect(copyTextToClipboard).toHaveBeenCalledWith('https://www.pldduck.com/post/test');
-    expect(await screen.findByText('复制成功')).toBeInTheDocument();
+    expect(await screen.findByText('已复制到剪贴板')).toBeInTheDocument();
   });
 
   it('复制完整分享包含标题/摘要/链接', async () => {
@@ -71,8 +71,8 @@ describe('ShareModal', () => {
     const { copyTextToClipboard } = await import('@/utils/clipboard');
     vi.mocked(copyTextToClipboard).mockResolvedValueOnce(false);
     render(<ShareModal isOpen {...baseProps} onClose={vi.fn()} />);
-    await user.click(screen.getByRole('button', { name: '仅复制链接' }));
-    expect(await screen.findByText('复制失败，请手动复制链接。')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '复制链接' }));
+    expect(await screen.findByText(/复制失败，请手动复制链接/)).toBeInTheDocument();
   });
 
   it('提供社交平台分享意图链接（编码后的中文标题与 URL）', () => {
@@ -130,16 +130,16 @@ describe('ShareModal', () => {
     expect(screen.getByText('这条内容')).toBeInTheDocument();
 
     // 打开后用户先手动复制
-    await user.click(screen.getByRole('button', { name: '仅复制链接' }));
+    await user.click(screen.getByRole('button', { name: '复制链接' }));
     // 迟到的 autoCopied=false（竞态）不得覆盖成功状态
     rerender(<ShareModal isOpen {...baseProps} onClose={vi.fn()} autoCopied={false} contentLabel="这条内容" />);
-    expect(screen.getByText('复制成功')).toBeInTheDocument();
+    expect(screen.getByText('已复制到剪贴板')).toBeInTheDocument();
     expect(copyTextToClipboard).toHaveBeenCalled();
   });
 
   it('autoCopied=false 且未手动复制时显示失败提示', () => {
     render(<ShareModal isOpen {...baseProps} onClose={vi.fn()} autoCopied={false} contentLabel="这条内容" />);
-    expect(screen.getByText('自动复制失败，请点击下方按钮手动复制。')).toBeInTheDocument();
+    expect(screen.getByText('自动复制失败，请手动复制')).toBeInTheDocument();
   });
 
   it('关闭按钮触发 onClose', async () => {

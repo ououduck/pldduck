@@ -532,7 +532,6 @@ postRecords.forEach((record) => {
       allPosts: allPostIndex,
       publishedPosts: publishedPostIndex,
       staticRoutes: DEFAULT_STATIC_ROUTES,
-      shuoshuoIds: new Set(shuoshuo.map((item) => item.id)),
       skipFrontMatter: true,
       lineOffset: record.contentStartLine,
     }),

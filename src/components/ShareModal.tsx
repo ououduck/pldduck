@@ -1,8 +1,11 @@
 /**
- * 分享弹层（当前仅文章页使用；说说页已改为 giscus 内嵌、不再分享）：
- * 复制完整文案 / 仅链接、Web Share API、X / Telegram / QQ 空间分享、
- * 微信二维码（uqr 懒加载）。
- * 分享状态与意图链接逻辑在 useShareActions hook 中，本组件负责呈现。
+ * 分享弹层（当前仅文章页使用）。
+ *
+ * 视觉口径（2026-11 重做）：与站内卡片语言统一 —— 面板 `rounded-overlay bg-surface`，
+ * 内容区改成分组卡片而不是跨页发丝线；主操作只保留一个强调按钮（复制链接），
+ * 其余平台入口收进一行等宽图标块，微信二维码收进可展开的次级面板。
+ *
+ * 分享状态与意图链接逻辑在 useShareActions hook 中，本组件只负责呈现。
  */
 
 import React, { useEffect, useId, useRef, useState } from 'react';
@@ -36,6 +39,10 @@ const TelegramIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
     <path d="M21.938 3.863 18.87 20.096c-.23 1.14-.935 1.42-1.895.885l-5.23-3.852-2.524 2.43c-.28.28-.515.515-1.055.515l.377-5.322 9.683-8.752c.422-.376-.094-.585-.655-.209L5.37 13.5l-5.16-1.612c-1.123-.352-1.14-1.123.234-1.662L20.484 2.29c.935-.352 1.753.209 1.454 1.573z" />
   </svg>
 );
+
+/** 平台入口的统一样式：等宽方形图标块，与卡片内其它按钮同一套边框/悬停语义。 */
+const channelClass =
+  'inline-flex h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-control border border-line bg-surface-muted px-2.5 text-[11px] font-medium text-content-muted transition-colors hover:border-accent hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
 
 export const ShareModal: React.FC<ShareModalProps> = ({
   isOpen,
@@ -112,6 +119,16 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     await copyLink();
   };
 
+  const statusText =
+    copyError ??
+    (copiedType
+      ? '已复制到剪贴板'
+      : initialAutoCopied === true
+        ? '链接已自动复制'
+        : initialAutoCopied === false
+          ? '自动复制失败，请手动复制'
+          : '复制链接后可粘贴到任意平台');
+
   return (
     <SlideModal
       isOpen={isOpen}
@@ -120,95 +137,83 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       ariaLabelledby={titleId}
       ariaDescribedby={descriptionId}
     >
-      <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
-        <h3 id={titleId} className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          分享内容
+      <div className="flex items-center justify-between px-5 pb-1 pt-4 md:px-6">
+        <h3 id={titleId} className="text-sm font-semibold text-content">
+          分享
         </h3>
         <button
           ref={closeButtonRef}
           type="button"
           onClick={onClose}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-icon border border-transparent text-zinc-500 transition-colors hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.98] dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-icon text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           aria-label="关闭分享弹窗"
         >
-          <X size={16} />
+          <X size={16} aria-hidden="true" />
         </button>
       </div>
 
-      <div className="p-5 sm:p-6">
-        <p className="mb-5 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-          复制完整分享文案，或者把链接带到你常用的平台。
-        </p>
-
-        <div className="mb-5 border-y border-zinc-200 py-4 dark:border-zinc-800">
-          <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-            <LinkIcon size={14} />
+      <div className="px-5 pb-5 pt-2 md:px-6 md:pb-6">
+        {/* 内容卡片：标题 + 摘要 + 链接，与全站卡片同一套圆角与底色 */}
+        <div className="rounded-overlay bg-surface-muted p-4">
+          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.12em] text-content-tertiary">
+            <LinkIcon size={12} aria-hidden="true" />
             <span>{contentLabel}</span>
           </div>
-          <h4 className="mb-2 line-clamp-2 text-base font-bold leading-snug text-zinc-900 dark:text-zinc-100">
-            {title}
-          </h4>
-          <p id={descriptionId} className="mb-3 line-clamp-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+          <h4 className="line-clamp-2 text-[15px] font-semibold leading-6 text-content">{title}</h4>
+          <p id={descriptionId} className="mt-1 line-clamp-2 text-[13px] leading-6 text-content-muted">
             {excerpt}
           </p>
-          <div className="break-all rounded-control border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-xs leading-relaxed text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
-            {url}
-          </div>
+          <p className="mt-2 break-all font-mono text-[11px] leading-5 text-content-tertiary">{url}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* 主操作：复制链接（唯一强调按钮） */}
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="editorial-button-primary flex-1 rounded-control active:scale-[0.98]"
+            aria-label="复制链接"
+          >
+            {copiedType === 'link' ? (
+              <span className="copy-pop">
+                <Check size={16} aria-hidden="true" />
+              </span>
+            ) : (
+              <Copy size={16} aria-hidden="true" />
+            )}
+            {copiedType === 'link' ? '已复制' : '复制链接'}
+          </button>
           <button
             type="button"
             onClick={handleCopyFull}
-            className="editorial-button-primary rounded-control active:scale-[0.98]"
+            className="editorial-button flex-1 rounded-control active:scale-[0.98]"
             aria-label="复制标题、简介和链接"
           >
             {copiedType === 'all' ? (
               <span className="copy-pop">
-                <Check size={16} />
+                <Check size={16} aria-hidden="true" />
               </span>
             ) : (
-              <Copy size={16} />
+              <LinkIcon size={16} aria-hidden="true" />
             )}
-            {copiedType === 'all' ? '已复制全部' : '复制完整分享'}
-          </button>
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="editorial-button rounded-control active:scale-[0.98]"
-            aria-label="仅复制链接"
-          >
-            {copiedType === 'link' ? (
-              <span className="copy-pop">
-                <Check size={16} />
-              </span>
-            ) : (
-              <LinkIcon size={16} />
-            )}
-            {copiedType === 'link' ? '链接已复制' : '仅复制链接'}
+            {copiedType === 'all' ? '已复制全部' : '复制全部'}
           </button>
         </div>
 
-        {/* 社交渠道：链接跳转各平台官方分享，不引入第三方 SDK */}
-        <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="分享到其他平台">
+        {/* 平台入口：等宽图标块，一行排开 */}
+        <div className="mt-3 flex flex-wrap items-center gap-2" role="group" aria-label="分享到其他平台">
           {canNativeShare && (
-            <button
-              type="button"
-              onClick={() => void nativeShare()}
-              className="editorial-button rounded-control px-3 py-2 text-xs"
-              aria-label="使用系统分享"
-            >
+            <button type="button" onClick={() => void nativeShare()} className={channelClass} aria-label="使用系统分享">
               <Share2 size={14} aria-hidden="true" />
-              系统分享
+              系统
             </button>
           )}
           <a
             href={shareIntents.find((intent) => intent.id === 'x')?.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="editorial-button rounded-control px-3 py-2 text-xs"
+            className={channelClass}
             aria-label="分享到 X（推特）"
-            title="分享到 X"
           >
             <XIcon size={14} />X
           </a>
@@ -216,9 +221,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             href={shareIntents.find((intent) => intent.id === 'telegram')?.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="editorial-button rounded-control px-3 py-2 text-xs"
+            className={channelClass}
             aria-label="分享到 Telegram"
-            title="分享到 Telegram"
           >
             <TelegramIcon size={14} />
             Telegram
@@ -227,9 +231,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             href={shareIntents.find((intent) => intent.id === 'qzone')?.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="editorial-button rounded-control px-3 py-2 text-xs"
+            className={channelClass}
             aria-label="分享到 QQ 空间"
-            title="分享到 QQ 空间"
           >
             <MessageSquareShare size={14} aria-hidden="true" />
             QQ
@@ -239,7 +242,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
             onClick={() => setShowQrCode((value) => !value)}
             aria-expanded={showQrCode}
             aria-controls="share-wechat-qr"
-            className="editorial-button rounded-control px-3 py-2 text-xs"
+            className={channelClass}
             aria-label="微信扫码分享"
           >
             <QrCode size={14} aria-hidden="true" />
@@ -250,7 +253,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         {showQrCode && (
           <div
             id="share-wechat-qr"
-            className="mt-4 flex flex-col items-center gap-3 rounded-surface border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40"
+            className="mt-3 flex flex-col items-center gap-2 rounded-overlay bg-surface-muted p-4"
           >
             {qrSvg ? (
               <img
@@ -258,31 +261,21 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                 alt="当前链接的微信分享二维码"
                 width={168}
                 height={168}
-                className="h-[10.5rem] w-[10.5rem] rounded-[6px] bg-white p-1.5"
+                className="h-[10.5rem] w-[10.5rem] rounded-media bg-white p-1.5"
               />
             ) : qrFailed ? (
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">二维码生成失败，可直接复制链接后在微信中打开。</p>
+              <p className="text-xs text-content-muted">二维码生成失败，可直接复制链接后在微信中打开。</p>
             ) : (
-              <div
-                aria-hidden="true"
-                className="h-[10.5rem] w-[10.5rem] animate-pulse rounded-[6px] bg-zinc-200 dark:bg-zinc-800"
-              />
+              <div aria-hidden="true" className="h-[10.5rem] w-[10.5rem] animate-pulse rounded-media bg-surface" />
             )}
-            <p className="text-center text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+            <p className="text-center text-[11px] leading-5 text-content-tertiary">
               微信内长按识别或截图扫码；也可以复制链接后到微信粘贴发送。
             </p>
           </div>
         )}
 
-        <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400" aria-live="polite">
-          {copyError ??
-            (copiedType
-              ? '复制成功'
-              : initialAutoCopied === true
-                ? '链接已自动复制'
-                : initialAutoCopied === false
-                  ? '自动复制失败，请点击下方按钮手动复制。'
-                  : '选择一种分享方式')}
+        <p className="mt-3 text-center text-[11px] leading-5 text-content-tertiary" aria-live="polite">
+          {statusText}
         </p>
       </div>
     </SlideModal>

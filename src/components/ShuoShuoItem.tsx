@@ -1,15 +1,17 @@
 /**
- * 说说条目：正文、九宫格图片（可预览）、日期与分享入口。
+ * 说说条目：微信朋友圈式九宫格排版，纯展示 + 图片预览。
  *
- * 布局沿用站点当前的卡片式语言（`rounded-overlay bg-surface`），
- * 图片展示恢复为「九宫格」：1 张按 4:3 大图、2 张两列、3 张及以上三列。
- * 正文 Markdown 图片与九宫格图片共用同一 ImageViewer 画廊，
- * 点击任一图片都能在该条说说的全部图片间连续浏览。
+ * 排版口径（对齐微信朋友圈）：
+ * - 图片统一为正方形、1:1 裁切，网格固定三列；
+ * - 网格宽度取内容列的一个固定比例（不是铺满整行），1 张时用单图大尺寸；
+ * - 2 张、4 张时按朋友圈习惯**留空最后一格**，不做拉伸或两列重排；
+ * - 间距 4px，圆角 2px（朋友圈也是极小圆角，配合站内 rounded-control 令牌）。
+ *
+ * 交互：点击任一图片打开统一 ImageViewer 画廊（正文图片 + 九宫格图片共用同一画廊）。
+ * 不提供分享按钮与永久链接入口 —— 说说不再有逐条独立页面（2026-11 用户要求）。
  */
 
 import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Link2, Share2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -18,38 +20,14 @@ import { assetUrl } from '@/utils/siteUrl';
 import type { ShuoShuo as ShuoShuoEntry } from '../types';
 import { ProgressiveImage } from '@/components/ProgressiveImage';
 import { formatDate } from '@/utils/date';
-import { stripMarkdown } from '@/utils/markdownText';
-import { shuoshuoPath } from '@/utils/shuoshuo';
-import { shuoshuoCoverTransitionName, viewTransitionStyle } from '@/utils/viewTransition';
 import type { ImageViewerImage } from '@/components/ImageViewer';
-
-/** 九宫格列数：1 张铺满、2 张两列、其余三列（与九宫格惯例一致）。 */
-const getImageGridClass = (count: number) => {
-  if (count === 1) return 'grid-cols-1';
-  if (count === 2) return 'grid-cols-2';
-  return 'grid-cols-3';
-};
-
-/** 单张图片的裁切比例：独图更大更方，多图统一方格。 */
-const getImageAspectClass = (count: number) => (count === 1 ? 'aspect-[4/3]' : 'aspect-square');
-
-/** 单张图片的 sizes 提示（决定浏览器选哪档 srcset）。 */
-const getImageSizes = (count: number) => {
-  if (count === 1) return '(max-width: 640px) 80vw, 384px';
-  if (count === 2) return '(max-width: 640px) 45vw, 240px';
-  return '(max-width: 640px) 30vw, 160px';
-};
 
 /** Markdown 正文图片的站点资源解析：本地路径补 basePath，外链保持原样。 */
 const resolveContentImageSrc = (src: string): string => (/^https?:\/\//i.test(src) ? src : assetUrl(src));
 
 /** 画廊下标钳制（空画廊直接归零）。 */
-const clampGalleryIndex = (index: number, length: number): number => {
-  if (length <= 0) {
-    return 0;
-  }
-  return Math.min(Math.max(0, index), length - 1);
-};
+const clampGalleryIndex = (index: number, length: number): number =>
+  length <= 0 ? 0 : Math.min(Math.max(0, index), length - 1);
 
 /** 从 Markdown 正文里按文档顺序提取图片（与九宫格共用画廊）。 */
 const extractMarkdownImages = (content: string): ImageViewerImage[] => {
@@ -63,39 +41,39 @@ const extractMarkdownImages = (content: string): ImageViewerImage[] => {
   return images;
 };
 
+/**
+ * 朋友圈九宫格的列数：1 张单列、2 张与 4 张两列、其余三列。
+ * 这是微信朋友圈的实际排布（4 张排成 2×2，不会拉成一行四格）。
+ */
+const getGridColumns = (count: number): number => {
+  if (count <= 1) return 1;
+  if (count === 2 || count === 4) return 2;
+  return 3;
+};
+
+/**
+ * 九宫格的视觉宽度（对齐朋友圈：网格不铺满整行）：
+ * - 1 张：窄单图，最宽 12rem；
+ * - 2 张 / 4 张：两列网格自然更窄；
+ * - 3 张以上：三列网格，最宽 22rem。
+ * 用 max-w + w-full 表达，小屏自动收缩，不会撑出横向滚动。
+ */
+const getGridWidthClass = (count: number): string => {
+  const columns = getGridColumns(count);
+  if (columns === 1) return 'w-full max-w-[12rem]';
+  if (columns === 2) return 'w-full max-w-[15rem]';
+  return 'w-full max-w-[22rem]';
+};
+
 interface ShuoShuoItemProps {
   item: ShuoShuoEntry;
   /** 打开统一图片查看器：传入该条说说的完整画廊与点击图片的下标。 */
   onPreview: (images: ImageViewerImage[], index: number) => void;
-  onShare: (item: ShuoShuoEntry) => void;
-  /** 列表页展示「永久链接」入口指向独立页；详情页隐藏（自身即独立页）。 */
-  showDetailLink?: boolean;
-  /**
-   * 为九宫格首图启用「一镜到底」共享转场（列表首图 → 详情页首图）。
-   * 默认 false：调用方需保证同一视图内最多一条说说开启，见 utils/viewTransition.ts。
-   */
-  shareImageTransition?: boolean;
-  /** 动画类：列表定位高亮等一次性强调（不参与共享转场）。 */
+  /** 列表页给首条说说做定位高亮（?id=<id> 深链使用）。 */
   isHighlighted?: boolean;
-  /**
-   * 预计算的分享摘要（stripMarkdown 结果）：列表页由 ShuoShuo.tsx 的
-   * strippedContents 缓存传入，避免每次击键重渲染对每条说说重跑正则链。
-   * 未传时回退组件内计算（详情页单条场景无成本顾虑）。
-   */
-  shareSnippet?: string;
 }
 
-export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({
-  item,
-  onPreview,
-  onShare,
-  showDetailLink = true,
-  shareImageTransition = false,
-  shareSnippet,
-}) => {
-  // 分享/永久链接的 aria-label 共用同一段文本，只计算一次。
-  const snippet = shareSnippet ?? (stripMarkdown(item.content).slice(0, 24) || item.date);
-
+export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({ item, onPreview, isHighlighted = false }) => {
   // 画廊：正文 Markdown 图片在前（文档顺序），九宫格图片在后 —— 与卡片内
   // 视觉顺序一致；点击任一图片都能在该条说说的全部图片间连续浏览。
   const gallery = useMemo<ImageViewerImage[]>(() => {
@@ -107,7 +85,6 @@ export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({
     return [...contentImages, ...gridImages];
   }, [item.content, item.images]);
 
-  // 正文 Markdown 图片渲染器（画廊下标取自 gallery，随 gallery 重建）。
   const markdownComponents = useMemo<Components>(
     () => ({
       img: ({ src, alt, title, node: _node, ...props }) => {
@@ -134,7 +111,6 @@ export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({
           </button>
         );
       },
-      // 裸 URL 自动成链后的外链安全属性（GFM 显式链接同样走这里）。
       a: ({ href, children, node: _node, ...props }) => {
         const isExternal = /^https?:\/\//i.test(href ?? '');
         if (!isExternal) {
@@ -155,11 +131,14 @@ export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({
   );
 
   const gridImages = item.images ?? [];
-  // 九宫格首图参与「一镜到底」：列表首图 → 详情页首图连续变形（名字按条目区分）。
-  const firstImageTransitionStyle = viewTransitionStyle(shuoshuoCoverTransitionName(item.id), shareImageTransition);
+  const gridColumns = getGridColumns(gridImages.length);
 
   return (
-    <article className="rounded-overlay bg-surface p-4 transition-colors hover:bg-surface-muted md:p-5">
+    <article
+      className={`rounded-overlay bg-surface p-4 transition-colors hover:bg-surface-muted md:p-5 ${
+        isHighlighted ? 'ring-2 ring-accent' : ''
+      }`}
+    >
       <header className="flex items-center gap-2 text-xs text-content-muted">
         <span className="relative h-7 w-7 flex-shrink-0 overflow-hidden rounded-full bg-surface-muted">
           <ProgressiveImage
@@ -186,70 +165,33 @@ export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({
       )}
 
       {gridImages.length > 0 && (
-        <div className="relative mt-3">
-          {/* 图片数量徽标：多图时一眼可见总量 */}
-          {gridImages.length > 1 && (
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute right-2 top-2 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white/90"
+        <div
+          className={`mt-3 grid gap-1 ${getGridWidthClass(gridImages.length)}`}
+          style={{ gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }}
+        >
+          {gridImages.map((src, index) => (
+            <button
+              key={`${src}-${index}`}
+              type="button"
+              onClick={() =>
+                onPreview(gallery, clampGalleryIndex(gallery.length - gridImages.length + index, gallery.length))
+              }
+              className="group relative block aspect-square w-full overflow-hidden rounded-control bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              aria-label={`查看图片 ${index + 1}，共 ${gallery.length} 张`}
             >
-              {gridImages.length} 图
-            </span>
-          )}
-          <div
-            className={`grid gap-1.5 sm:gap-2 ${getImageGridClass(gridImages.length)} ${gridImages.length === 1 ? 'max-w-sm' : ''}`}
-          >
-            {gridImages.map((src, index) => (
-              <button
-                key={`${src}-${index}`}
-                type="button"
-                onClick={() =>
-                  onPreview(gallery, clampGalleryIndex(gallery.length - gridImages.length + index, gallery.length))
-                }
-                style={index === 0 ? firstImageTransitionStyle : undefined}
-                className={`group relative block w-full overflow-hidden rounded-media bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${getImageAspectClass(gridImages.length)}`}
-                aria-label={`查看图片 ${index + 1}，共 ${gallery.length} 张`}
-              >
-                <ProgressiveImage
-                  src={assetUrl(src)}
-                  alt={`说说图片 ${index + 1}`}
-                  loading="lazy"
-                  effect="fade"
-                  sizes={getImageSizes(gridImages.length)}
-                  wrapperClassName="h-full w-full"
-                  className="h-full w-full object-cover"
-                />
-              </button>
-            ))}
-          </div>
+              <ProgressiveImage
+                src={assetUrl(src)}
+                alt={`说说图片 ${index + 1}`}
+                loading="lazy"
+                effect="fade"
+                sizes={gridImages.length === 1 ? '(max-width: 640px) 60vw, 192px' : '(max-width: 640px) 30vw, 112px'}
+                wrapperClassName="h-full w-full"
+                className="h-full w-full object-cover"
+              />
+            </button>
+          ))}
         </div>
       )}
-
-      {/* 卡片底部操作栏：永久链接（独立页入口，利于爬虫发现/收录）+ 分享按钮 */}
-      <footer className="mt-3 flex items-center justify-between border-t border-line pt-2">
-        {showDetailLink ? (
-          <Link
-            to={shuoshuoPath(item.id)}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-control px-2.5 text-xs font-medium text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            aria-label={`查看这条说说：${snippet}`}
-          >
-            <Link2 size={14} aria-hidden="true" />
-            永久链接
-          </Link>
-        ) : (
-          <span aria-hidden="true" />
-        )}
-
-        <button
-          type="button"
-          onClick={() => onShare(item)}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-control px-2.5 text-xs font-medium text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          aria-label={`分享这条说说：${snippet}`}
-        >
-          <Share2 size={14} aria-hidden="true" />
-          分享
-        </button>
-      </footer>
     </article>
   );
 };

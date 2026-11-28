@@ -21,13 +21,9 @@ const initialShuoShuo = Object.values(generatedShuoShuoModules)[0] ?? [];
 /** 同步读取构建期内联的说说列表（SSG / 首帧渲染用），已按日期倒序。 */
 export const getInitialShuoShuo = (): ShuoShuo[] => initialShuoShuo;
 
-/** 按 id 取单条（详情页首帧用；找不到返回 undefined）。 */
-export const getInitialShuoShuoItem = (id: string): ShuoShuo | undefined =>
-  initialShuoShuo.find((item) => item.id === id);
-
 /**
  * 条目的展示标题：取正文第一个非空行（剥离 Markdown 标记后）。
- * 抽成纯函数便于列表页、详情页与 SEO 共用同一口径。
+ * 抽成纯函数便于列表页与 SEO 共用同一口径。
  */
 export const getShuoShuoTitle = (entry: ShuoShuo, maxChars = 40): string => {
   const firstLine = stripMarkdown(String(entry.content ?? ''))

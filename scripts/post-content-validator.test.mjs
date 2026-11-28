@@ -9,28 +9,20 @@ const makePost = (content) => ({
   filePath: '/posts/test-post.md',
 });
 
-// 2026-11 起说说内容回到 shuoshuo/*.md，详情页是 /shuoshuo/<id>（id 为 ASCII 标识）。
-// 内容校验做两件事：路径形状合法 + 目标说说真实存在（调用方传 shuoshuoIds）。
+// 2026-11 起说说改为「每 10 条一个页面」（/shuoshuo 与 /shuoshuo/page/<n>），
+// 逐条 /shuoshuo/<id> 独立页已取消 —— 文章里再写旧格式链接会被拦下。
 describe('validatePostContent — 说说链接的站内路由校验', () => {
-  it('链接到列表页（静态路由）：不报错', () => {
+  it('链接到说说列表页（静态路由）：不报错', () => {
     expect(validatePostContent(makePost('[全部说说](/shuoshuo)'), { skipFrontMatter: true })).toEqual([]);
   });
 
-  it('链接到存在的说说详情页：不报错', () => {
-    expect(
-      validatePostContent(makePost('[一条说说](/shuoshuo/hello-shuoshuo)'), {
-        skipFrontMatter: true,
-        shuoshuoIds: new Set(['hello-shuoshuo']),
-      }),
-    ).toEqual([]);
+  it('链接到说说分页（page/<n>）：形状合法，不报错', () => {
+    expect(validatePostContent(makePost('[说说第 2 页](/shuoshuo/page/2)'), { skipFrontMatter: true })).toEqual([]);
   });
 
-  it('链接到不存在的说说详情页：报 missing shuoshuo entry', () => {
-    const errors = validatePostContent(makePost('[一条说说](/shuoshuo/missing-entry)'), {
-      skipFrontMatter: true,
-      shuoshuoIds: new Set(['hello-shuoshuo']),
-    });
-    expect(errors.some((message) => message.includes('missing shuoshuo entry'))).toBe(true);
+  it('已取消的逐条说说链接：报 unknown site route', () => {
+    const errors = validatePostContent(makePost('[一条说说](/shuoshuo/hello-shuoshuo)'), { skipFrontMatter: true });
+    expect(errors.some((message) => message.includes('unknown site route'))).toBe(true);
   });
 
   it('已下线的留言板路径：报 unknown site route', () => {
@@ -40,8 +32,8 @@ describe('validatePostContent — 说说链接的站内路由校验', () => {
     expect(detailErrors.some((message) => message.includes('unknown site route'))).toBe(true);
   });
 
-  it('说说详情页标识超出安全字符集：报 unknown site route', () => {
-    const errors = validatePostContent(makePost('[一条说说](/shuoshuo/hello%2Fworld)'), { skipFrontMatter: true });
+  it('分页路径页码不是数字：报 unknown site route', () => {
+    const errors = validatePostContent(makePost('[说说分页](/shuoshuo/page/abc)'), { skipFrontMatter: true });
     expect(errors.some((message) => message.includes('unknown site route'))).toBe(true);
   });
 });

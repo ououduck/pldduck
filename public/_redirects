@@ -21,5 +21,8 @@
 /guestbook  /posts  301
 /guestbook/*  /posts  301
 #
-# 说说的详情页是 /shuoshuo/<id>，id 来自 shuoshuo/*.md 的 frontmatter（静态数据），
-# 由 SSG 逐条预渲染，没有需要重定向的历史路径形状。
+# 说说已取消逐条独立页（2026-11，改为每 10 条一个页面：/shuoshuo 与
+# /shuoshuo/page/<n>）。历史 /shuoshuo/<id> 深链不再有对应内容，统一 301
+# 回说说列表；分页规则不会被这条匹配（精确的 /shuoshuo/page/* 在前）。
+/shuoshuo/page/:splat  /shuoshuo/page/:splat  200
+/shuoshuo/:splat  /shuoshuo  301

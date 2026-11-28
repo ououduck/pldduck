@@ -108,12 +108,13 @@ export const ROUTES = [
     cssEntry: 'src/pages/ShuoShuo.tsx',
   },
   {
-    // 说说详情：内容来自 shuoshuo/*.md（Pages CMS「说说」集合），每条一个可索引页面。
-    path: '/shuoshuo/:id',
+    // 说说分页：每 10 篇一个 HTML（/shuoshuo/page/<n>），由 ssg.mjs 按
+    // generated/shuoshuo.json 的条数逐页预渲染。逐条独立页已取消（2026-11）。
+    path: '/shuoshuo/page/:page',
     segment: 'shuoshuo',
     sw: true,
     ssg: 'shuoshuo',
-    cssEntry: 'src/pages/ShuoShuoDetail.tsx',
+    cssEntry: 'src/pages/ShuoShuo.tsx',
   },
   {
     path: '/cover',

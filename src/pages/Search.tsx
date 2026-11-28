@@ -163,7 +163,7 @@ export const Search = () => {
   ];
 
   return (
-    <div className="pb-8 md:pb-14">
+    <div className="mx-auto max-w-3xl pb-12 pt-6 md:pb-20 md:pt-10">
       {/* 带 q 参数时 Seo 组件自动输出 noindex（与首页内联搜索一致）；无 q 时正常索引 */}
       <Seo
         title={hasSearchQuery ? `搜索：${searchQuery}` : '搜索'}
@@ -171,9 +171,13 @@ export const Search = () => {
         structuredData={searchStructuredData}
       />
 
-      <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-line pb-5 md:pb-6">
-        <h1 className="font-sans text-3xl font-bold tracking-tight text-content md:text-4xl">搜索</h1>
-        <p className="text-sm leading-6 text-content-muted">
+      {/* 卡片式页头：与说说/留言以外的所有栏目页统一（rounded-overlay bg-surface）。 */}
+      <header className="rounded-overlay bg-surface p-6 md:p-8">
+        <h1 className="font-sans text-4xl font-bold tracking-tight text-content md:text-5xl">搜索</h1>
+        <p className="mt-3 max-w-xl text-sm leading-7 text-content-muted md:text-base">
+          在整站范围内检索文章，支持标题、标签、摘要与正文内容。
+        </p>
+        <p className="mt-2 text-xs leading-6 text-content-tertiary">
           {hasSearchQuery
             ? isSearching && results.length === 0
               ? '正在搜索…'
@@ -182,69 +186,66 @@ export const Search = () => {
         </p>
       </header>
 
-      <section className="mt-7 md:mt-9">
-        <div className="mb-8 flex flex-col gap-4">
-          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-            <div className="min-w-0 flex-1">
-              <SearchField
-                size="large"
-                value={searchQuery}
-                onValueChange={handleSearchChange}
-                onClear={handleClearSearch}
-                placeholder="搜索标题、标签与正文内容..."
-                aria-label="搜索文章"
-                containerClassName="max-w-2xl"
-                autoFocus
-                onFocus={() => {
-                  searchInputFocusedRef.current = true;
-                }}
-                onBlur={() => {
-                  // 失焦 = 编辑结束：清除最近编辑守卫，恢复 URL 驱动的同步
-                  // （否则后退/前进/粘贴带 ?q= 的链接会被永久短路）。
-                  searchInputFocusedRef.current = false;
-                  lastEditedQueryRef.current = null;
-                }}
-              />
-            </div>
-            {/* 只做静态提示，不新增快捷键逻辑：Ctrl/Cmd+K 由 Layout 的命令面板统一处理 */}
-            <p className="hidden shrink-0 items-center gap-1.5 pb-3 text-[11px] leading-none text-content-muted sm:flex">
-              <kbd className="rounded-micro border border-line px-1.5 py-1 font-sans">Ctrl / ⌘</kbd>
-              <span aria-hidden="true">+</span>
-              <kbd className="rounded-micro border border-line px-1.5 py-1 font-sans">K</kbd>
-              <span>打开命令面板</span>
-            </p>
-          </div>
+      {/* 搜索卡片：输入框 + 范围切换 + 快捷键提示，同一块卡片内完成 */}
+      <section aria-label="搜索设置" className="mt-4 rounded-overlay bg-surface p-5 md:p-6">
+        <SearchField
+          size="large"
+          value={searchQuery}
+          onValueChange={handleSearchChange}
+          onClear={handleClearSearch}
+          placeholder="搜索标题、标签与正文内容…"
+          aria-label="搜索文章"
+          containerClassName="w-full"
+          autoFocus
+          onFocus={() => {
+            searchInputFocusedRef.current = true;
+          }}
+          onBlur={() => {
+            // 失焦 = 编辑结束：清除最近编辑守卫，恢复 URL 驱动的同步
+            // （否则后退/前进/粘贴带 ?q= 的链接会被永久短路）。
+            searchInputFocusedRef.current = false;
+            lastEditedQueryRef.current = null;
+          }}
+        />
 
-          <div>
-            <div role="group" aria-label="搜索范围" className="flex flex-wrap gap-x-6 border-b border-line">
-              {SEARCH_SCOPE_OPTIONS.map((option) => {
-                const isActive = searchScope === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    aria-pressed={isActive}
-                    onClick={() => handleScopeChange(option.value)}
-                    className={`-mb-px inline-flex min-h-11 items-center border-b-2 px-0.5 text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'border-content text-content'
-                        : 'border-transparent text-content-muted hover:text-content'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-3 text-xs leading-5 text-content-muted">{activeScopeHint}</p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+          <div role="group" aria-label="搜索范围" className="flex flex-wrap gap-1.5">
+            {SEARCH_SCOPE_OPTIONS.map((option) => {
+              const isActive = searchScope === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => handleScopeChange(option.value)}
+                  className={`inline-flex min-h-9 items-center rounded-control px-3 text-[13px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                    isActive
+                      ? 'bg-surface-muted text-content'
+                      : 'text-content-muted hover:bg-surface-muted hover:text-content'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
+          {/* 只做静态提示，不新增快捷键逻辑：Ctrl/Cmd+K 由 Layout 的命令面板统一处理 */}
+          <p className="hidden shrink-0 items-center gap-1.5 text-[11px] leading-none text-content-tertiary sm:flex">
+            <kbd className="rounded-micro border border-line px-1.5 py-1 font-sans">Ctrl / ⌘</kbd>
+            <span aria-hidden="true">+</span>
+            <kbd className="rounded-micro border border-line px-1.5 py-1 font-sans">K</kbd>
+            <span>打开命令面板</span>
+          </p>
         </div>
+        <p className="mt-2.5 text-xs leading-5 text-content-tertiary">{activeScopeHint}</p>
+      </section>
 
+      <section className="mt-4" aria-label="搜索结果">
         {isSearching && results.length === 0 ? (
-          <div aria-busy="true" className="mt-2">
+          <div aria-busy="true">
             <LoadingStatus label="正在搜索文章" />
-            {/* 轻量骨架：与最终横幅卡片同构（封面块 + 文字条），不再用重卡片网格 */}
-            <div className="mt-4 flex flex-col gap-4" aria-hidden="true">
+            {/* 轻量骨架：与最终横幅卡片同构（封面块 + 文字条） */}
+            <div className="mt-3 flex flex-col gap-3" aria-hidden="true">
               {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
@@ -266,13 +267,14 @@ export const Search = () => {
             {/* 重新搜索（已有旧结果）时保留旧结果展示，仅提示正在刷新，
                 避免每次击键都整块闪回骨架屏（首次搜索无结果才显示骨架）。 */}
             {isSearching && results.length > 0 && (
-              <div className="mb-4 flex items-center gap-2 text-xs text-content-muted">
+              <div className="mb-3 flex items-center gap-2 text-xs text-content-tertiary">
                 <LoaderCircle size={12} className="animate-spin" aria-hidden="true" />
                 <span>正在搜索「{searchQuery}」的最新结果…</span>
               </div>
             )}
             {searchError ? (
               <ContentStatus
+                className="rounded-overlay border-0 bg-surface"
                 variant="error"
                 title="搜索失败"
                 description={searchError}
@@ -281,24 +283,21 @@ export const Search = () => {
               />
             ) : hasSearchQuery ? (
               results.length > 0 ? (
-                <div aria-live="polite">
-                  {/* 统一横幅卡片：移动端封面在上、桌面图左文右（与文章列表一致），
-                      不再同时渲染两套卡片网格。 */}
-                  <div className="flex flex-col gap-4">
-                    {results.map((post, index) => (
-                      <PostCard
-                        key={post.id}
-                        post={post}
-                        variant="banner"
-                        onShare={setSharePost}
-                        // 只给第一条结果开启封面转场：同一视图内转场名必须唯一。
-                        shareCoverTransition={sharedElementTransition && index === 0}
-                      />
-                    ))}
-                  </div>
+                <div aria-live="polite" className="flex flex-col gap-3">
+                  {results.map((post, index) => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      variant="banner"
+                      onShare={setSharePost}
+                      // 只给第一条结果开启封面转场：同一视图内转场名必须唯一。
+                      shareCoverTransition={sharedElementTransition && index === 0}
+                    />
+                  ))}
                 </div>
               ) : (
                 <ContentStatus
+                  className="rounded-overlay border-0 bg-surface"
                   title="未找到匹配文章"
                   description={`没有找到与「${searchQuery}」相关的内容，尝试缩短关键词，或更换搜索范围。`}
                   actionLabel="清除搜索"
@@ -307,6 +306,7 @@ export const Search = () => {
               )
             ) : (
               <ContentStatus
+                className="rounded-overlay border-0 bg-surface"
                 title="输入关键词开始搜索"
                 description="支持按标题、标签、摘要与正文内容搜索，回车或点击结果即可打开文章。"
               />

@@ -22,12 +22,12 @@ const DEFAULT_STATIC_ROUTES = new Set([
 ]);
 
 /**
- * 带参数的站内路由前缀（说说详情页 `/shuoshuo/<id>`）。
+ * 带参数的站内路由前缀：说说分页 `/shuoshuo/page/<n>`（逐条说说页已取消）。
  *
- * id 由 `shuoshuo/*.md` 的 frontmatter 决定，与文章一样是仓库内静态数据，
- * 因此这里**只做形状校验**，目标存在性由调用方通过 `shuoshuoIds` 单独判断。
+ * 页码是否存在取决于说说数量（构建期才知道），因此这里**只做形状校验**；
+ * 已下线的 `/shuoshuo/<id>` 逐条链接会落到「未知站内路由」并被拦下。
  */
-const PARAMETERIZED_ROUTE_PATTERNS = [/^\/shuoshuo\/[A-Za-z0-9_-]+$/];
+const PARAMETERIZED_ROUTE_PATTERNS = [/^\/shuoshuo\/page\/[0-9]+$/];
 
 const isEscaped = (value, index) => {
   let slashCount = 0;
@@ -259,7 +259,6 @@ export const validatePostContent = (post, context = {}) => {
     imageRoot = path.resolve('posts-img'),
     publishedPosts = new Map(),
     staticRoutes = DEFAULT_STATIC_ROUTES,
-    shuoshuoIds = null,
     lineOffset = 0,
     skipFrontMatter = false,
   } = context;
@@ -408,17 +407,8 @@ export const validatePostContent = (post, context = {}) => {
       return;
     }
 
-    // 说说详情页：目标必须真实存在（shuoshuo/*.md 里声明的 id），
-    // 否则文章里会留下一条指向 404 的站内链接。
-    if (pathname.startsWith('/shuoshuo/') && shuoshuoIds) {
-      const targetShuoShuoId = pathname.slice('/shuoshuo/'.length);
-      if (!shuoshuoIds.has(targetShuoShuoId)) {
-        errors.push(
-          lineError(filename, link.line + lineOffset, `link "${link.rawTarget}" targets a missing shuoshuo entry`),
-        );
-        return;
-      }
-    }
+    // 说说分页：页码形状已在上面的 PARAMETERIZED_ROUTE_PATTERNS 校验；具体页数
+    // 取决于说说条数（构建期才知道），这里不再判断目标存在性。
 
     if (route.anchor && targetPost) {
       const headings = targetPost.headingIds || [];

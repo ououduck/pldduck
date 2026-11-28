@@ -22,7 +22,6 @@ const PostsPage = lazy(pageLoaders['/posts']);
 const ArchivePage = lazy(pageLoaders['/archive']);
 const Friends = lazy(pageLoaders['/friends']);
 const ShuoShuoPage = lazy(pageLoaders['/shuoshuo']);
-const ShuoShuoDetailPage = lazy(() => import('./pages/ShuoShuoDetail').then((m) => ({ default: m.ShuoShuoDetail })));
 const CoverGenerator = lazy(pageLoaders['/cover']);
 const Watermark = lazy(pageLoaders['/watermark']);
 const SearchPage = lazy(pageLoaders['/search']);
@@ -151,8 +150,9 @@ const AppRoutes: React.FC = () => {
           <Route path="/tags" element={<TagsRedirect />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/shuoshuo" element={<ShuoShuoPage />} />
-          {/* 每条说说一个可索引详情页（/shuoshuo/<id>），内容来自 shuoshuo/*.md。 */}
-          <Route path="/shuoshuo/:id" element={<ShuoShuoDetailPage />} />
+          {/* 说说分页：每 10 条一个静态页（/shuoshuo/page/<n>），由 SSG 逐页预渲染。
+              逐条说说独立页已取消（2026-11）。 */}
+          <Route path="/shuoshuo/page/:page" element={<ShuoShuoPage />} />
           <Route path="/cover" element={<CoverGenerator />} />
           <Route path="/watermark" element={<Watermark />} />
           <Route path="/search" element={<SearchPage />} />

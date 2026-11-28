@@ -52,15 +52,8 @@ export const preloadPage = (path: string) => {
     return;
   }
 
-  // 说说详情：每条说说一个页面，悬停列表项时提前取对应 chunk
-  // （detail 页面不在 PRELOADABLE_PATHS 里 —— 那是无参数的静态页清单）。
-  if (path.startsWith('/shuoshuo/')) {
-    import('../pages/ShuoShuoDetail').catch(() => {
-      preloadedPaths.delete(path);
-    });
-    return;
-  }
-
+  // 说说分页（/shuoshuo/page/<n>）与列表页共用同一 chunk：pageLoaders 里已按
+  // '/shuoshuo' 注册，这里不再单独分支。逐条说说页已取消（2026-11）。
   const loader = pageLoaders[path];
   if (loader) {
     loader().catch(() => {

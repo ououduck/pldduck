@@ -2,20 +2,22 @@
 
 ## 功能概述
 
-构建期生成全部站点数据：`generated/posts.json`、`generated/friends.json`、`generated/discussions.json` 等（前端 services 消费）、sitemap（页面/文章/图片/索引）、robots.txt、RSS/feed、llms.txt/llms-full.txt；同时校验文章 front matter 与内部链接/本地图片引用。
+构建期生成全部站点数据：`generated/posts.json`、`generated/posts-search.json`、`generated/friends.json`、`generated/shuoshuo.json`（前端 services 消费）、sitemap（`sitemap-pages.xml` / `sitemap-posts.xml` / `sitemap-images.xml` / `sitemap-index.xml`）、robots.txt、RSS/feed、llms.txt/llms-full.txt；同时校验文章 front matter 与内部链接/本地图片引用。
 
-> 说说与留言板自 2026-11 起「一条内容 = 一条 Discussion」，内容仍在 GitHub Discussions，**构建期不再解析任何 markdown**；`generated/discussions.json` 由 `scripts/fetch-discussions.mjs` 通过 GraphQL 抓取（需要 `GITHUB_TOKEN`），前端 eager 内联后由 SSG 逐条预渲染详情页。`generated/shuoshuo.json` 与 `sitemap-shuoshuo.xml` 仍处于退役状态。
+内容全部来自仓库内文件，**站点不抓取 GitHub Discussions 内容**，构建结果可复现：文章取 `posts/*.md`、说说取 `shuoshuo/*.md`、友链取 `friends/*.json`。说说的 frontmatter 只有 `id`（`^[A-Za-z0-9_-]+$`）/ `date` / `images`，正文即动态内容；构建期解析为 `generated/shuoshuo.json`，SSG 只产出 `/shuoshuo` 与 `/shuoshuo/page/<n>`（每 10 条一页，分页口径见 `config/shuoshuo.mjs`），**没有逐条 HTML、没有逐条链接**。`generated/discussions.json` 是已下线管线的旧产物，脚本每次构建都会 `fs.rmSync` 删掉它，不要重新引入。
 
 ## 关键文件
 
-- `scripts/generate-site-data.mjs`（约 1100 行）
+- `scripts/generate-site-data.mjs`（约 1000 行）
 - `scripts/post-content-validator.mjs`（内容校验）
+- `scripts/fetch-giscus-comments.mjs`（构建期文章评论数快照）
 - `scripts/feed-generator.mjs` / `feed-markdown.mjs`
+- `config/shuoshuo.mjs`（说说分页口径唯一来源） / `config/routes.mjs`（sitemap 页面条目）
 - `src/services/*`（消费 generated JSON）
 
 ## 修改规则（必须遵守）
 
-1. **前端契约**：`generated/posts.json` 的字段结构被 src/services 直接消费，增删字段必须同步更新前端类型与消费方。
+1. **前端契约**：`generated/posts.json` / `generated/shuoshuo.json` 的字段结构被 src/services 直接消费，增删字段必须同步更新前端类型与消费方。
 2. **fail-closed**：front matter 校验失败、输出写入失败必须非零退出阻断构建（禁止带缺文件件继续）。
 3. **草稿语义**：`draft: true` 的文章跳过内容校验但不出现在发布列表（既有用户确认的行为）。
 4. **URL 口径**：sitemap/RSS/OG 的 URL 必须为绝对站点 URL（siteAbsoluteUrl），base path 正确拼接。
@@ -23,15 +25,14 @@
 6. **产物计数**：summary 的 outputs 从 generated//public/ 实际统计（禁止硬编码）。
 7. **共享核心**：front matter 剥离（markdown-core.mjs）、标题提取（headings-core.mjs）是 src/scripts 共享模块，改动必须两端一致。
 8. **异常兜底**：uncaughtException/unhandledRejection handler 必须在记录日志后确保进程退出（宽限期强制 process.exit(1)），不得依赖「异常后无挂起异步」的假设 —— 脚本含顶层 await（fetchCommentCounts），异常发生在异步窗口时进程可能带不一致状态继续/挂起。
-9. **评论数匹配口径**：fetch-giscus-comments 的 discussion 标题（页面 URL pathname）匹配必须叠加 BASE_PATH（withBasePath），子路径部署时 `/post/<id>` 匹配不上会导致评论数静默全缺。排除说说/留言评论时按**分类名**（`shuoshuo.categoryName` / `guestbook.categoryName`）判定，不要只认单个固定 discussionId —— 一条一帖之后编号不再固定。
-10. **discussions.json 的降级口径**：抓取失败 / 无 token / 分类未配置时**不写文件并删除旧产物**（留着上一次的列表会让页面展示已经不存在的讨论），同时 warn；页面按「取不到数据」降级，不阻塞构建。`GITHUB_TOKEN` 是 secret，Actions 里必须由 build 步骤显式 `env:` 注入（deploy.yml / ci.yml 已配）。
-11. **迁移前的合集讨论要排除**：`guestbook.discussionId` / `shuoshuo.discussionId` 指向旧合集讨论，抓取时按编号剔除（它是备份，不是内容条目）。
+9. **评论数匹配口径**：fetch-giscus-comments 的 discussion 标题（页面 URL pathname）匹配必须叠加 BASE_PATH（withBasePath），子路径部署时 `/post/<id>` 匹配不上会导致评论数静默全缺。
 
 ## 常见陷阱
 
 - 修改 front matter 字段解析会影响全部文章数据（日期/tags 等）；文章没有 category 字段，校验器也不再校验 category 白名单，不要把它加回解析与校验流程；
 - 校验器对代码块/行内代码内的伪链接已做屏蔽，新增解析规则要保持该屏蔽（防构建误杀）；
-- 图片引用校验（posts-img 本地路径）与外部图床 URL 的处理口径不要混淆。
+- 图片引用校验（posts-img 本地路径）与外部图床 URL 的处理口径不要混淆；
+- `llms.txt` 的说说条目仍按 `/shuoshuo/<id>` 生成文本链接（`generateSiteData` 的 `shuoshuoLines`），但该路径已无对应静态页（`_redirects` 会 301 回列表）；改动 llms.txt 时先确认预期口径，不要顺手把它当成「逐条链接又回来了」的依据。
 
 ## 破例条款
 

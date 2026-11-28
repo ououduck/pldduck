@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-站点/构建/内容配置分层：站点配置按用途拆成两份 JSON（`config/site.config.json` 站点信息、`config/comments.config.json` 评论与留言板，均可在 CMS 编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方；另有部署运行配置 `wrangler.jsonc`、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。文章 category 已删除，随之配套的白名单配置文件也已从 `config/` 移除：构建期不再校验 category，文章元数据只有 `tags`。历史门户配置 `config/portal.config.json` 已于 2026-11 整体移除（首页早已改为小部件布局、不再消费它）。
+站点/构建/内容配置分层：站点配置按用途拆成两份 JSON（`config/site.config.json` 站点信息、`config/comments.config.json` 评论，均可在 CMS 编辑），构建期加载器与运行期 `config/site.config.ts` **各自合并回同一份对象**再交给消费方；另有部署运行配置 `wrangler.jsonc`、构建配置（tsconfig/tailwind/postcss/vite）、环境变量（.env.example）。`comments.config.json` 顶层只有两段：`giscusEnabled`（全局评论开关）与 `comments`（`repo` / `repoId` / `category` / `categoryId` / `origin` / `strict`）—— 站内只剩文章评论区，留言板与说说的评论段（`guestbook` / `shuoshuo`，含各自的 `categoryName` / `discussionId`）已随评论区下线一并删除，不要再建回。文章 category 已删除，随之配套的白名单配置文件也已从 `config/` 移除：构建期不再校验 category，文章元数据只有 `tags`。历史门户配置 `config/portal.config.json` 已于 2026-11 整体移除（首页早已改为小部件布局、不再消费它）。
 
 ## 关键文件
 
@@ -52,7 +52,7 @@
 - config/ 根目录（构建配置）与 src/config（已删除）勿混淆；
 - 看到旧文档/旧代码提到 category 白名单就把它建回来：该配置文件已随文章 category 功能删除，构建期不再校验 category，`generated/posts.json` 也只有 `tags`；新增配置文件必须同时补 `.pages.yml` 集合与漂移测试；
 - 站点配置的读者是**两份加载器**（构建侧 mjs + 运行侧 TS），两侧合并逻辑必须同步修改，否则 CI 产物与页面运行时配置不一致；
-- site.config.json 的 author/social、comments.config.json 的 comments/guestbook 等嵌套结构被多处消费，增删字段需全局检索消费方；
+- site.config.json 的 author/social、comments.config.json 的 `comments`（`repo` / `repoId` / `category` / `categoryId` / `origin` / `strict`）等嵌套结构被多处消费，增删字段需全局检索消费方；`comments.category` 同时被构建期评论数抓取（`scripts/fetch-giscus-comments.mjs`）与评论审核的区域判定（`scripts/lib/comment-surface.mjs`）读取，改名要两处一起验证；
 - `config/portal.config.json` / `siteConfig.portal` 已于 2026-11 整体清理（首页那时早已改为小部件布局、不再消费）：不要再建回这个文件/集合，也不要在首页重新渲染门户入口/开源项目/关于本站/技术栈；新增首页内容请改小部件组件；
 - `statusPageUrl` 被误当成「敏感配置」塞进 `.env` 或与 `BETTERSTACK_API_TOKEN` 写在一起：它随前端产物公开下发，放错位置会同时泄露 Token 并让状态入口失效；反之把 Token 写进 `config/site.config.json` 或 `VITE_*` 变量等于公开泄露。
 

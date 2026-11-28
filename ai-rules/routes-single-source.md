@@ -16,9 +16,14 @@
 
 字段约定（详见文件头注释）：`path` react-router 路径；`segment` URL 首段（`''` 首页、
 `null` 通配）；`preload` 是否悬停预加载；`sw` 是否允许应用壳兜底；`ssg` 预渲染方式
-（`static` / `static-home` / `posts` / `not-found`）；`seo` 静态页页面级
+（`static` / `static-home` / `posts` / `shuoshuo` / `not-found`）；`seo` 静态页页面级
 SEO（`title` 只写前缀，站点名后缀由 `ssg.mjs` 用 `siteConfig.title` 拼接）；`sitemap`
 进入 `sitemap-pages.xml` 的 changefreq/priority。
+
+说说的分页口径不在本文件里定义：每页条数与页路径由 `config/shuoshuo.mjs`
+（`SHUOSHUO_PER_PAGE` / `shuoshuoPagePath` / `shuoshuoPageCount`）唯一提供，
+`routes.mjs` 只声明 `/shuoshuo`（`ssg: 'static'`，第 1 页）与 `/shuoshuo/page/:page`
+（`ssg: 'shuoshuo'`，由 SSG 按 `generated/shuoshuo.json` 的条数逐页预渲染）。
 
 ## 关键文件
 
@@ -34,12 +39,14 @@ SEO（`title` 只写前缀，站点名后缀由 `ssg.mjs` 用 `siteConfig.title`
    另立一份路径表、`switch` 白名单或正则常量。
 2. **文章的 URL 是对外契约**：`/post/:id` 及其 `segment` 不得改动——旧博客域名上挂着
    这些地址的 301，外链与搜索收录也按此格式，改一次即全部作废。
-   说说与留言自 2026-11 起为「一条内容 = 一条 Discussion」，各有**逐条详情路由**
-   `/shuoshuo/:number`、`/guestbook/:number`（`ssg: 'discussions'`，由构建期
-   `generated/discussions.json` 逐条预渲染），并与 `public/_redirects` 的分工如下：
-   数字编号是新详情页，**不要**在 `_redirects` 里为它们写 301；自建管线时代的
-   非数字旧深链（`/shuoshuo/<slug>`）由 `ShuoShuoDetail` 的 `<Navigate replace>`
-   回列表页（不再用 `:splat` 别名路由 —— 那个路由已被真正的详情页取代）。
+   说说的 URL 由两条路由构成：`/shuoshuo`（第 1 页，`ssg: 'static'`）与
+   `/shuoshuo/page/:page`（`ssg: 'shuoshuo'`，逐页预渲染，页数由
+   `config/shuoshuo.mjs` 与 `generated/shuoshuo.json` 决定）。**逐条 `/shuoshuo/:id`
+   已取消**：不再有逐条详情页、逐条链接与逐条产物，历史深链由 `public/_redirects`
+   的 `/shuoshuo/:splat → /shuoshuo 301` 兜住（分页规则 `/shuoshuo/page/:splat` 必须写在它
+   之前，否则分页会被 301 掉）。留言板整页已删除（`/guestbook`、`/guestbook/:id`
+   与页面组件全部移除），不再登记任何 `/guestbook` 路由，旧外链由 `_redirects`
+   `/guestbook` 与 `/guestbook/*` 301 回 `/posts`。
 3. **`seo.title` 只写页面名前缀**（如「归档」），站点名后缀由 `ssg.mjs` 统一拼
    `siteConfig.title`；写全会导致「A - 跑路的duck - 跑路的duck」这类重复。
 4. **首页是唯一例外**：`/` 的 title 由 `siteConfig.seoHomeTitle` 逐字覆盖，不走拼接规则。
@@ -60,6 +67,9 @@ SEO（`title` 只写前缀，站点名后缀由 `ssg.mjs` 用 `siteConfig.title`
 ## 常见陷阱
 
 - 加了页面但忘了登记 `ROUTES`：`App.tsx` 能路由但 SSG 不直出，该 URL 首屏是空壳；
+- 把 `/guestbook*` 或逐条 `/shuoshuo/:id` 重新登记回 `routes.mjs`：页面组件与数据源都已删除，
+  且 `scripts/post-content-validator.mjs` 把这两类路径判为 `unknown site route`（文章里链接过去会被
+  fail-closed 拦下），登记只会让「路由清单」与「可校验的站内路由」长期打架；
 - 在 `preload.ts` 里新增键却没在 `routes.mjs` 标 `preload`（或反之）：键集合不一致，测试红；
 - 手改 sw 标记区：本地看起来正常，下一次构建被静默覆写；
 - 把 `seo.title` 写成完整标题：SEO 审计不报错，但搜索结果里站点名出现两次。

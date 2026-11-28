@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-Vitest 测试体系：当前 113 个测试文件 / 1228 个用例（以 `npm test` 实际输出为准）；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
+Vitest 测试体系：当前 112 个测试文件（按 `vitest.config.ts` 的 `include` 口径统计为 src 91 / scripts 20 / worker 1；用例数以 `npm test` 实际输出为准）；jsdom（src）与 node（scripts、worker）双环境；@testing-library/react；覆盖率门槛。
 
 ## 关键文件
 
@@ -28,11 +28,11 @@ Vitest 测试体系：当前 113 个测试文件 / 1228 个用例（以 `npm tes
 14. **内容页视觉回归（Archive / Search）**：两个页面都断言「已删除英文大写眉题」（`Archive` / `Search` 不应作为可见标题出现）与 `h1.font-sans`；归档断言年份/月份/文章行的 `rounded-overlay bg-surface-muted` / `rounded-control bg-surface` 卡片结构（不再要求 `border-t`/`divide-y`）、ghost「全部展开/折叠」按钮的 `aria-pressed` 与文章行保留首个标签/时长/评论语义（**不再有 category 位**）；搜索断言范围文字 tab 的 `aria-pressed`/`?scope=` 联动、范围只有三档（全部/正文内容/仅标题）、banner 同构骨架与 `Ctrl / ⌘ + K` 静态提示。**独立标签页已退役**：不要再为 `/tags` 写页面视觉断言，只有重定向/`?tag=` 筛选契约（见规则 18）。顺序/结构类断言优先用角色、文案与关键结构类，不要锁整串 className。
 15. **深色唯一视觉回归**：主题只有深色一套（`<html class="dark">`、`:root` 直接深色 Token），**没有浅色/ThemeToggle/主题切换**；单测断言不存在主题切换按钮、`localStorage.theme` 写入或 `dblog:toggle-theme` 命令。`getComputedStyle` 在 jsdom 下拿不到 `index.css` 的真实样式，**不得**写颜色计算断言；单测只锁语义类（`bg-background` / `bg-surface` / `text-content` / `border-line`）与结构，颜色/对比度用深色浏览器截图（1440×900、390×844、文章页/阅读模式）核对。
 16. **首页小部件、搜索与联系入口**：`Home.test` 断言七张卡片按固定顺序挂载（`.home-widget` ×7、`data-home-reveal` 依次为 `card-1`…`card-7`、section 顺序为 站主名片 → `home-contact` → `home-featured` → `home-stats` → `home-writing` → `home-tags` → `home-status`、无内联动画样式）、名片卡头像/`h1` 名字/身份/bio、其余卡片标题是 `h2`；搜索断言 `role="search"` + sr-only label + 空查询跳 `/search`、非空跳 `/search?q=<encoded>`（用 `useNavigate` mock 或 Router 探针，禁止断言 `window.location`）；统计卡断言 `#vercount_value_site_pv/site_uv` 两个锚点与「加载中」占位、`#vercount_value_page_pv` **不存在**、卡内无「N 篇文章」与字数、`fillVercountSpans()` 被调用、「统计自 Vercount」在卡内且不在 `h2` 里（标题可访问名称仍是「访问统计」）、且**不出现「今日」**；推荐阅读断言按 `updatedAt || date` 降序的前 3 篇与「看看文章 →」`/posts`；写作档案断言 12 根 `[data-month]` 柱与 `role="img"` 的文字摘要；标签云断言 `/posts?tag=<encoded>`；联系方式断言 GitHub/邮箱（只显示 @ 前前缀、完整地址在可访问名称里、无 `truncate`）/RSS/更新订阅/项目仓库，QQ 入口状态由 `social.qq` + `social.qqQrCode` 是否配置决定（**不得**写死「QQ 必然存在/必然不存在」，二维码链接由 CMS 填写）；`ContactWidget.test` 用可变 config mock 覆盖：未配置二维码不渲染 QQ 入口、鼠标 pointerenter 打开**非模态**小悬浮层（无 `aria-modal`、无 `.fixed.inset-0` 全屏遮罩）、触屏 pointerenter 不误开而 click 切换开合、经 portal 挂在 `body`（不被卡片裁剪）、宽度与锚点 `left/top|bottom` 样式存在、图片 `src` 来自配置、pointerleave / Escape / 悬浮层外部 pointerdown 可关、加载失败如实提示并可重置。jsdom 的 `getBoundingClientRect()` 全为 0，**不得**断言真实上下翻转与像素位置，锚定效果用 1440×900 / 390×844 浏览器截图核对；状态卡断言首帧 `data-status="unavailable"` 且外链可点。`homeStats.test` 用 fixture 锁住锚点年月、跨年回看、标签排序/上限、推荐阅读排序与空数据降级——**不得**用 `new Date()` 断言。首页布局是 CSS 网格（`index.css` 的 `.home-widgets`），jsdom 不加载 CSS，**不得写列数/滚动位置的计算断言**；只能断言结构与「`index.css` 里不再有 `html:has(.home-page)` 滚动锁」，实际多列/单列与滚动用浏览器截图（1440×900、1920×1080、1100×800、390×844）核对。`siteNav.ts`/Layout 断言侧栏没有「订阅与联系」「标签」「站内搜索」入口。
-17. **剩余页面视觉回归（Friends / ShuoShuo / Guestbook / NotFound / Cover / Watermark）**：统一断言无英文大写眉题与 `h1.font-sans`；友链断言页头/搜索/申请/提示/友链主列表与失联列表均为卡片式（`rounded-overlay bg-surface` / `bg-surface-muted`，1/2/3 列 `gap-3` 网格），不再断言 `border-t`/`divide-y`；说说断言页头 `rounded-overlay bg-surface` 卡片、`GiscusComments` 带 `card` prop（`rounded-overlay bg-surface` 容器），留言板断言轻页头 + giscus 容器仍在；404 断言 `Page Missing` 不存在、`404` 水印 `aria-hidden`、ghost 返回按钮与最近文章列表；封面/水印断言页头与 Cover 的 `role="tab"` 文字 tab（`aria-selected`/方向键）保留。**这些断言锁结构与可访问语义，不锁整段 className。**
+17. **剩余页面视觉回归（Friends / ShuoShuo / NotFound / Cover / Watermark）**：统一断言无英文大写眉题与 `h1.font-sans`；友链断言页头/搜索/申请/提示/友链主列表与失联列表均为卡片式（`rounded-overlay bg-surface` / `bg-surface-muted`，1/2/3 列 `gap-3` 网格），不再断言 `border-t`/`divide-y`；说说断言页头 `rounded-overlay bg-surface` 卡片、九宫格列数（1 张单列、2 张与 4 张两列、其余三列）、**没有**永久链接/分享/评论区（`.giscus-comments` 不存在）；404 断言 `Page Missing` 不存在、页头/搜索/入口/最近文章四块都是 `rounded-overlay bg-surface` 卡片、ghost 返回按钮与最近文章逐条链接；封面/水印断言页头与 Cover 的 `role="tab"` 文字 tab（`aria-selected`/方向键）保留。**这些断言锁结构与可访问语义，不锁整段 className。**
 18. **退役的 `/tags` 与标签筛选契约**：`public/_redirects` 仍须把 `/tags` 与 `/tags/*` 301 到 `/posts`；`App.tsx` 的 `TagsRedirect` 仍须把 `?tag=` 转交 `/posts?tag=`；全站标签链接一律 `/posts?tag=`。改标签能力时断言「非法 tag 从 URL 清理并回退全部文章」「点击标签写入 /posts?tag=」「移动标签 dialog 可 Escape 关闭且焦点回到入口」，**不得**恢复 `/tags` 的 SSG/sitemap 或页面测试。
-19. **说说/留言的区域识别与列表页**：`scripts/lib/comment-surface.test.mjs` 断言**按分类名**识别区域（`shuoshuo.categoryName` → `surface=shuoshuo`、`guestbook.categoryName` → `guestbook`、`文章评论` → `article`），未知分类为 `unknown`，且旧的固定 `discussionId` 仍能作为迁移兜底识别；分类名与旧编号冲突时**以分类名为准**。一条一帖之后编号不再固定，**不得**改回只按 discussionId 判定，也**不得**在 workflow 里按分类排除说说评论。
+19. **评论区域识别（只认文章评论区）**：`scripts/lib/comment-surface.test.mjs` 断言 `COMMENT_SURFACES` 只有 `article` / `unknown` 两个取值；`resolveCommentSurface({ categoryName: '文章评论', articleCategoryName: '文章评论' })` → `article`（分类名两端空白不影响判定），`说说` / `留言板` / `其他` / 缺省分类名一律 → `unknown`；`loadCommentSurfaceConfig()` 只返回 `{ articleCategoryName }`（当前配置值「文章评论」），文件缺失/损坏返回 `null`。**不得**断言「旧固定 discussionId 仍能识别区域」——该兜底已随分类收敛删除；也**不得**把 surface 写成三档（article/shuoshuo/guestbook）。注意脚本目前只在日志/复查表/飞书通知里使用 surface，不据此跳过处理，测试也不要断言「unknown 不产生任何动作」，除非先在脚本里实现该策略。
 
-20. **隐私政策与 Cookie 弹窗**：`CookieNotice.test` 断言 `role="dialog"` + `aria-modal`、隐私政策链接、同意写 localStorage、关闭写 sessionStorage 且不写 consent；`Privacy.test` 断言 `h1.font-sans`、各节卡片文案、邮箱/留言板链接与 WebPage JSON-LD；`cookieConsent.test` 断言 accepted 优先、关闭只写 sessionStorage、存储不可用降级。改 Cookie 文案必须同步检查 `index.html` 的 Clarity 实际加载行为，不得写「关闭提示即停用统计」。
+20. **隐私政策与 Cookie 弹窗**：`CookieNotice.test` 断言 `role="dialog"` + `aria-modal`、隐私政策链接、同意写 localStorage、关闭写 sessionStorage 且不写 consent；`Privacy.test` 断言 `h1.font-sans`、各节卡片文案、邮箱链接存在且**不存在**指向 `/guestbook` 的链接、以及 WebPage JSON-LD；`cookieConsent.test` 断言 accepted 优先、关闭只写 sessionStorage、存储不可用降级。改 Cookie 文案必须同步检查 `index.html` 的 Clarity 实际加载行为，不得写「关闭提示即停用统计」。
 
 21. **文章阅读控制台减负回归**：桌面 `CapsuleNav` 收缩态断言 44px 圆形目录按钮（`h-11 w-11` 量级）与展开浮层，不得恢复高胶囊轨/常驻大面板；**目录按钮二次点击必须收起**（断言点击两次后 `aria-expanded=false`，且按钮内 `List`/`X` 两层图标全程存在、只切换透明度——防止条件替换导致 click 丢失的回归）；移动 `ArticleToolbar` 断言只有目录/进度/分享/阅读模式四个按钮、没有「更多」菜单；文末断言顺序「许可 → 作者/改进 → 订阅 → 系列 → 相邻 → 相关 → 评论」，且使用 `surface`/`surface-muted` 色块（不再强制 `border-t`/`divide-y`）；系列当前篇保留 `aria-current="page"`。
 
@@ -40,7 +40,7 @@ Vitest 测试体系：当前 113 个测试文件 / 1228 个用例（以 `npm tes
 
 23. **友链自动化脚本测试**：检测/渲染/黑名单/巡检的纯函数分守在不同文件——`friend-form-core.test.mjs`（表单解析、校验、评论渲染、`looksLikeFriendApplication`、`backlinkUrl` 写入与透传）、`friend-backlink.test.mjs`（静态 `findBacklink` 与渲染共用的 `findBacklinkInAnchors`）、`render-html.test.mjs`（渲染器的同步 SSRF 拦截）、`friend-blacklist.test.mjs`（域名/泛域名/punycode 匹配）、`friend-backlink-audit-core.test.mjs`（巡检分类、`backlinkUrl` 优先口径与飞书文案）。改这些口径必须同时跑上述文件；`friend-page-fetch.mjs` 是申请检测与反链巡检共用的抓取层（无独立测试），改它至少跑 `friend-backlink.test.mjs` 并用 `node scripts/friend-link-check.mjs --check-url <公开页面>` 做一次冒烟。飞书通知文案改动没有单测兜底，必须用 `node scripts/feishu-webhook.mjs --print`（构造事件 JSON）核对正文无 Emoji、无控制字符。
 
-24. **说说/留言「一条一帖」的测试口径**：`src/utils/discussion-core.test.mjs`（归一化、排序、标题派生、摘要、**迁移标记与署名剥离**、meta description 长度、新建讨论 URL）；`ShuoShuo.test` / `Guestbook.test` 用 **mock 数据层**分别覆盖「有条目 / 抓到但没有内容（空态）/ 抓不到数据（错误态）」三态，并断言列表页**不内嵌 giscus**、发布入口指向 `/discussions/new?category=`；`ShuoShuoDetail.test` / `GuestbookDetail.test` 断言 `mapping="number"` + 该条编号、找不到条目时不注入评论区、旧 slug 深链回列表页。**列表页测试不得依赖真实的 `generated/discussions.json`**（它随构建变化，会把测试变成「今天恰好有几条」），一律 mock `@/services/discussions`。
+24. **说说的分页与页面测试口径**：`src/utils/shuoshuo.test.ts` 锁分页口径 —— `SHUOSHUO_PER_PAGE` 为 10、`shuoshuoPagePath(1)` 就是 `/shuoshuo`、第 2 页起为 `/shuoshuo/page/<n>`、非法页码（0/负数/NaN/小数）收敛到第 1 页、`shuoshuoPageCount` 按 10 向上取整且空列表算 1 页，以及 `buildShuoShuoDescription` 的 SEO 长度区间（50–160）、截断加省略号、分页与日期并进同一对括号、纯函数确定性。`ShuoShuo.test` 用 **mock 数据层**（`vi.mock('@/services/shuoshuo')` 覆盖 `getInitialShuoShuo`，`vi.hoisted` 保存可变列表）覆盖「有内容 / 空列表 / 分页 / 搜索」：11 条内容时第 1 页渲染 10 个 `article` 且出现「分页导航」、`/shuoshuo/page/2` 只渲染 1 个；九宫格按 1/2/4/5 张分别断言 `gridTemplateColumns`；并断言**没有**「永久链接」「分享」入口、没有 `.giscus-comments`。**不得**依赖真实的 `generated/shuoshuo.json`（它随构建变化），也**不得**再写逐条详情页测试（`/shuoshuo/:id`、`ShuoShuoDetail` 已取消）。`src/utils/viewTransition.test.ts` 锁共享元素转场名：按条目区分（防 A 卡片点进 B）、非法字符替换成短横线（CSS ident 合法）、`viewTransitionStyle` 在未启用时返回 `undefined`（SSR 输出里不能出现转场内联样式）、启用时返回 `{ viewTransitionName }`。评论区域识别的口径见规则 19（`scripts/lib/comment-surface.test.mjs`）。
 
 ## 常见陷阱
 
@@ -75,7 +75,7 @@ Vitest 测试体系：当前 113 个测试文件 / 1228 个用例（以 `npm tes
   正确断言是卡片结构、顺序与「`index.css` 里没有 `:has(.home-page)` 滚动锁」，实际布局用
   1440×900 / 1920×1080 / 1100×800 / 390×844 截图核对；
 - 把目录按钮两层图标改回条件渲染后只测第一次点击：必须断言连点两次后 `aria-expanded=false`，否则
-  mousedown/mouseup 目标替换导致 click 丢失的回归测不出来（规则 19）；
+  mousedown/mouseup 目标替换导致 click 丢失的回归测不出来（规则 21）；
 - 把搜索改回桌面三列网格/CompactPostCard 后不更新 Search.test：结果已统一 banner，`Search.test` 会红；
 - 把文章 category 加回 frontmatter、`/posts` 筛选项或 `PostCard` 信息位后只跑构建：`Posts.test` 的「没有 category tab / 没有 category 信息位」断言与 `Search.test` 的「范围只有三档」断言都会红 —— 文章只有 tags，这是有意的；
 - 只把 Archive/Friends 的主列表改成卡片、页头/筛选/面板仍是细线容器：这些页面已统一卡片化，视觉回归
@@ -84,8 +84,8 @@ Vitest 测试体系：当前 113 个测试文件 / 1228 个用例（以 `npm tes
   必须断言 `getHomeStats()` 的锚点（最新文章年月）与 fixture 推导值；
 - 把 `.post-meta` 在测试里只断言作者/日期存在：移动端布局回退成单行不会有任何测试变红；至少断言
   `flex-col` 与 `sm:flex-row` 两套结构，或把移动端换行纳入截图核对；
-- 说说页只测 giscus iframe 编号：页头卡片的 `rounded-overlay bg-surface` 与 `GiscusComments card`
-  容器丢失不会影响数据断言，视觉回归要单独断言；
+- 说说页只测「有几条」：页头卡片的 `rounded-overlay bg-surface`、九宫格列数（1/2/4/5 张）与「没有评论区」
+  都不会被条数断言覆盖，视觉回归要单独断言；
 - 把桌面目录改回高胶囊轨/给移动底栏加「更多」菜单后只跑构建：阅读控制台减负断言（规则 19）会红；
   改控制台至少跑 `CapsuleNav.test`、`Post.test` 与移动工具栏相关用例；
 - 首页搜索写成「输入即结果」后只测输入框：首页职责只有跳转，正确断言是提交后导航到 `/search?q=`；

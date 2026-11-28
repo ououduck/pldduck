@@ -18,9 +18,11 @@
 
 - **静态优先**：全部页面在构建期预渲染，未执行 JavaScript 也能完整阅读，水合后补齐交互。
 - **阅读体验**：目录、阅读进度恢复、专注模式、代码高亮/折叠、KaTeX、Mermaid、图片预览。
-- **全站深色唯一**：黑白强对比语义 Token，动效尊重 `prefers-reduced-motion`。
+- **一镜到底的页面过渡**：基于原生 View Transitions，列表封面与文章封面共享同一转场名，
+  在浏览器里连续变形而不是淡出淡入；不支持的环境自动退回纯 CSS 淡入，`prefers-reduced-motion` 下全部关闭。
+- **全站深色唯一**：黑白强对比语义 Token。
 - **分发力**：OG/Twitter Card、JSON-LD、RSS、Sitemap、`llms.txt`、Service Worker 离线壳。
-- **自动化**：评论反垃圾、友链申请/巡检/黑名单、外链扫描、飞书通知，全部由 GitHub Actions 驱动。
+- **自动化**：文章评论反垃圾、友链申请/巡检/黑名单、外链扫描、飞书通知，全部由 GitHub Actions 驱动。
 
 ## 页面一览
 
@@ -29,13 +31,15 @@
 | `/` | 小部件（Bento）个人主页：名片、联系方式、推荐阅读、访问统计、写作档案、热门标签、服务状态 |
 | `/posts`、`/post/:id` | Markdown 文章，构建期校验 frontmatter；标签筛选，无 category |
 | `/archive`、`/posts?tag=` | 归档时间线；标签筛选在文章列表页（独立 `/tags` 页已退役） |
-| `/shuoshuo`、`/shuoshuo/:number` | 说说列表与单条详情；**一条说说 = 一条 Discussion**，评论按编号精确锁定 |
+| `/shuoshuo`、`/shuoshuo/page/:page` | 说说（朋友圈式短动态），**每 10 条一个页面**；内容在 Pages CMS 维护，图片按微信朋友圈式九宫格展示 |
 | `/friends` | 友链展示（正常/失联分组）与申请入口；每周巡检记录里的「友链页面地址」是否仍挂本站反链 |
-| `/guestbook`、`/guestbook/:number` | 留言板列表与单份留言详情；**一份留言 = 一条 Discussion**，与文章评论共用反垃圾链路 |
 | `/search`、`Ctrl/Cmd + K` | 构建期生成的搜索索引，命令面板与搜索页共用评分 |
 | `/privacy` | 隐私政策（本地存储、统计、Giscus、第三方链接） |
 | `/cover`、`/watermark` | 封面生成器（批量 ZIP）与图片水印，全部本地处理 |
 | 侧栏底部 | 服务状态入口，跳转 Better Stack 自定义状态页（无独立路由） |
+
+评论只有**文章评论区**一处（Giscus → GitHub Discussions）。说说没有评论区、没有逐条独立页面；
+留言板已于 2026-11 整体下线（旧路径 301 回文章列表）。
 
 ## 技术栈
 
@@ -61,8 +65,11 @@ npm run dev                 # http://localhost:3000
 ```
 
 常用环境变量：`VITE_SITE_URL`（影响 canonical / OG / RSS / Sitemap）、`VITE_BASE_PATH`（子路径部署）、
-`VITE_BETTERSTACK_STATUS_PAGE_URL`（覆盖状态页地址）、`GITHUB_TOKEN`（构建期拉取文章评论数与说说/留言列表；
-未设置时本地构建会把这两个区域降级渲染，不影响其它页面）。
+`VITE_BETTERSTACK_STATUS_PAGE_URL`（覆盖状态页地址）、`GITHUB_TOKEN`（**仅**用于构建期拉取文章评论数，
+`scripts/fetch-giscus-comments.mjs`；未设置时文章卡片不展示评论数，其余页面完全不受影响）。
+
+> 站点内容全部来自仓库内文件（`posts/`、`shuoshuo/`、`friends/`），构建结果可复现 ——
+> 不抓取任何 GitHub Discussions 内容。
 
 提交前自查：
 
@@ -76,9 +83,11 @@ npm run build     # 生产构建（含产物与 SEO 审计）
 
 ```text
 pldduck/
-├── config/            # 站点/评论配置、routes.mjs（路由唯一数据源）、构建配置
-├── posts/ friends/    # 文章 Markdown、友链 JSON（一站一文件）
-├── generated/         # 构建产物：posts.json / friends.json / 搜索索引等
+├── config/            # 站点/评论配置、routes.mjs（路由唯一数据源）、shuoshuo.mjs（分页唯一数据源）、构建配置
+├── posts/             # 文章 Markdown
+├── shuoshuo/          # 说说 Markdown（Pages CMS「说说」集合，frontmatter 含 images 九宫格）
+├── friends/           # 友链 JSON（一站一文件）
+├── generated/         # 构建产物：posts.json / shuoshuo.json / friends.json / 搜索索引等
 ├── public/            # 静态资源、sw.js、离线页、生成的 feed / sitemap
 ├── scripts/           # 构建与自动化脚本，lib/ 为共享的安全、抓取与日志模块
 ├── worker/            # Cloudflare Worker：入口 + /api/status 逻辑
@@ -95,8 +104,9 @@ pldduck/
 | 文件 | 内容 | Pages CMS 集合 |
 | --- | --- | --- |
 | `config/site.config.json` | 标题、SEO、logo、社交、作者、分区开关、状态页地址 | 站点配置 |
-| `config/comments.config.json` | Giscus 评论、留言板、说说数据源 | 评论与留言板 |
+| `config/comments.config.json` | Giscus 评论（仅文章评论区） | 评论 |
 | `config/friend-blacklist.json` | 友链黑名单（支持 `*.example.com` 泛域名） | 友链黑名单 |
+| `shuoshuo/*.md` | 说说明文（`id` / `date` / `images` 九宫格图片） | 说说 |
 | `friends/*.json` | 友链条目（名称、地址、头像、简介、失联开关） | 友链 |
 
 两份站点配置在加载时合并为同一个 `siteConfig`，消费方无需感知拆分。
@@ -154,12 +164,15 @@ GitHub Secrets：`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID`、`FEISHU_WEBH
 | `friend-link.yml` | 友链 Issue 事件 | 申请检测、自动收录或转人工、黑名单拦截 |
 | `friend-backlink-audit.yml` | 每日 / 手动 | 反链巡检（只读，结果推飞书） |
 | `friend-availability-audit.yml` | 每日 / 手动 | 失联巡检，双向同步 `unavailable` |
-| `comment-keyword-filter.yml` | 评论/讨论事件 | 关键词拦截（minimize/delete） |
+| `comment-keyword-filter.yml` | 文章评论事件 | 关键词拦截（minimize/delete） |
 | `comment-keyword-recheck.yml` | 手动 | 用当前关键词全量复查历史评论 |
-| `akismet-discussion-comment-check.yml` | 评论事件 | Akismet 垃圾评论识别 |
+| `akismet-discussion-comment-check.yml` | 文章评论事件 | Akismet 垃圾评论识别 |
 | `check-broken-links.yml` | 手动 | 扫描文章外链失效情况并推飞书 |
 | `notify-post-update.yml` | 文章更新 | 向订阅 Issue 推送新文章通知 |
 | `feishu-webhook.yml` | push / 评论 / workflow 完成 | 飞书机器人通知 |
+
+评论相关的三个 workflow 只作用于**文章评论区**（`comments.config.json` 的 `comments.category`）；
+非「文章评论」分类的讨论一律跳过。
 
 ## 文档
 

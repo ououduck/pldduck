@@ -20,7 +20,7 @@
 
 1. **弹层栈语义**：useModalOverlay 的 openOverlayStack/scrollLockCount 是全局共享状态（多层弹层叠加时只第一个锁滚动、最后一个恢复）；hasOpenOverlay 用于页面快捷键守卫 —— 全部不得破坏。
 2. **View Transitions（一镜到底）**：页面切换必须 try/catch 回退（已有活动 transition 时同步抛 InvalidStateError）；水合首帧 `hasViewTransition=false`。
-   - **共享元素**：列表封面与详情页封面用同一个 `view-transition-name`（`src/utils/viewTransition.ts` 的 `postCoverTransitionName` / `shuoshuoCoverTransitionName`），由浏览器做几何插值；名字必须按条目区分，不能写成固定值。
+   - **共享元素**：列表封面与文章详情页封面用同一个 `view-transition-name`（`src/utils/viewTransition.ts` 的 `postCoverTransitionName`），由浏览器做几何插值；名字必须按条目区分，不能写成固定值。说说没有逐条页面，**不参与**共享转场（只保留整页过渡）。
    - **名字唯一性**：同一视图内**只能有一个元素**持有某个转场名 —— 文章列表只给精选卡开启（没有精选才给首条）、搜索结果只给第 1 条、说说列表只给第 1 条。给多张卡片同时开启会让浏览器丢弃转场（静默失效），也可能出现「封面从 A 卡片变形到 B 文章」的错配。
    - **开启条件**：`useSharedElementTransition()` 同时要求「浏览器支持 + 已水合 + 未要求减少动效」；转场名只能通过 `viewTransitionStyle()` 下发，未启用时必须是 `undefined` —— SSR 输出里出现转场内联样式会造成水合差异。
    - **整页不交叉淡化**：`::view-transition-old(route-content)` 保持 `opacity: 0`、新视图用 `--duration-route`（180ms）位移 + 淡入落位；长驻的顶栏/侧栏不在 `route-content` 内，不受影响。不得改回「旧页淡出 + 新页淡入」，那会让共享元素同时出现两份、看起来像重影。

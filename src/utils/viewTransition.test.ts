@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { postCoverTransitionName, shuoshuoCoverTransitionName, viewTransitionStyle } from './viewTransition';
+import { postCoverTransitionName, viewTransitionStyle } from './viewTransition';
 
 describe('viewTransition', () => {
   it('转场名按条目区分（避免从 A 卡片点进 B 文章时封面错配）', () => {
     expect(postCoverTransitionName('hello-world')).toBe('post-cover-hello-world');
     expect(postCoverTransitionName('a')).not.toBe(postCoverTransitionName('b'));
-    expect(shuoshuoCoverTransitionName('hello-shuoshuo')).toBe('shuoshuo-cover-hello-shuoshuo');
   });
 
   it('转场名是合法的 CSS ident（特殊字符替换为短横线）', () => {

@@ -25,6 +25,7 @@ import { extractMarkdownHeadings } from '../src/utils/headings-core.mjs';
 import { buildRssFeed } from './feed-generator.mjs';
 import { fetchCommentCounts } from './fetch-giscus-comments.mjs';
 import { SITEMAP_PAGES } from '../config/routes.mjs';
+import { SHUOSHUO_PER_PAGE, shuoshuoPagePath } from '../config/shuoshuo.mjs';
 
 const logger = createBuildLogger('gen:data');
 logger.start('Generate site data');
@@ -443,8 +444,8 @@ const buildPost = (record) => {
 // ── 说说（短动态）：shuoshuo/*.md 由 Pages CMS「说说」集合维护，
 // frontmatter 提供 id / date / images（九宫格图片），正文即动态内容。
 // 与文章同级的质量门槛：id/date 缺失、格式非法或重复一律 fail-closed，
-// 避免脏数据进入产物。解析提前到文章内容校验之前：文章正文里的
-// /shuoshuo/<id> 链接需要校验目标说说存在。
+// 避免脏数据进入产物。解析先于文章内容校验：`/shuoshuo` 分页路径与
+// generated/shuoshuo.json 的条数决定了说说页产物，文章校验依赖它先就位。
 const shuoshuoFiles = fs.existsSync(SHUOSHUO_DIR)
   ? fs.readdirSync(SHUOSHUO_DIR).filter((file) => file.endsWith('.md'))
   : [];
@@ -472,7 +473,7 @@ const shuoshuoRecords = shuoshuoFiles.map((filename) => {
     validationErrors.push(`Invalid front matter in shuoshuo/${filename}: id must be a non-empty string`);
   } else if (!/^[A-Za-z0-9_-]+$/.test(id)) {
     validationErrors.push(
-      `Invalid front matter in shuoshuo/${filename}: id "${id}" only allows letters, digits, hyphens and underscores (it becomes the /shuoshuo/<id> URL segment)`,
+      `Invalid front matter in shuoshuo/${filename}: id "${id}" only allows letters, digits, hyphens and underscores (it is the data key used by generated/shuoshuo.json)`,
     );
   }
   if (!formattedDate || !validateDateString(formattedDate)) {
@@ -878,9 +879,13 @@ const generateLlmsTxt = () => {
       `- [${escapeLinkText(post.title)}](${siteAbsoluteUrl(`/post/${post.id}`)}): ${post.excerpt.replace(/\n+/g, ' ').trim()}`,
   );
   // 说说为短动态，直接把剥离 Markdown 后的纯文本附在链接后，便于智能体直接读取内容。
-  const shuoshuoLines = shuoshuo.map((item) => {
+  // 链接必须指向**真实存在的页面**：说说没有逐条页面（每 10 条一个分页），
+  // 因此统一链到该条所在的列表分页（`/shuoshuo` 或 `/shuoshuo/page/<n>`）；
+  // 指向 `/shuoshuo/<id>` 会产出死链。
+  const shuoshuoLines = shuoshuo.map((item, index) => {
     const snippet = markdownToSearchText(item.content).slice(0, 60) || '图片动态';
-    return `- [说说：${escapeLinkText(snippet)}](${siteAbsoluteUrl(`/shuoshuo/${item.id}`)})`;
+    const pagePath = shuoshuoPagePath(Math.floor(index / SHUOSHUO_PER_PAGE) + 1);
+    return `- [说说：${escapeLinkText(snippet)}](${siteAbsoluteUrl(pagePath)})`;
   });
 
   const content = [

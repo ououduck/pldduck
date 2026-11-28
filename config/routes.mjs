@@ -16,11 +16,11 @@
  * - preload   悬停时预加载该页 chunk（仅静态页适用，键须与 preload.ts 一致）
  * - sw        离线导航时允许用应用壳（首页）兜底渲染
  * - ssg       构建期预渲染方式：'static' 单页 / 'static-home' 首页 / 'posts' 逐条 /
- *             'shuoshuo' 逐条（每条 shuoshuo/*.md 一个详情页）/ 'not-found'
+ *             'shuoshuo' 分页（每页 SHUOSHUO_PER_PAGE 条，见 config/shuoshuo.mjs）/ 'not-found'
  * - seo       静态页页面级 SEO；title 只写前缀，站点名后缀由 ssg.mjs 用 siteConfig.title 拼接，
  *             缺省表示该页 title/description 完全由页面组件的 Seo 输出
- * - sitemap   进入 sitemap-pages.xml 的条目（文章与说说详情由各自子枚举负责；说说列表页
- *             正常收录）
+ * - sitemap   进入 sitemap-pages.xml 的条目（文章详情由子 sitemap 负责；说说只有列表页与
+ *             分页页，均由本清单收录）
  * - cssEntry  该路由首屏额外依赖的懒加载模块源码路径（Vite manifest 的 src 键）。页面把
  *             首屏用不到的样式拆到独立 CSS 后，由该模块静态 import；ssg.mjs 据此在直访
  *             页面的 head 中预置对应 <link rel="stylesheet">，避免首帧无样式闪烁（FOUC）。
@@ -184,8 +184,8 @@ export const NOT_FOUND_CSS_ENTRY = ROUTES.find((item) => item.path === NOT_FOUND
 /** 文章详情页首屏样式所属的懒加载模块（ssg.mjs 注入路由级 CSS 用）。 */
 export const POST_CSS_ENTRY = ROUTES.find((item) => item.ssg === 'posts')?.cssEntry;
 
-/** 说说详情页首屏样式所属的懒加载模块（ssg.mjs 注入路由级 CSS 用）。 */
-export const SHUOSHUO_DETAIL_CSS_ENTRY = ROUTES.find((item) => item.ssg === 'shuoshuo')?.cssEntry;
+/** 说说分页页首屏样式所属的懒加载模块（ssg.mjs 注入路由级 CSS 用）。 */
+export const SHUOSHUO_PAGED_CSS_ENTRY = ROUTES.find((item) => item.ssg === 'shuoshuo')?.cssEntry;
 
 const segments = [...new Set(ROUTES.map((item) => item.segment).filter((item) => Boolean(item)))];
 

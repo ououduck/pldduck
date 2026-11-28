@@ -11,7 +11,7 @@ import { withBasePath } from './base-path.mjs';
 import { parseEnvNumber } from './lib/env.mjs';
 import { createBuildLogger } from './build-logger.mjs';
 import { loadPostsWithContent } from './ssg-data-loader.mjs';
-import { SSG_STATIC_PAGES, NOT_FOUND_CSS_ENTRY, POST_CSS_ENTRY, SHUOSHUO_DETAIL_CSS_ENTRY } from '../config/routes.mjs';
+import { SSG_STATIC_PAGES, NOT_FOUND_CSS_ENTRY, POST_CSS_ENTRY, SHUOSHUO_PAGED_CSS_ENTRY } from '../config/routes.mjs';
 import { shuoshuoPagePath, shuoshuoPageCount } from '../config/shuoshuo.mjs';
 
 const logger = createBuildLogger('ssg');
@@ -608,8 +608,8 @@ export const runSsg = async ({
       skippedPages.push(`/${page.path}`);
       continue;
     }
-    // 页面级 schema 已由页面组件 Seo 的 structuredData 输出（about/shuoshuo/guestbook，
-    // 以及 tags/archive/friends 等页），SSG 不再重复注入，避免同一 @type 出现两份 JSON-LD。
+    // 页面级 schema 已由页面组件 Seo 的 structuredData 输出（首页/说说/友链等页），
+    // SSG 不再重复注入，避免同一 @type 出现两份 JSON-LD。
     const schema = page.schemaFromSeo ? '' : createStaticPageSchema(page);
     const extraHead = page.path === 'posts' ? postsExtraHead : '';
     try {
@@ -633,7 +633,7 @@ export const runSsg = async ({
       continue;
     }
     try {
-      await writePage(entry.url, entry.outDir, '', SHUOSHUO_DETAIL_CSS_ENTRY);
+      await writePage(entry.url, entry.outDir, '', SHUOSHUO_PAGED_CSS_ENTRY);
     } catch (error) {
       failedPages.push({ url: entry.url, error: formatError(error) });
     }

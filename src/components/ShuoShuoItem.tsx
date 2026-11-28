@@ -20,6 +20,7 @@ import { ProgressiveImage } from '@/components/ProgressiveImage';
 import { formatDate } from '@/utils/date';
 import { stripMarkdown } from '@/utils/markdownText';
 import { shuoshuoPath } from '@/utils/shuoshuo';
+import { shuoshuoCoverTransitionName, viewTransitionStyle } from '@/utils/viewTransition';
 import type { ImageViewerImage } from '@/components/ImageViewer';
 
 /** 九宫格列数：1 张铺满、2 张两列、其余三列（与九宫格惯例一致）。 */
@@ -70,6 +71,13 @@ interface ShuoShuoItemProps {
   /** 列表页展示「永久链接」入口指向独立页；详情页隐藏（自身即独立页）。 */
   showDetailLink?: boolean;
   /**
+   * 为九宫格首图启用「一镜到底」共享转场（列表首图 → 详情页首图）。
+   * 默认 false：调用方需保证同一视图内最多一条说说开启，见 utils/viewTransition.ts。
+   */
+  shareImageTransition?: boolean;
+  /** 动画类：列表定位高亮等一次性强调（不参与共享转场）。 */
+  isHighlighted?: boolean;
+  /**
    * 预计算的分享摘要（stripMarkdown 结果）：列表页由 ShuoShuo.tsx 的
    * strippedContents 缓存传入，避免每次击键重渲染对每条说说重跑正则链。
    * 未传时回退组件内计算（详情页单条场景无成本顾虑）。
@@ -82,6 +90,7 @@ export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({
   onPreview,
   onShare,
   showDetailLink = true,
+  shareImageTransition = false,
   shareSnippet,
 }) => {
   // 分享/永久链接的 aria-label 共用同一段文本，只计算一次。
@@ -146,6 +155,8 @@ export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({
   );
 
   const gridImages = item.images ?? [];
+  // 九宫格首图参与「一镜到底」：列表首图 → 详情页首图连续变形（名字按条目区分）。
+  const firstImageTransitionStyle = viewTransitionStyle(shuoshuoCoverTransitionName(item.id), shareImageTransition);
 
   return (
     <article className="rounded-overlay bg-surface p-4 transition-colors hover:bg-surface-muted md:p-5">
@@ -195,6 +206,7 @@ export const ShuoShuoItem: React.FC<ShuoShuoItemProps> = ({
                 onClick={() =>
                   onPreview(gallery, clampGalleryIndex(gallery.length - gridImages.length + index, gallery.length))
                 }
+                style={index === 0 ? firstImageTransitionStyle : undefined}
                 className={`group relative block w-full overflow-hidden rounded-media bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${getImageAspectClass(gridImages.length)}`}
                 aria-label={`查看图片 ${index + 1}，共 ${gallery.length} 张`}
               >

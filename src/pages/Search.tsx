@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import { LoaderCircle } from 'lucide-react';
 import { SearchField } from '@/components/SearchField';
 import { usePostSearch } from '@/hooks/usePostSearch';
+import { useSharedElementTransition } from '@/hooks/useSharedElementTransition';
 import type { PostSearchScope } from '@/services/posts';
 import { PostCard } from '@/components/PostCard';
 import type { PostMetadata } from '../types';
@@ -60,6 +61,8 @@ export const Search = () => {
   const searchInputFocusedRef = useRef(false);
   const [searchScope, setSearchScope] = useState<PostSearchScope>('all');
   const [sharePost, setSharePost] = useState<PostMetadata | null>(null);
+  // 一镜到底（首条结果封面 → 文章封面）只在支持 View Transitions 且未要求减少动效时开启。
+  const sharedElementTransition = useSharedElementTransition();
   const { searchQuery, isSearching, searchError, results, handleSearch, setSearchQuery, clearSearch, hasSearchQuery } =
     // 不把 URL 的 ?q= 作为 useState 初始值：SSG 预渲染的是无 q 的默认界面，
     // 首帧用空查询渲染可保证带 q 直访时客户端首帧与服务端 HTML 一致（水合无冲突）；
@@ -282,8 +285,15 @@ export const Search = () => {
                   {/* 统一横幅卡片：移动端封面在上、桌面图左文右（与文章列表一致），
                       不再同时渲染两套卡片网格。 */}
                   <div className="flex flex-col gap-4">
-                    {results.map((post) => (
-                      <PostCard key={post.id} post={post} variant="banner" onShare={setSharePost} />
+                    {results.map((post, index) => (
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        variant="banner"
+                        onShare={setSharePost}
+                        // 只给第一条结果开启封面转场：同一视图内转场名必须唯一。
+                        shareCoverTransition={sharedElementTransition && index === 0}
+                      />
                     ))}
                   </div>
                 </div>

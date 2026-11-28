@@ -11,6 +11,7 @@ import { assetUrl } from '@/utils/siteUrl';
 import { preloadPage } from '@/utils/preload';
 import { ProgressiveImage } from '@/components/ProgressiveImage';
 import { isPinnedFeaturedPost } from '@/utils/postSelection';
+import { postCoverTransitionName, viewTransitionStyle } from '@/utils/viewTransition';
 
 // 组件 props 类型（全仓库仅本文件使用，不导出避免公共 API 承诺）。
 interface PostCardProps {
@@ -19,6 +20,11 @@ interface PostCardProps {
   /** card：搜索页等三列网格用的竖排卡；banner：文章列表的横向横幅。 */
   variant?: 'card' | 'banner';
   onShare: (post: PostMetadata) => void;
+  /**
+   * 是否为该封面启用「一镜到底」共享转场（列表 → 文章的封面连续变形）。
+   * 默认 false：调用方需保证同一视图内最多一张卡片开启，见 utils/viewTransition.ts。
+   */
+  shareCoverTransition?: boolean;
 }
 
 /**
@@ -55,7 +61,16 @@ const PostMetaSeparator = ({ className = 'text-zinc-300 dark:text-zinc-700' }: {
   </span>
 );
 
-const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card', onShare }) => {
+const PostCardImpl: React.FC<PostCardProps> = ({
+  post,
+  featured,
+  variant = 'card',
+  onShare,
+  shareCoverTransition = false,
+}) => {
+  // 共享转场名（一镜到底）：关闭时应为 undefined，SSR 与客户端首帧一致。
+  const coverTransitionStyle = viewTransitionStyle(postCoverTransitionName(post.id), shareCoverTransition);
+
   const handleShareClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -83,6 +98,7 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
       >
         <Link
           to={`/post/${post.id}`}
+          style={coverTransitionStyle}
           className="absolute inset-0 z-0 block overflow-hidden bg-surface sm:relative sm:inset-auto sm:z-auto sm:w-[34%] sm:shrink-0"
           aria-label={`阅读文章：${post.title}`}
         >
@@ -162,6 +178,7 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
         <div className="grid gap-4 sm:grid-cols-5 sm:items-center sm:gap-6 md:gap-8">
           <Link
             to={`/post/${post.id}`}
+            style={coverTransitionStyle}
             className="relative block aspect-[16/9] overflow-hidden rounded-media bg-zinc-200/60 dark:bg-zinc-900 sm:col-span-2 sm:aspect-[16/10]"
             aria-label={`阅读文章：${post.title}`}
           >
@@ -231,6 +248,7 @@ const PostCardImpl: React.FC<PostCardProps> = ({ post, featured, variant = 'card
     <article className="flex h-full min-w-0 flex-col" onMouseEnter={() => preloadPage(`/post/${post.id}`)}>
       <Link
         to={`/post/${post.id}`}
+        style={coverTransitionStyle}
         className="relative block aspect-[16/10] overflow-hidden rounded-media bg-zinc-200/60 dark:bg-zinc-900"
         aria-label={`阅读文章：${post.title}`}
       >

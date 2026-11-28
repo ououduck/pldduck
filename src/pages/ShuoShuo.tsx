@@ -24,6 +24,7 @@ import { ContentStatus } from '@/components/ContentStatus';
 import { copyTextToClipboard } from '@/utils/clipboard';
 import { stripMarkdown } from '@/utils/markdownText';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useSharedElementTransition } from '@/hooks/useSharedElementTransition';
 
 // 说说页描述：Seo meta 与页面级 schema 共用同一文案，保证一致。
 const SHUOSHUO_DESCRIPTION =
@@ -34,6 +35,7 @@ const LOCATE_PARAM = 'id';
 
 export const ShuoShuo = () => {
   const shouldReduceMotion = useReducedMotion();
+  const sharedElementTransition = useSharedElementTransition();
   const allItems = getInitialShuoShuo();
   const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
@@ -217,12 +219,14 @@ export const ShuoShuo = () => {
         />
       ) : (
         <div className="mt-4 flex flex-col gap-3">
-          {filteredItems.map((item) => (
+          {filteredItems.map((item, index) => (
             <div key={item.id} data-shuoshuo-id={item.id} className="scroll-mt-24">
               <ShuoShuoItem
                 item={item}
-                onPreview={(images, index) => setPreviewGallery({ images, index })}
+                onPreview={(images, idx) => setPreviewGallery({ images, index: idx })}
                 onShare={handleShare}
+                // 一镜到底：整页只有第一条说说持有首图转场名，避免同视图重名。
+                shareImageTransition={sharedElementTransition && index === 0}
                 shareSnippet={(strippedContents.get(item.id) ?? '').slice(0, 24) || item.date}
               />
             </div>

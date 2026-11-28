@@ -48,6 +48,8 @@ import type { MarkdownHeading } from '@/utils/headings';
 import { formatDate } from '@/utils/date';
 import { stripMarkdown } from '@/utils/markdownText';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useSharedElementTransition } from '@/hooks/useSharedElementTransition';
+import { postCoverTransitionName, viewTransitionStyle } from '@/utils/viewTransition';
 import { hasOpenOverlay } from '@/hooks/useModalOverlay';
 import { useReadingMode } from '@/components/ReadingModeContext';
 import { GiscusComments } from '@/components/GiscusComments';
@@ -1067,6 +1069,10 @@ export const Post = () => {
   const [mermaidRenderer, setMermaidRenderer] = useState<MermaidRenderer | null>(null);
   const [mermaidTheme, setMermaidTheme] = useState<'light' | 'dark'>('light');
   const shouldReduceMotion = useReducedMotion();
+  // 一镜到底：列表卡片封面与此处大图使用同一个 view-transition-name，
+  // 由浏览器把封面从卡片位置连续变形到文章头图（不是淡入淡出）。
+  const sharedElementTransition = useSharedElementTransition();
+  const coverTransitionStyle = viewTransitionStyle(postCoverTransitionName(id ?? ''), sharedElementTransition);
   const { isReadingMode, exitReadingMode } = useReadingMode();
   const [adjacentPosts, setAdjacentPosts] = useState<{ prev: PostMetadata | null; next: PostMetadata | null }>(
     ssgRouteData?.adjacentPosts ?? { prev: null, next: null },
@@ -2120,6 +2126,7 @@ export const Post = () => {
             {post.coverImage && (
               <button
                 type="button"
+                style={coverTransitionStyle}
                 className="post-cover print-hidden order-1 mx-auto mb-6 block w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-zinc-900 sm:order-none sm:mb-8 md:mb-12 dark:focus-visible:outline-zinc-100"
                 onClick={() => setPreviewImage({ src: resolveBrowserAsset(post.coverImage!)!, alt: post.title })}
                 aria-label={`预览文章封面：${post.title}`}

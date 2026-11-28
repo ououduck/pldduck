@@ -22,6 +22,7 @@ import { formatDate } from '@/utils/date';
 import { stripMarkdown } from '@/utils/markdownText';
 import { copyTextToClipboard } from '@/utils/clipboard';
 import { getInitialShuoShuoItem, getShuoShuoTitle } from '@/services/shuoshuo';
+import { useSharedElementTransition } from '@/hooks/useSharedElementTransition';
 
 export const ShuoShuoDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +32,7 @@ export const ShuoShuoDetail = () => {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [autoCopied, setAutoCopied] = useState<boolean | null>(null);
+  const sharedElementTransition = useSharedElementTransition();
 
   if (!item) {
     // 说说不存在：SPA 内以 200 响应返回该内容，必须 noindex，
@@ -154,6 +156,8 @@ export const ShuoShuoDetail = () => {
           onPreview={(images, index) => setPreviewGallery({ images, index })}
           onShare={handleShare}
           showDetailLink={false}
+          // 与列表页首图同名：列表 → 详情的首图连续变形（一镜到底）。
+          shareImageTransition={sharedElementTransition}
         />
       </div>
 

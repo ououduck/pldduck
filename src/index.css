@@ -90,6 +90,8 @@
      --ease-emphasized 为更强减速的入场曲线（motion.ts 的 easeOut 同值）。 */
   --duration-fast: 150ms;
   --duration-normal: 240ms;
+  /* 页面切换：比通用 fast 稍长，给共享元素的几何插值留出落位时间（240ms 以上会显得拖沓）。 */
+  --duration-route: 180ms;
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -374,37 +376,44 @@
     outline-offset: 3px;
   }
 
-  /* 主题切换的 View Transition 动画 */
+  /* 页面切换的 View Transition 动画（一镜到底）
+     - 根元素不做整体淡出淡入：整页交叉淡化会让共享元素（列表封面 → 文章封面）
+       同时出现两份「同一张图」，视觉上是重影；
+     - 旧视图保持完全不透明直到被新视图覆盖，新视图用短促的位移 + 淡入落位，
+       长驻的 nav / 侧栏因为不在 route-content 里，不受影响也不闪；
+     - 共享元素（post-cover-* / shuoshuo-cover-*）由浏览器自动做几何插值，
+       这里只统一它的时长与曲线，让变形与页面入场同步。 */
   ::view-transition-old(root),
   ::view-transition-new(root),
-  ::view-transition-old(route-content),
-  ::view-transition-new(route-content) {
+  ::view-transition-old(route-content) {
     animation: none;
     mix-blend-mode: normal;
   }
 
   ::view-transition-old(route-content) {
-    animation: route-fade-out 0.16s ease both;
-  }
-  ::view-transition-new(route-content) {
-    animation: route-fade-in 0.18s ease both;
+    /* 旧内容不淡出：让新内容直接落位，避免「先空一帧再出现」的塌陷感。 */
+    opacity: 0;
   }
 
-  @keyframes route-fade-out {
-    from {
-      opacity: 1;
-    }
-    to {
-      opacity: 0;
-    }
+  ::view-transition-new(route-content) {
+    animation: route-fade-in var(--duration-route, 180ms) var(--ease-standard, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    mix-blend-mode: normal;
+  }
+
+  /* 共享元素：几何插值由浏览器完成，这里只压低位移感、统一缓动。 */
+  ::view-transition-group(*) {
+    animation-duration: var(--duration-route, 180ms);
+    animation-timing-function: var(--ease-standard, cubic-bezier(0.22, 1, 0.36, 1));
   }
 
   @keyframes route-fade-in {
     from {
       opacity: 0;
+      translate: 0 8px;
     }
     to {
       opacity: 1;
+      translate: 0 0;
     }
   }
 }

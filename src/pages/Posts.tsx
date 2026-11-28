@@ -13,6 +13,7 @@ import { Seo } from '../components/Seo';
 import { PostCard } from '@/components/PostCard';
 import { usePostSearch } from '@/hooks/usePostSearch';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useSharedElementTransition } from '@/hooks/useSharedElementTransition';
 import { ContentStatus, LoadingStatus } from '@/components/ContentStatus';
 import { TagsPanel, type TagSummary } from '@/components/TagsPanel';
 import { sortPosts } from '@/utils/postSorting';
@@ -186,6 +187,8 @@ export const Posts = () => {
     });
 
   const shouldReduceMotion = useReducedMotion();
+  // 一镜到底（列表封面 → 文章封面）只在支持 View Transitions 且未要求减少动效时开启。
+  const sharedElementTransition = useSharedElementTransition();
   // 标签清单来自全量文章（右侧卡片常驻），计数不随搜索/标签筛选变化。
   const allTags = useMemo(() => buildTagList(allPosts), [allPosts]);
   const tagNames = useMemo(() => new Set(allTags.map((tag) => tag.name)), [allTags]);
@@ -589,6 +592,9 @@ export const Posts = () => {
                     featured
                     variant="banner"
                     onShare={setSharePost}
+                    // 一镜到底：整页只有一张卡片持有封面转场名（精选卡优先），
+                    // 其余卡片共用 route-content 的整体过渡，避免同视图重名。
+                    shareCoverTransition={sharedElementTransition}
                   />
                 )}
                 {remainingPosts.length > 0 ? (
